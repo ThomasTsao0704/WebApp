@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -109,7 +110,8 @@
             color: #333;
         }
 
-        .currency-input input, .currency-input select {
+        .currency-input input,
+        .currency-input select {
             padding: 15px;
             border: 2px solid #e1e5e9;
             border-radius: 10px;
@@ -117,7 +119,8 @@
             transition: all 0.3s ease;
         }
 
-        .currency-input input:focus, .currency-input select:focus {
+        .currency-input input:focus,
+        .currency-input select:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -221,7 +224,8 @@
             flex-wrap: wrap;
         }
 
-        .chart-controls select, .chart-controls button {
+        .chart-controls select,
+        .chart-controls button {
             padding: 10px 15px;
             border: 2px solid #e1e5e9;
             border-radius: 8px;
@@ -270,6 +274,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -279,9 +284,9 @@
 
         <div class="main-content">
             <div class="tabs">
-                <div class="tab active" onclick="switchTab('converter')">匯率轉換</div>
-                <div class="tab" onclick="switchTab('rates')">即時匯率</div>
-                <div class="tab" onclick="switchTab('history')">歷史分析</div>
+                <div class="tab active" onclick="switchTab('converter', this)">匯率轉換</div>
+                <div class="tab" onclick="switchTab('rates', this)">即時匯率</div>
+                <div class="tab" onclick="switchTab('history', this)">歷史分析</div>
             </div>
 
             <!-- 匯率轉換器 -->
@@ -307,9 +312,9 @@
                                 <option value="TWD" selected>新台幣 (TWD)</option>
                             </select>
                         </div>
-                        
+
                         <button class="swap-btn" onclick="swapCurrencies()">⇄</button>
-                        
+
                         <div class="currency-input">
                             <label>轉換金額</label>
                             <input type="text" id="convertedAmount" readonly>
@@ -329,7 +334,7 @@
                             </select>
                         </div>
                     </div>
-                    
+
                     <div id="conversionResult" class="result" style="display: none;"></div>
                 </div>
             </div>
@@ -373,207 +378,203 @@
             </div>
         </div>
     </div>
-
     <script>
-        // 全局變數
-        let exchangeRates = {};
-        let chart = null;
-        
-        // 模擬匯率數據（由於沒有實際API key，使用模擬數據）
-        const simulatedRates = {
-            'USD': 1,
-            'EUR': 0.85,
-            'GBP': 0.73,
-            'JPY': 110.25,
-            'CNY': 6.45,
-            'KRW': 1180.50,
-            'HKD': 7.80,
-            'SGD': 1.35,
-            'AUD': 1.45,
-            'CAD': 1.25,
-            'TWD': 28.50
-        };
+        // ==== 設定區 ====
+        const OXR_APP_ID = '8e1a9c3ce6984787a88fac151cbd7dca'; // ← 你的 App ID（建議：改走後端 proxy，前端不要放金鑰）
+        const OXR_API = 'https://openexchangerates.org/api'; // 免費版 base 固定 USD
 
-        // 模擬歷史數據生成
-        function generateHistoricalData(baseCurrency, targetCurrency, days) {
-            const data = [];
-            const baseRate = simulatedRates[targetCurrency] / simulatedRates[baseCurrency];
-            const today = new Date();
-            
-            for (let i = days; i >= 0; i--) {
-                const date = new Date(today);
-                date.setDate(date.getDate() - i);
-                
-                // 模擬匯率波動
-                const volatility = 0.02; // 2% 波動
-                const randomFactor = 1 + (Math.random() - 0.5) * volatility;
-                const rate = baseRate * randomFactor;
-                
-                data.push({
-                    date: date.toISOString().split('T')[0],
-                    rate: parseFloat(rate.toFixed(4))
-                });
-            }
-            
+        // ==== 全域 ====
+        let exchangeRates = {}; // latest.json 回來的 rates（相對 USD）
+        let chart = null;
+
+        // ==== 工具 ====
+        const qs = (id) => document.getElementById(id);
+        const fmt4 = (n) => Number(n).toFixed(4);
+
+        function toISODateUTC(d) { // YYYY-MM-DD（以 UTC 算）
+            const y = d.getUTCFullYear();
+            const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(d.getUTCDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+        function isTodayUTC(iso) { return iso === toISODateUTC(new Date()); }
+
+        // 兩幣交叉換算（基準 USD）
+        function convert(amount, from, to) {
+            const rFrom = exchangeRates[from];
+            const rTo = exchangeRates[to];
+            if (!rFrom || !rTo) return null;
+            return amount * (rTo / rFrom);
+        }
+
+        // ==== API ====
+        async function fetchLatest() {
+            const url = `${OXR_API}/latest.json?app_id=${encodeURIComponent(OXR_APP_ID)}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`latest failed: ${res.status}`);
+            const data = await res.json(); // { base:'USD', timestamp, rates:{...} }
+            data.rates['USD'] = 1.0;       // 保險：補上 USD 自身
             return data;
         }
 
-        // 初始化
+        async function fetchTimeSeries(base, target, days) {
+            const endUTC = new Date();
+            const startUTC = new Date();
+            startUTC.setUTCDate(endUTC.getUTCDate() - days);
+
+            const startStr = toISODateUTC(startUTC);
+            const endStr = toISODateUTC(endUTC);
+
+            // 方案 A（付費）：time-series（一次取完）
+            const tsUrl = `${OXR_API}/time-series.json?app_id=${encodeURIComponent(OXR_APP_ID)}&base=USD&symbols=${encodeURIComponent([base, target].join(','))}&start=${startStr}&end=${endStr}`;
+            try {
+                const r = await fetch(tsUrl);
+                if (r.ok) {
+                    const j = await r.json(); // rates: { 'YYYY-MM-DD': { CODE: num } }
+                    const pts = Object.entries(j.rates)
+                        .sort((a, b) => a[0].localeCompare(b[0]))
+                        .map(([d, obj]) => ({ date: d, rate: Number(obj[target]) / Number(obj[base]) }))
+                        .filter(p => !isTodayUTC(p.date)); // 拿掉今天（非日終）
+                    return pts;
+                }
+            } catch (_) { /* fall back */ }
+
+            // 方案 B（免費）：逐日 historical（限 symbols，避免大 payload）
+            const want = Array.from(new Set(['USD', base, target])).join(',');
+            const pts = [];
+            const cur = new Date(startUTC);
+            while (toISODateUTC(cur) <= endStr) {
+                const dStr = toISODateUTC(cur);
+                if (!isTodayUTC(dStr)) { // 今天用 latest
+                    const url = `${OXR_API}/historical/${dStr}.json?app_id=${encodeURIComponent(OXR_APP_ID)}&symbols=${encodeURIComponent(want)}`;
+                    try {
+                        const r = await fetch(url);
+                        if (r.ok) {
+                            const j = await r.json();
+                            const rb = j.rates[base], rt = j.rates[target];
+                            if (rb && rt) pts.push({ date: dStr, rate: Number(rt) / Number(rb) });
+                        }
+                    } catch (_) { /* 忽略單日錯誤 */ }
+                }
+                cur.setUTCDate(cur.getUTCDate() + 1);
+            }
+
+            // 今天點：用 latest 當時值補上（若你想完全排除今天，刪掉這段）
+            if (isTodayUTC(endStr)) {
+                const latest = await fetchLatest();
+                const rb = latest.rates[base], rt = latest.rates[target];
+                if (rb && rt) pts.push({ date: endStr, rate: Number(rt) / Number(rb) });
+            }
+
+            return pts.sort((a, b) => a.date.localeCompare(b.date));
+        }
+
+        // ==== 初始化 ====
         async function init() {
-            await loadExchangeRates();
+            try {
+                await loadExchangeRates();
+            } catch (e) {
+                console.error(e);
+                alert('載入即時匯率失敗，請稍後再試或檢查 App ID。');
+            }
             setupEventListeners();
             updateConversion();
             loadCurrentRates();
             initChart();
         }
 
-        // 載入匯率數據
         async function loadExchangeRates() {
-            try {
-                // 模擬API調用
-                exchangeRates = { ...simulatedRates };
-                console.log('匯率數據載入成功');
-            } catch (error) {
-                console.error('載入匯率失敗:', error);
-                // 使用備用數據
-                exchangeRates = { ...simulatedRates };
-            }
+            const data = await fetchLatest();
+            exchangeRates = data.rates || {};
+            exchangeRates['USD'] = 1.0;
+            console.log('最新匯率已載入（基準 USD）');
         }
 
-        // 設置事件監聽器
         function setupEventListeners() {
-            document.getElementById('amount').addEventListener('input', updateConversion);
-            document.getElementById('fromCurrency').addEventListener('change', updateConversion);
-            document.getElementById('toCurrency').addEventListener('change', updateConversion);
+            qs('amount').addEventListener('input', updateConversion);
+            qs('fromCurrency').addEventListener('change', updateConversion);
+            qs('toCurrency').addEventListener('change', updateConversion);
         }
 
-        // 切換分頁
-        function switchTab(tabName) {
-            // 更新分頁按鈕
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            event.target.classList.add('active');
-
-            // 更新內容
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            document.getElementById(tabName).classList.add('active');
-
-            // 特殊處理
-            if (tabName === 'rates') {
-                loadCurrentRates();
-            } else if (tabName === 'history') {
-                updateChart();
-            }
-        }
-
-        // 交換貨幣
-        function swapCurrencies() {
-            const fromSelect = document.getElementById('fromCurrency');
-            const toSelect = document.getElementById('toCurrency');
-            
-            const temp = fromSelect.value;
-            fromSelect.value = toSelect.value;
-            toSelect.value = temp;
-            
-            updateConversion();
-        }
-
-        // 更新轉換結果
+        // ==== 轉換 ====
         function updateConversion() {
-            const amount = parseFloat(document.getElementById('amount').value) || 0;
-            const fromCurrency = document.getElementById('fromCurrency').value;
-            const toCurrency = document.getElementById('toCurrency').value;
-            
+            const amount = parseFloat(qs('amount').value) || 0;
+            const from = qs('fromCurrency').value;
+            const to = qs('toCurrency').value;
+
             if (amount <= 0) {
-                document.getElementById('convertedAmount').value = '';
-                document.getElementById('conversionResult').style.display = 'none';
+                qs('convertedAmount').value = '';
+                qs('conversionResult').style.display = 'none';
                 return;
             }
+            const result = convert(amount, from, to);
+            if (result == null) return;
 
-            // 計算轉換
-            const fromRate = exchangeRates[fromCurrency] || 1;
-            const toRate = exchangeRates[toCurrency] || 1;
-            const result = (amount / fromRate) * toRate;
-            
-            // 更新UI
-            document.getElementById('convertedAmount').value = result.toFixed(4);
-            
-            const resultDiv = document.getElementById('conversionResult');
+            qs('convertedAmount').value = fmt4(result);
+            const rate = convert(1, from, to);
+
+            const resultDiv = qs('conversionResult');
             resultDiv.innerHTML = `
-                <div>${amount.toLocaleString()} ${fromCurrency} = ${result.toLocaleString()} ${toCurrency}</div>
-                <div style="font-size: 0.9em; opacity: 0.8; margin-top: 5px;">
-                    匯率: 1 ${fromCurrency} = ${(toRate/fromRate).toFixed(4)} ${toCurrency}
-                </div>
-            `;
+      <div>${amount.toLocaleString()} ${from} = ${result.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${to}</div>
+      <div style="font-size:0.9em;opacity:.8;margin-top:5px;">
+        匯率：1 ${from} = ${fmt4(rate)} ${to}
+      </div>
+    `;
             resultDiv.style.display = 'block';
         }
 
-        // 載入當前匯率
+        // ==== 即時匯率卡片 ====
         function loadCurrentRates() {
-            const ratesGrid = document.getElementById('ratesGrid');
-            const majorCurrencies = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'KRW', 'HKD', 'SGD'];
-            
-            ratesGrid.innerHTML = '';
-            
-            majorCurrencies.forEach(currency => {
-                if (currency === 'USD') return; // 跳過基準貨幣
-                
-                const rate = exchangeRates[currency];
-                const change = (Math.random() - 0.5) * 0.02; // 模擬漲跌
-                const changePercent = (change * 100).toFixed(2);
-                
-                const rateCard = document.createElement('div');
-                rateCard.className = 'rate-card';
-                rateCard.innerHTML = `
-                    <div class="rate-header">
-                        <div class="currency-name">${getCurrencyName(currency)}</div>
-                        <div class="rate-change ${change >= 0 ? 'positive' : 'negative'}">
-                            ${change >= 0 ? '↗' : '↘'} ${Math.abs(changePercent)}%
-                        </div>
-                    </div>
-                    <div class="rate-value">${rate.toFixed(4)}</div>
-                    <div style="font-size: 0.9em; color: #666; margin-top: 5px;">
-                        1 USD = ${rate.toFixed(4)} ${currency}
-                    </div>
-                `;
-                
-                ratesGrid.appendChild(rateCard);
+            const grid = qs('ratesGrid');
+            const major = ['EUR', 'GBP', 'JPY', 'CNY', 'KRW', 'HKD', 'SGD', 'AUD', 'CAD', 'TWD']; // 對 USD
+            grid.innerHTML = '';
+
+            major.forEach(code => {
+                const r = exchangeRates[code];
+                if (!r) return;
+
+                // 目前視覺用隨機漲跌（若要真實比較，請在後端快取上一筆 latest）
+                const change = (Math.random() - 0.5) * 0.02;
+                const pct = Math.abs(change * 100).toFixed(2);
+
+                const card = document.createElement('div');
+                card.className = 'rate-card';
+                card.innerHTML = `
+        <div class="rate-header">
+          <div class="currency-name">${getCurrencyName(code)}</div>
+          <div class="rate-change ${change >= 0 ? 'positive' : 'negative'}">
+            ${change >= 0 ? '↗' : '↘'} ${pct}%
+          </div>
+        </div>
+        <div class="rate-value">${fmt4(r)}</div>
+        <div style="font-size:.9em;color:#666;margin-top:5px;">
+          1 USD = ${fmt4(r)} ${code}
+        </div>
+      `;
+                grid.appendChild(card);
             });
         }
 
-        // 獲取貨幣名稱
         function getCurrencyName(code) {
             const names = {
-                'USD': '美元 (USD)',
-                'EUR': '歐元 (EUR)',
-                'GBP': '英鎊 (GBP)',
-                'JPY': '日圓 (JPY)',
-                'CNY': '人民幣 (CNY)',
-                'KRW': '韓圓 (KRW)',
-                'HKD': '港幣 (HKD)',
-                'SGD': '新加坡元 (SGD)',
-                'AUD': '澳幣 (AUD)',
-                'CAD': '加拿大元 (CAD)',
-                'TWD': '新台幣 (TWD)'
+                'USD': '美元 (USD)', 'EUR': '歐元 (EUR)', 'GBP': '英鎊 (GBP)', 'JPY': '日圓 (JPY)',
+                'CNY': '人民幣 (CNY)', 'KRW': '韓圓 (KRW)', 'HKD': '港幣 (HKD)', 'SGD': '新加坡元 (SGD)',
+                'AUD': '澳幣 (AUD)', 'CAD': '加拿大元 (CAD)', 'TWD': '新台幣 (TWD)'
             };
             return names[code] || code;
         }
 
-        // 初始化圖表
+        // ==== 圖表 ====
         function initChart() {
             const ctx = document.getElementById('historyChart').getContext('2d');
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: [],
-                    datasets: [{
+                    labels: [], datasets: [{
                         label: '匯率',
                         data: [],
-                        borderColor: 'rgba(102, 126, 234, 1)',
-                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderColor: 'rgba(102,126,234,1)',
+                        backgroundColor: 'rgba(102,126,234,0.1)',
                         borderWidth: 3,
                         fill: true,
                         tension: 0.4
@@ -581,69 +582,71 @@
                 },
                 options: {
                     responsive: true,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        }
-                    },
+                    plugins: { legend: { display: true, position: 'top' } },
                     scales: {
-                        y: {
-                            beginAtZero: false,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
-                            }
-                        }
+                        y: { beginAtZero: false, grid: { color: 'rgba(0,0,0,0.1)' } },
+                        x: { grid: { color: 'rgba(0,0,0,0.1)' } }
                     },
-                    elements: {
-                        point: {
-                            radius: 4,
-                            hoverRadius: 8
-                        }
-                    }
+                    elements: { point: { radius: 4, hoverRadius: 8 } }
                 }
             });
-            
             updateChart();
         }
 
-        // 更新圖表
-        function updateChart() {
-            const baseCurrency = document.getElementById('baseCurrency').value;
-            const targetCurrency = document.getElementById('targetCurrency').value;
-            const timeRange = parseInt(document.getElementById('timeRange').value);
-            
-            const historicalData = generateHistoricalData(baseCurrency, targetCurrency, timeRange);
-            
-            chart.data.labels = historicalData.map(d => {
-                const date = new Date(d.date);
-                return `${date.getMonth() + 1}/${date.getDate()}`;
+        async function updateChart() {
+            const base = document.getElementById('baseCurrency').value;
+            const target = document.getElementById('targetCurrency').value;
+            const days = parseInt(document.getElementById('timeRange').value, 10);
+
+            const points = await fetchTimeSeries(base, target, days);
+            const labels = points.map(p => {
+                const [y, m, d] = p.date.split('-'); // 以 UTC 日字串避免時區漂移
+                return `${Number(m)}/${Number(d)}`;
             });
-            
-            chart.data.datasets[0].data = historicalData.map(d => d.rate);
-            chart.data.datasets[0].label = `${baseCurrency} to ${targetCurrency}`;
-            
-            // 計算統計數據
-            const rates = historicalData.map(d => d.rate);
-            const avgRate = rates.reduce((a, b) => a + b, 0) / rates.length;
-            const minRate = Math.min(...rates);
-            const maxRate = Math.max(...rates);
-            
-            chart.options.plugins.title = {
-                display: true,
-                text: `${baseCurrency} → ${targetCurrency} (${timeRange}天) | 平均: ${avgRate.toFixed(4)} | 最低: ${minRate.toFixed(4)} | 最高: ${maxRate.toFixed(4)}`
-            };
-            
+            const values = points.map(p => p.rate);
+
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = values;
+            chart.data.datasets[0].label = `${base} → ${target}`;
+
+            if (values.length) {
+                const avg = values.reduce((a, b) => a + b, 0) / values.length;
+                const min = Math.min(...values);
+                const max = Math.max(...values);
+                chart.options.plugins.title = {
+                    display: true,
+                    text: `${base} → ${target}（${days}天）｜平均: ${fmt4(avg)}｜最低: ${fmt4(min)}｜最高: ${fmt4(max)}`
+                };
+            }
             chart.update();
         }
 
-        // 頁面載入完成後初始化
+        // ==== 交換貨幣（保留你的功能）====
+        function swapCurrencies() {
+            const fromSelect = document.getElementById('fromCurrency');
+            const toSelect = document.getElementById('toCurrency');
+            const temp = fromSelect.value;
+            fromSelect.value = toSelect.value;
+            toSelect.value = temp;
+            updateConversion();
+        }
+
+        // ==== 分頁 ====
+        function switchTab(tabName, el) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            if (el) el.classList.add('active');
+
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+
+            if (tabName === 'rates') loadCurrentRates();
+            else if (tabName === 'history') updateChart();
+        }
+
+        // ==== 啟動 ====
         document.addEventListener('DOMContentLoaded', init);
     </script>
+
 </body>
+
 </html>
