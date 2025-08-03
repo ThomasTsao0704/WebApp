@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多頁式網站</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- 共用 Topbar -->
+    <nav class="topbar">
+        <div class="nav-container">
+            <a href="#" class="logo">您的網站</a>
+
+            <!-- 漢堡選單按鈕 -->
+            <div class="menu-toggle" id="menu-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <ul class="nav-menu" id="nav-menu">
+                <li><a href="#" class="nav-link active" data-page="home">首頁</a></li>
+                <li><a href="#" class="nav-link" data-page="about">關於我們</a></li>
+                <li><a href="#" class="nav-link" data-page="services">服務項目</a></li>
+                <li><a href="#" class="nav-link" data-page="portfolio">作品集</a></li>
+                <li><a href="#" class="nav-link" data-page="stocks">股票篩選</a></li>
+                <li><a href="#" class="nav-link" data-page="contact">聯絡我們</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- 主要內容區域 -->
+    <main class="main-content">
+        <!-- 首頁 -->
+        <div class="page active" id="home">
+            <h1>歡迎來到我們的網站</h1>
+            <div class="card">
+                <h2>創新 • 專業 • 服務</h2>
+                <p>我們致力於提供最優質的服務，以創新的思維和專業的技術，為每一位客戶創造最大的價值。無論您需要什麼樣的解決方案，我們都會用心聆聽您的需求，並提供最適合的建議。</p>
+                <p>在這個快速變化的時代，我們始終保持學習的態度，不斷提升自己的專業能力，確保能夠為客戶提供最前沿的技術支援和服務。</p>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <h3>優質服務</h3>
+                    <p>提供最專業、最貼心的服務體驗</p>
+                </div>
+                <div class="feature-item">
+                    <h3>創新技術</h3>
+                    <p>運用最新技術，創造無限可能</p>
+                </div>
+                <div class="feature-item">
+                    <h3>客戶至上</h3>
+                    <p>以客戶需求為核心，提供客製化解決方案</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 關於我們 -->
+        <div class="page" id="about">
+            <h1>關於我們</h1>
+            <div id="root"></div>
+            <!-- React 會掛載到這裡 -->
+            <script type="module" src="./src/DataTableViewer.tsx"></script>
+        </div>
+
+        <!-- 服務項目 -->
+        <div class="page" id="services">
+            <h1>服務項目</h1>
+            <div class="card">
+                <h2>網頁設計與開發</h2>
+                <p>從概念設計到完整開發，我們提供一站式的網頁解決方案。包括響應式網頁設計、電商平台建置、內容管理系統等。</p>
+                <ul style="margin-left: 2rem; color: #4a5568;">
+                    <li>響應式網頁設計</li>
+                    <li>電商平台開發</li>
+                    <li>內容管理系統</li>
+                    <li>SEO優化</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>品牌視覺設計</h2>
+                <p>打造獨特的品牌形象，從logo設計到完整的視覺識別系統，幫助您在市場中建立鮮明的品牌印象。</p>
+                <ul style="margin-left: 2rem; color: #4a5568;">
+                    <li>Logo設計</li>
+                    <li>品牌識別系統</li>
+                    <li>印刷品設計</li>
+                    <li>包裝設計</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>數位行銷</h2>
+                <p>整合各種數位行銷工具，制定最適合的行銷策略，提升品牌知名度和銷售業績。</p>
+                <ul style="margin-left: 2rem; color: #4a5568;">
+                    <li>社群媒體行銷</li>
+                    <li>搜尋引擎行銷</li>
+                    <li>內容行銷</li>
+                    <li>數據分析與優化</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 作品集 -->
+        <div class="page" id="portfolio">
+            <h1>作品集</h1>
+            <div class="card">
+                <h2>精選作品</h2>
+                <p>以下是我們近期完成的一些代表性項目，展現了我們在不同領域的專業能力和創意表現。</p>
+            </div>
+
+            <div class="feature-grid">
+                <div class="card">
+                    <h3>企業官網重新設計</h3>
+                    <p>為知名製造業企業打造全新的企業形象網站，提升了40%的使用者停留時間和30%的詢問轉換率。</p>
+                    <p><strong>技術：</strong> React, Node.js, MongoDB</p>
+                    <p><strong>完成時間：</strong> 2024年3月</p>
+                </div>
+
+                <div class="card">
+                    <h3>電商平台開發</h3>
+                    <p>建置完整的B2C電商平台，包含購物車、金流串接、庫存管理等功能，月營業額突破500萬。</p>
+                    <p><strong>技術：</strong> Vue.js, Laravel, MySQL</p>
+                    <p><strong>完成時間：</strong> 2024年1月</p>
+                </div>
+
+                <div class="card">
+                    <h3>品牌識別系統設計</h3>
+                    <p>為新創公司設計完整的品牌識別系統，包含logo、名片、型錄等應用設計，獲得業界好評。</p>
+                    <p><strong>服務範圍：</strong> 品牌策略、視覺設計、應用設計</p>
+                    <p><strong>完成時間：</strong> 2023年12月</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 股票篩選 -->
+        <div class="page" id="stocks">
+            <h1>股票篩選系統</h1>
+
+            <!-- 文件上傳區域 -->
+            <div class="filter-section">
+                <h2>文件上傳</h2>
+                <div class="upload-section">
+                    <div class="upload-options">
+                        <label>
+                            <input type="checkbox" id="csv-mode" onchange="toggleUploadMode()">
+                            CSV 轉 JSON 模式
+                        </label>
+                    </div>
+                    <div class="file-upload">
+                        <input type="file" id="file-input" accept=".json,.csv" onchange="handleFileUpload(event)">
+                        <button class="btn" onclick="document.getElementById('file-input').click()">
+                            選擇檔案
+                        </button>
+                        <span id="file-name" class="file-name"></span>
+                    </div>
+                    <div class="upload-info">
+                        <p id="upload-mode-text">目前模式: JSON 上傳</p>
+                        <p class="upload-hint">支援格式: JSON 或 CSV 檔案</p>
+                        <button class="btn-secondary" onclick="generateSampleCSV()" style="margin-top: 10px;">
+                            下載範例 CSV 檔案
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <h2>篩選條件</h2>
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        <label for="industry-filter">產業類別</label>
+                        <select id="industry-filter">
+                            <option value="">全部產業</option>
+                            <option value="科技">科技業</option>
+                            <option value="金融">金融業</option>
+                            <option value="傳產">傳統產業</option>
+                            <option value="生技">生技醫療</option>
+                            <option value="電子">電子業</option>
+                            <option value="食品">食品業</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="price-min">最低股價</label>
+                        <input type="number" id="price-min" placeholder="例：50" min="0" step="0.1">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="price-max">最高股價</label>
+                        <input type="number" id="price-max" placeholder="例：200" min="0" step="0.1">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="pe-min">本益比最低</label>
+                        <input type="number" id="pe-min" placeholder="例：10" min="0" step="0.1">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="pe-max">本益比最高</label>
+                        <input type="number" id="pe-max" placeholder="例：20" min="0" step="0.1">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="volume-min">成交量最低(張)</label>
+                        <input type="number" id="volume-min" placeholder="例：1000" min="0">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="dividend-min">殖利率最低(%)</label>
+                        <input type="number" id="dividend-min" placeholder="例：3" min="0" step="0.1">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="market-cap">市值篩選</label>
+                        <select id="market-cap">
+                            <option value="">不限制</option>
+                            <option value="large">大型股(>500億)</option>
+                            <option value="medium">中型股(100-500億)</option>
+                            <option value="small">小型股(<100億)< /option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="filter-buttons">
+                    <button class="btn" onclick="applyFilters()">套用篩選</button>
+                    <button class="btn-secondary" onclick="resetFilters()">重置條件</button>
+                </div>
+            </div>
+
+            <h2>資料來源 1 - stocks.js</h2>
+            <div class="results-count" id="stock1-results-count">顯示全部股票 (25筆)</div>
+
+            <div class="card">
+                <table class="stock-table" id="stock1-stock-table">
+                    <thead>
+                        <tr>
+                            <th>股票代號</th>
+                            <th>股票名稱</th>
+                            <th>產業類別</th>
+                            <th>股價</th>
+                            <th>漲跌</th>
+                            <th>本益比</th>
+                            <th>殖利率(%)</th>
+                            <th>成交量(張)</th>
+                            <th>市值(億)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stock1-stock-tbody">
+                        <!-- 股票資料將由 JavaScript 動態生成 -->
+                    </tbody>
+                </table>
+                <div class="no-results" id="stock1-no-results" style="display: none;">
+                    沒有符合條件的股票，請調整篩選條件
+                </div>
+            </div>
+
+            <h2>資料來源 2 - stocks.json</h2>
+            <div class="results-count" id="stock2-results-count">顯示全部股票 (25筆)</div>
+
+            <div class="card">
+                <table class="stock-table" id="stock2-stock-table">
+                    <thead>
+                        <tr>
+                            <th>股票代號</th>
+                            <th>股票名稱</th>
+                            <th>產業類別</th>
+                            <th>股價</th>
+                            <th>漲跌</th>
+                            <th>本益比</th>
+                            <th>殖利率(%)</th>
+                            <th>成交量(張)</th>
+                            <th>市值(億)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stock2-stock-tbody">
+                        <!-- 股票資料將由 JavaScript 動態生成 -->
+                    </tbody>
+                </table>
+                <div class="no-results" id="stock2-no-results" style="display: none;">
+                    沒有符合條件的股票，請調整篩選條件
+                </div>
+            </div>
+        </div>
+
+        <!-- 聯絡我們 -->
+        <div class="page" id="contact">
+            <h1>聯絡我們</h1>
+            <div class="card">
+                <h2>讓我們開始合作吧！</h2>
+                <p>無論您有任何問題或需求，都歡迎與我們聯繫。我們會在24小時內回覆您的訊息。</p>
+            </div>
+
+            <div class="contact-form">
+                <form>
+                    <div class="form-group">
+                        <label for="name">姓名</label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">電子郵件</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">電話</label>
+                        <input type="tel" id="phone" name="phone">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="service">服務需求</label>
+                        <select id="service" name="service"
+                            style="width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px;">
+                            <option value="">請選擇服務項目</option>
+                            <option value="web">網頁設計與開發</option>
+                            <option value="brand">品牌視覺設計</option>
+                            <option value="marketing">數位行銷</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="message">詳細需求</label>
+                        <textarea id="message" name="message" rows="5" placeholder="請簡述您的需求或想法..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn">送出訊息</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>聯絡資訊</h2>
+                <p><strong>地址：</strong> 台北市信義區信義路五段100號</p>
+                <p><strong>電話：</strong> (02) 1234-5678</p>
+                <p><strong>Email：</strong> info@yourwebsite.com</p>
+                <p><strong>營業時間：</strong> 週一至週五 9:00-18:00</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- 注意：移除了錯誤的 stocks.json 引用 -->
+    <script src="/js/stocks.js"></script>
+    <script src="/js/script.js"></script>
+</body>
+
+</html>
