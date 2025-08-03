@@ -189,7 +189,7 @@ function initData() {
         dataSource1 = [...stocksData];
     }
 
-    fetch('/assets/stocks.json')
+    fetch('./assets/stocks.json')
         .then(res => res.json())
         .then(data => {
             // 轉換 JSON 資料格式
@@ -502,4 +502,5 @@ window.addEventListener('scroll', () => {
             topbar.style.background = 'rgba(255, 255, 255, 0.1)';
         }
     }
+
 });
