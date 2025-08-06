@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣上市櫃公司營收分析 App</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f9fafb;
+            color: #374151;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 24px;
+            padding: 24px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 16px;
+        }
+
+        .search-controls {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        select, button {
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 0.875rem;
+            outline: none;
+        }
+
+        select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        button {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #2563eb;
+        }
+
+        .chart-container {
+            margin: 24px 0;
+            height: 400px;
+            position: relative;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .search-controls {
+                flex-direction: column;
+            }
+        }
+
+        .analysis-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .analysis-value {
+            font-weight: 600;
+        }
+
+        .positive {
+            color: #059669;
+        }
+
+        .negative {
+            color: #dc2626;
+        }
+
+        .sparkline {
+            display: flex;
+            align-items: end;
+            gap: 1px;
+            height: 20px;
+            margin-top: 4px;
+        }
+
+        .sparkline-bar {
+            flex: 1;
+            min-width: 2px;
+            background-color: #3b82f6;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        th, td {
+            border: 1px solid #d1d5db;
+            padding: 8px 12px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f9fafb;
+            font-weight: 600;
+        }
+
+        .year-cell {
+            background-color: #f3f4f6;
+            font-weight: bold;
+            vertical-align: middle;
+        }
+
+        .total-cell {
+            background-color: #f3f4f6;
+            font-weight: bold;
+        }
+
+        .growth-positive {
+            color: #059669;
+            font-size: 0.75rem;
+        }
+
+        .growth-negative {
+            color: #dc2626;
+            font-size: 0.75rem;
+        }
+
+        .mini-chart {
+            display: flex;
+            align-items: end;
+            gap: 1px;
+            height: 24px;
+            margin-top: 4px;
+        }
+
+        .mini-bar {
+            flex: 1;
+            min-width: 2px;
+            background-color: #f97316;
+        }
+
+        .no-data {
+            color: #9ca3af;
+        }
+
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: bold;
+            margin-bottom: 16px;
+        }
+
+        .subsection-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1d4ed8;
+            margin-bottom: 8px;
+        }
+
+        .yearly-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .yearly-sparkline {
+            width: 120px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="card header">
+            <h1>📊 台灣上市櫃公司營收分析 App</h1>
+            <div class="search-controls">
+                <div class="control-group">
+                    <label>🔍 選擇公司：</label>
+                    <select id="companySelect">
+                        <option value="2330">2330 - 台積電</option>
+                        <option value="2303">2303 - 聯電</option>
+                        <option value="2454">2454 - 聯發科</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>📅 時間區間：</label>
+                    <select id="dateRangeSelect">
+                        <option value="6">近6個月</option>
+                        <option value="12">近1年</option>
+                        <option value="24">近2年</option>
+                        <option value="36">近3年</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 營收圖表 -->
+        <div class="card">
+            <h2 class="section-title">📈 <span id="companyName">台積電</span> 月營收趨勢</h2>
+            <div class="chart-container">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 成長分析與累積總計 -->
+        <div class="grid">
+            <!-- 成長分析 -->
+            <div class="card">
+                <h3 class="section-title">📊 成長分析</h3>
+                <div id="analysisData">
+                    <!-- 動態生成內容 -->
+                </div>
+            </div>
+
+            <!-- 累積總計分析 -->
+            <div class="card">
+                <h3 class="section-title">📈 累積總計分析</h3>
+                <div>
+                    <h4 class="subsection-title" id="accumulatedTitle">年度累積總計</h4>
+                    <div id="yearlyAccumulated">
+                        <!-- 動態生成內容 -->
+                    </div>
+                </div>
+                <hr style="margin: 16px 0;">
+                <div class="analysis-item">
+                    <span>當年度總計：</span>
+                    <span class="analysis-value" style="color: #1d4ed8; font-size: 1.125rem;" id="currentYearTotal">
+                        <!-- 動態生成內容 -->
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 詳細營收分析表格 -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 class="section-title" style="margin-bottom: 0;">📋 詳細營收分析表格</h3>
+                <button onclick="exportCSV()">🔽 匯出 CSV</button>
+            </div>
+            <div class="table-container">
+                <table id="detailedTable">
+                    <!-- 動態生成內容 -->
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模擬資料
+        const mockData = {
+            "2330": {
+                "代碼": "2330",
+                "公司": "台積電",
+                "產業": "半導體",
+                "營收": [
+                    { "年月": "2021-01", "金額": 127740 },
+                    { "年月": "2021-02", "金額": 122280 },
+                    { "年月": "2021-03", "金額": 129880 },
+                    { "年月": "2021-04", "金額": 134370 },
+                    { "年月": "2021-05", "金額": 132920 },
+                    { "年月": "2021-06", "金額": 133090 },
+                    { "年月": "2021-07", "金額": 143490 },
+                    { "年月": "2021-08", "金額": 148900 },
+                    { "年月": "2021-09", "金額": 145240 },
+                    { "年月": "2021-10", "金額": 143040 },
+                    { "年月": "2021-11", "金額": 155750 },
+                    { "年月": "2021-12", "金額": 151890 },
+                    { "年月": "2022-01", "金額": 157570 },
+                    { "年月": "2022-02", "金額": 134510 },
+                    { "年月": "2022-03", "金額": 157610 },
+                    { "年月": "2022-04", "金額": 175930 },
+                    { "年月": "2022-05", "金額": 181900 },
+                    { "年月": "2022-06", "金額": 181000 },
+                    { "年月": "2022-07", "金額": 182020 },
+                    { "年月": "2022-08", "金額": 200850 },
+                    { "年月": "2022-09", "金額": 203010 },
+                    { "年月": "2022-10", "金額": 201850 },
+                    { "年月": "2022-11", "金額": 166590 },
+                    { "年月": "2022-12", "金額": 162790 },
+                    { "年月": "2023-01", "金額": 165090 },
+                    { "年月": "2023-02", "金額": 180820 },
+                    { "年月": "2023-03", "金額": 180880 },
+                    { "年月": "2023-04", "金額": 169980 },
+                    { "年月": "2023-05", "金額": 155290 },
+                    { "年月": "2023-06", "金額": 151740 },
+                    { "年月": "2023-07", "金額": 164770 },
+                    { "年月": "2023-08", "金額": 171850 },
+                    { "年月": "2023-09", "金額": 170110 },
+                    { "年月": "2023-10", "金額": 207870 },
+                    { "年月": "2023-11", "金額": 196180 },
+                    { "年月": "2023-12", "金額": 215850 },
+                    { "年月": "2024-01", "金額": 195760 },
+                    { "年月": "2024-02", "金額": 183950 },
+                    { "年月": "2024-03", "金額": 195330 },
+                    { "年月": "2024-04", "金額": 196250 },
+                    { "年月": "2024-05", "金額": 229630 },
+                    { "年月": "2024-06", "金額": 207870 },
+                    { "年月": "2024-07", "金額": 256950 }
+                ]
+            },
+            "2303": {
+                "代碼": "2303",
+                "公司": "聯電",
+                "產業": "半導體",
+                "營收": [
+                    { "年月": "2021-01", "金額": 50480 },
+                    { "年月": "2021-02", "金額": 48960 },
+                    { "年月": "2021-03", "金額": 53440 },
+                    { "年月": "2021-04", "金額": 54280 },
+                    { "年月": "2021-05", "金額": 56230 },
+                    { "年月": "2021-06", "金額": 57890 },
+                    { "年月": "2021-07", "金額": 59440 },
+                    { "年月": "2021-08", "金額": 61230 },
+                    { "年月": "2021-09", "金額": 62110 },
+                    { "年月": "2021-10", "金額": 62850 },
+                    { "年月": "2021-11", "金額": 64120 },
+                    { "年月": "2021-12", "金額": 65890 },
+                    { "年月": "2022-01", "金額": 64850 },
+                    { "年月": "2022-02", "金額": 56890 },
+                    { "年月": "2022-03", "金額": 65320 },
+                    { "年月": "2022-04", "金額": 64280 },
+                    { "年月": "2022-05", "金額": 62890 },
+                    { "年月": "2022-06", "金額": 59640 },
+                    { "年月": "2022-07", "金額": 56780 },
+                    { "年月": "2022-08", "金額": 54230 },
+                    { "年月": "2022-09", "金額": 52890 },
+                    { "年月": "2022-10", "金額": 50120 },
+                    { "年月": "2022-11", "金額": 48560 },
+                    { "年月": "2022-12", "金額": 46890 },
+                    { "年月": "2023-01", "金額": 45230 },
+                    { "年月": "2023-02", "金額": 44560 },
+                    { "年月": "2023-03", "金額": 46780 },
+                    { "年月": "2023-04", "金額": 48120 },
+                    { "年月": "2023-05", "金額": 49340 },
+                    { "年月": "2023-06", "金額": 50890 },
+                    { "年月": "2023-07", "金額": 52340 },
+                    { "年月": "2023-08", "金額": 53780 },
+                    { "年月": "2023-09", "金額": 54890 },
+                    { "年月": "2023-10", "金額": 56230 },
+                    { "年月": "2023-11", "金額": 57890 },
+                    { "年月": "2023-12", "金額": 59340 },
+                    { "年月": "2024-01", "金額": 57230 },
+                    { "年月": "2024-02", "金額": 56890 },
+                    { "年月": "2024-03", "金額": 58340 },
+                    { "年月": "2024-04", "金額": 59780 },
+                    { "年月": "2024-05", "金額": 61230 },
+                    { "年月": "2024-06", "金額": 62890 },
+                    { "年月": "2024-07", "金額": 64120 }
+                ]
+            },
+            "2454": {
+                "代碼": "2454",
+                "公司": "聯發科",
+                "產業": "半導體",
+                "營收": [
+                    { "年月": "2021-01", "金額": 105440 },
+                    { "年月": "2021-02", "金額": 98230 },
+                    { "年月": "2021-03", "金額": 113440 },
+                    { "年月": "2021-04", "金額": 114280 },
+                    { "年月": "2021-05", "金額": 116230 },
+                    { "年月": "2021-06", "金額": 117890 },
+                    { "年月": "2021-07", "金額": 119440 },
+                    { "年月": "2021-08", "金額": 121230 },
+                    { "年月": "2021-09", "金額": 122110 },
+                    { "年月": "2021-10", "金額": 126850 },
+                    { "年月": "2021-11", "金額": 134120 },
+                    { "年月": "2021-12", "金額": 145890 },
+                    { "年月": "2022-01", "金額": 144850 },
+                    { "年月": "2022-02", "金額": 126890 },
+                    { "年月": "2022-03", "金額": 145320 },
+                    { "年月": "2022-04", "金額": 139280 },
+                    { "年月": "2022-05", "金額": 142890 },
+                    { "年月": "2022-06", "金額": 139640 },
+                    { "年月": "2022-07", "金額": 126780 },
+                    { "年月": "2022-08", "金額": 124230 },
+                    { "年月": "2022-09", "金額": 122890 },
+                    { "年月": "2022-10", "金額": 120120 },
+                    { "年月": "2022-11", "金額": 118560 },
+                    { "年月": "2022-12", "金額": 116890 },
+                    { "年月": "2023-01", "金額": 115230 },
+                    { "年月": "2023-02", "金額": 114560 },
+                    { "年月": "2023-03", "金額": 116780 },
+                    { "年月": "2023-04", "金額": 118120 },
+                    { "年月": "2023-05", "金額": 119340 },
+                    { "年月": "2023-06", "金額": 120890 },
+                    { "年月": "2023-07", "金額": 122340 },
+                    { "年月": "2023-08", "金額": 123780 },
+                    { "年月": "2023-09", "金額": 124890 },
+                    { "年月": "2023-10", "金額": 126230 },
+                    { "年月": "2023-11", "金額": 127890 },
+                    { "年月": "2023-12", "金額": 139340 },
+                    { "年月": "2024-01", "金額": 137230 },
+                    { "年月": "2024-02", "金額": 136890 },
+                    { "年月": "2024-03", "金額": 138340 },
+                    { "年月": "2024-04", "金額": 139780 },
+                    { "年月": "2024-05", "金額": 141230 },
+                    { "年月": "2024-06", "金額": 142890 },
+                    { "年月": "2024-07", "金額": 144120 }
+                ]
+            }
+        };
+
+        let currentChart = null;
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            updateAnalysis();
+            
+            document.getElementById('companySelect').addEventListener('change', updateAnalysis);
+            document.getElementById('dateRangeSelect').addEventListener('change', updateAnalysis);
+        });
+
+        // 創建sparkline
+        function createSparkline(data, containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            const maxValue = Math.max(...data.map(d => d.金額));
+            const minValue = Math.min(...data.map(d => d.金額));
+            const range = maxValue - minValue;
+            
+            container.innerHTML = '';
+            container.className = 'sparkline';
+            
+            data.forEach((item, index) => {
+                const normalizedValue = range === 0 ? 0.5 : (item.金額 - minValue) / range;
+                const barHeight = Math.max(2, normalizedValue * 18);
+                
+                const bar = document.createElement('div');
+                bar.className = 'sparkline-bar';
+                bar.style.height = `${barHeight}px`;
+                bar.title = `${item.年月}: ${item.金額.toLocaleString()}`;
+                
+                container.appendChild(bar);
+            });
+        }
+
+        // 更新分析
+        function updateAnalysis() {
+            const selectedCompany = document.getElementById('companySelect').value;
+            const dateRange = parseInt(document.getElementById('dateRangeSelect').value);
+            const companyData = mockData[selectedCompany];
+            
+            if (!companyData) return;
+            
+            // 更新公司名稱
+            document.getElementById('companyName').textContent = companyData.公司;
+            
+            // 獲取數據
+            const revenues = companyData.營收;
+            const filteredData = revenues.slice(-dateRange);
+            const latest = filteredData[filteredData.length - 1];
+            const previous = filteredData[filteredData.length - 2];
+            
+            // 計算成長率
+            const mom = previous ? ((latest.金額 - previous.金額) / previous.金額 * 100) : 0;
+            
+            // 找去年同期
+            const latestDate = new Date(latest.年月 + '-01');
+            const lastYearMonth = `${latestDate.getFullYear() - 1}-${String(latestDate.getMonth() + 1).padStart(2, '0')}`;
+            const lastYearData = revenues.find(r => r.年月 === lastYearMonth);
+            const yoy = lastYearData ? ((latest.金額 - lastYearData.金額) / lastYearData.金額 * 100) : 0;
+            
+            const average = filteredData.reduce((sum, r) => sum + r.金額, 0) / filteredData.length;
+            const max = Math.max(...filteredData.map(r => r.金額));
+            const min = Math.min(...filteredData.map(r => r.金額));
+            
+            // 計算年度數據
+            const currentYear = latestDate.getFullYear();
+            const currentMonth = latestDate.getMonth() + 1;
+            
+            // 更新成長分析
+            document.getElementById('analysisData').innerHTML = `
+                <div class="analysis-item">
+                    <span>最新月營收：</span>
+                    <span class="analysis-value">$${latest.金額.toLocaleString()} 千元</span>
+                </div>
+                <div class="analysis-item">
+                    <span>上月環比：</span>
+                    <span class="analysis-value ${mom >= 0 ? 'positive' : 'negative'}">
+                        ${mom >= 0 ? '+' : ''}${mom.toFixed(2)}%
+                    </span>
+                </div>
+                <div class="analysis-item">
+                    <span>去年同期：</span>
+                    <span class="analysis-value ${yoy >= 0 ? 'positive' : 'negative'}">
+                        ${yoy >= 0 ? '+' : ''}${yoy.toFixed(2)}%
+                    </span>
+                </div>
+                <div class="analysis-item">
+                    <span>期間平均：</span>
+                    <span class="analysis-value">$${Math.round(average).toLocaleString()} 千元</span>
+                </div>
+                <div class="analysis-item">
+                    <span>期間最高：</span>
+                    <span class="analysis-value positive">$${max.toLocaleString()} 千元</span>
+                </div>
+                <div class="analysis-item">
+                    <span>期間最低：</span>
+                    <span class="analysis-value negative">$${min.toLocaleString()} 千元</span>
+                </div>
+            `;
+            
+            // 計算累積總計
+            const yearlyAccumulated = {};
+            for (let year = 2021; year <= currentYear; year++) {
+                const yearData = revenues.filter(r => {
+                    const [y, m] = r.年月.split('-');
+                    return parseInt(y) === year && parseInt(m) <= currentMonth;
+                });
+                yearlyAccumulated[year] = {
+                    total: yearData.reduce((sum, r) => sum + r.金額, 0),
+                    data: yearData
+                };
+            }
+            
+            // 更新累積總計標題
+            document.getElementById('accumulatedTitle').textContent = 
+                `年度累積總計 (至${currentYear}-${String(currentMonth).padStart(2, '0')})`;
+            
+            // 更新年度累積數據
+            let yearlyHtml = '';
+            Object.entries(yearlyAccumulated)
+                .sort(([a], [b]) => parseInt(b) - parseInt(a))
+                .forEach(([year, data]) => {
+                    yearlyHtml += `
+                        <div class="yearly-item">
+                            <div>
+                                <span style="font-weight: 500;">${year}年：</span>
+                                <span style="font-size: 0.875rem;">$${data.total.toLocaleString()} 千元</span>
+                            </div>
+                            <div class="yearly-sparkline" id="sparkline-${year}"></div>
+                        </div>
+                    `;
+                });
+            
+            document.getElementById('yearlyAccumulated').innerHTML = yearlyHtml;
+            
+            // 創建sparklines
+            Object.entries(yearlyAccumulated).forEach(([year, data]) => {
+                createSparkline(data.data, `sparkline-${year}`);
+            });
+            
+            // 計算當年度總計
+            const currentYearTotal = revenues
+                .filter(r => r.年月.startsWith(currentYear.toString()))
+                .reduce((sum, r) => sum + r.金額, 0);
+            
+            document.getElementById('currentYearTotal').textContent = 
+                `$${currentYearTotal.toLocaleString()} 千元`;
+            
+            // 更新圖表
+            updateChart(filteredData);
+            
+            // 更新詳細表格
+            updateDetailedTable(companyData);
+        }
+
+        // 更新圖表
+        function updateChart(data) {
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            
+            if (currentChart) {
+                currentChart.destroy();
+            }
+            
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(item => item.年月),
+                    datasets: [{
+                        label: '營收 (千元)',
+                        data: data.map(item => item.金額),
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.1,
+                        pointBackgroundColor: '#3b82f6',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return (value / 1000).toFixed(0) + 'M';
+                                }
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '年月'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 更新詳細表格
+        function updateDetailedTable(companyData) {
+            const revenues = companyData.營收;
+            
+            // 按年份分組
+            const yearlyData = {};
+            revenues.forEach(item => {
+                const [year, month] = item.年月.split('-');
+                if (!yearlyData[year]) {
+                    yearlyData[year] = {};
+                }
+                yearlyData[year][month] = item.金額;
+            });
+            
+            const years = Object.keys(yearlyData).sort((a, b) => b - a);
+            const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+            
+            // 計算年度總計
+            const getYearTotal = (year) => {
+                return Object.values(yearlyData[year] || {}).reduce((sum, val) => sum + val, 0);
+            };
+            
+            // 計算累積總計
+            const getAccumulatedTotal = (year) => {
+                let latestMonth = 0;
+                revenues.forEach(item => {
+                    const [y, m] = item.年月.split('-');
+                    latestMonth = Math.max(latestMonth, parseInt(m));
+                });
+                
+                if (latestMonth === 0) latestMonth = 12;
+                
+                let total = 0;
+                for (let m = 1; m <= latestMonth; m++) {
+                    const monthStr = String(m).padStart(2, '0');
+                    if (yearlyData[year] && yearlyData[year][monthStr]) {
+                        total += yearlyData[year][monthStr];
+                    }
+                }
+                return total;
+            };
+            
+            // 計算環比成長率
+            const getMoMGrowth = (year, month) => {
+                const currentValue = yearlyData[year]?.[month];
+                if (!currentValue) return null;
+                
+                let prevValue = null;
+                const monthNum = parseInt(month);
+                
+                if (monthNum === 1) {
+                    prevValue = yearlyData[year - 1]?.['12'];
+                } else {
+                    const prevMonth = String(monthNum - 1).padStart(2, '0');
+                    prevValue = yearlyData[year]?.[prevMonth];
+                }
+                
+                return prevValue ? ((currentValue - prevValue) / prevValue * 100) : null;
+            };
+            
+            // 計算年比成長率
+            const getYoYGrowth = (year, month) => {
+                const currentValue = yearlyData[year]?.[month];
+                const lastYearValue = yearlyData[year - 1]?.[month];
+                
+                if (!currentValue || !lastYearValue) return null;
+                return ((currentValue - lastYearValue) / lastYearValue * 100);
+            };
+            
+            // 創建迷你柱狀圖HTML
+            const createMiniChart = (year) => {
+                const data = months.map(month => yearlyData[year]?.[month] || 0);
+                const maxValue = Math.max(...data.filter(v => v > 0));
+                
+                let chartHtml = '<div class="mini-chart">';
+                data.forEach((value, index) => {
+                    const height = value > 0 ? Math.max(2, (value / maxValue) * 20) : 0;
+                    chartHtml += `<div class="mini-bar" style="height: ${height}px;" title="${months[index]}月: ${value.toLocaleString()}"></div>`;
+                });
+                chartHtml += '</div>';
+                return chartHtml;
+            };
+            
+            // 生成表格HTML
+            let tableHtml = `
+                <thead>
+                    <tr style="background-color: #f9fafb;">
+                        <th style="font-weight: 600;">年度</th>
+                        ${months.map(month => `<th style="min-width: 80px; font-weight: 600;">${month}</th>`).join('')}
+                        <th style="font-weight: 600;">12月</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+            
+            years.forEach(year => {
+                const yearTotal = getYearTotal(year);
+                const accumulatedTotal = getAccumulatedTotal(year);
+                
+                // 年度營收數據行
+                tableHtml += `
+                    <tr style="background-color: white;">
+                        <td class="year-cell" rowspan="3">
+                            <div style="font-size: 1.125rem;">${year}</div>
+                            <div style="font-size: 0.75rem; color: #6b7280; margin-top: 4px;">
+                                ${accumulatedTotal.toLocaleString()}
+                            </div>
+                        </td>
+                `;
+                
+                months.forEach(month => {
+                    const value = yearlyData[year]?.[month];
+                    tableHtml += `
+                        <td>
+                            ${value ? `<div style="font-weight: 500;">${Math.round(value / 100) / 10}</div>` : '<div class="no-data">—</div>'}
+                        </td>
+                    `;
+                });
+                
+                tableHtml += `
+                        <td class="total-cell">
+                            <div style="font-weight: bold; color: #1d4ed8;">
+                                ${Math.round(yearTotal / 100000)}
+                            </div>
+                            ${createMiniChart(year)}
+                        </td>
+                    </tr>
+                `;
+                
+                // 環比成長率行
+                tableHtml += '<tr style="background-color: #f9fafb;">';
+                months.forEach(month => {
+                    const momGrowth = getMoMGrowth(year, month);
+                    if (momGrowth !== null) {
+                        const className = momGrowth >= 0 ? 'growth-positive' : 'growth-negative';
+                        tableHtml += `<td><span class="${className}">${momGrowth >= 0 ? '+' : ''}${momGrowth.toFixed(1)}%</span></td>`;
+                    } else {
+                        tableHtml += '<td><span class="no-data">—</span></td>';
+                    }
+                });
+                tableHtml += `<td style="background-color: #f3f4f6; font-size: 0.75rem;">${Math.round(yearTotal / 100000)}</td></tr>`;
+                
+                // 年比成長率行
+                tableHtml += '<tr style="background-color: white;">';
+                months.forEach(month => {
+                    const yoyGrowth = getYoYGrowth(year, month);
+                    if (yoyGrowth !== null) {
+                        const className = yoyGrowth >= 0 ? 'growth-positive' : 'growth-negative';
+                        tableHtml += `<td><span class="${className}">${yoyGrowth >= 0 ? '+' : ''}${yoyGrowth.toFixed(1)}%</span></td>`;
+                    } else {
+                        tableHtml += '<td><span class="no-data">—</span></td>';
+                    }
+                });
+                tableHtml += '<td style="background-color: #f3f4f6; font-size: 0.75rem;">—</td></tr>';
+            });
+            
+            tableHtml += '</tbody>';
+            document.getElementById('detailedTable').innerHTML = tableHtml;
+        }
+
+        // 匯出CSV
+        function exportCSV() {
+            const selectedCompany = document.getElementById('companySelect').value;
+            const dateRange = parseInt(document.getElementById('dateRangeSelect').value);
+            const companyData = mockData[selectedCompany];
+            
+            if (!companyData) return;
+            
+            const filteredData = companyData.營收.slice(-dateRange);
+            
+            const csvContent = [
+                ['年月', '營收(千元)'],
+                ...filteredData.map(item => [item.年月, item.金額])
+            ].map(row => row.join(',')).join('\n');
+            
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${companyData.公司}_營收資料.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>

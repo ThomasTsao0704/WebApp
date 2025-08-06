@@ -502,5 +502,4 @@ window.addEventListener('scroll', () => {
             topbar.style.background = 'rgba(255, 255, 255, 0.1)';
         }
     }
-
 });
