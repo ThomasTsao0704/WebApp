@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>櫃買中心借券費率監控平台</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .update-time {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .controls {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 45px 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 25px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+        }
+
+        select, button {
+            padding: 12px 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .table-section, .chart-section {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px 25px;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8f9fa;
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 15px 12px;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.2s ease;
+        }
+
+        tr:hover {
+            background-color: #f8f9ff;
+            cursor: pointer;
+        }
+
+        .fee-high { color: #e74c3c; font-weight: 600; }
+        .fee-medium { color: #f39c12; font-weight: 600; }
+        .fee-low { color: #27ae60; font-weight: 600; }
+
+        .trend-up { color: #e74c3c; }
+        .trend-down { color: #27ae60; }
+        .trend-stable { color: #95a5a6; }
+
+        .chart-container {
+            padding: 25px;
+            height: 400px;
+            position: relative;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            font-size: 1.1rem;
+            color: #666;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-box {
+                min-width: auto;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+        }
+
+        .alert {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .selected-row {
+            background-color: #e3f2fd !important;
+            border-left: 4px solid #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 標題區域 -->
+        <div class="header">
+            <h1>📊 櫃買中心借券費率監控平台</h1>
+            <p>即時監控借券費率變化，掌握市場動態</p>
+            <div class="update-time" id="lastUpdate">
+                最後更新：載入中...
+            </div>
+        </div>
+
+        <!-- 警示訊息 -->
+        <div class="alert" id="alertMsg"></div>
+
+        <!-- 控制面板 -->
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="搜尋證券代號或名稱...">
+                <span class="search-icon">🔍</span>
+            </div>
+            
+            <select id="sortSelect">
+                <option value="borrowFee-desc">借券費率 ↓</option>
+                <option value="borrowFee-asc">借券費率 ↑</option>
+                <option value="availableShares-desc">可借券張數 ↓</option>
+                <option value="availableShares-asc">可借券張數 ↑</option>
+                <option value="code-asc">證券代號 ↑</option>
+            </select>
+
+            <button onclick="refreshData()">🔄 更新資料</button>
+            <button onclick="exportToCSV()">💾 匯出 CSV</button>
+            <button onclick="loadSampleData()">📋 載入範例資料</button>
+        </div>
+
+        <!-- 主要內容區域 -->
+        <div class="main-content">
+            <!-- 資料表格 -->
+            <div class="table-section">
+                <div class="section-header">
+                    <span>借券費率總覽 (<span id="totalCount">0</span> 筆資料)</span>
+                </div>
+                <div class="table-container">
+                    <table id="dataTable">
+                        <thead>
+                            <tr>
+                                <th>證券代號</th>
+                                <th>證券名稱</th>
+                                <th>借券費率(%)</th>
+                                <th>可借券張數</th>
+                                <th>趨勢</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <tr>
+                                <td colspan="5" class="loading">載入資料中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 圖表區域 -->
+            <div class="chart-section">
+                <div class="section-header">
+                    <span id="chartTitle">選擇股票查看歷史趨勢</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 統計資訊 -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" style="color: #667eea;" id="totalStocks">-</div>
+                <div class="stat-label">總計股票數</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #27ae60;" id="minFee">-</div>
+                <div class="stat-label">最低費率</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #e74c3c;" id="maxFee">-</div>
+                <div class="stat-label">最高費率</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #764ba2;" id="avgFee">-</div>
+                <div class="stat-label">平均費率</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全域變數
+        let allData = [];
+        let filteredData = [];
+        let selectedStock = null;
+        let trendChart = null;
+
+        // 模擬資料 - 實際使用時會從外部 JSON 檔案讀取
+        const sampleData = [
+            {
+                code: '1234',
+                name: '黑松',
+                borrowFee: 1.2,
+                availableShares: 1000,
+                updateTime: '2025-08-09 14:30',
+                trend: 'up',
+                history: [
+                    { date: '08-05', fee: 1.0 },
+                    { date: '08-06', fee: 1.1 },
+                    { date: '08-07', fee: 1.15 },
+                    { date: '08-08', fee: 1.18 },
+                    { date: '08-09', fee: 1.2 }
+                ]
+            },
+            {
+                code: '2330',
+                name: '台積電',
+                borrowFee: 0.5,
+                availableShares: 8000,
+                updateTime: '2025-08-09 14:30',
+                trend: 'stable',
+                history: [
+                    { date: '08-05', fee: 0.5 },
+                    { date: '08-06', fee: 0.5 },
+                    { date: '08-07', fee: 0.5 },
+                    { date: '08-08', fee: 0.5 },
+                    { date: '08-09', fee: 0.5 }
+                ]
+            },
+            {
+                code: '3008',
+                name: '大立光',
+                borrowFee: 2.5,
+                availableShares: 200,
+                updateTime: '2025-08-09 14:30',
+                trend: 'up',
+                history: [
+                    { date: '08-05', fee: 2.0 },
+                    { date: '08-06', fee: 2.1 },
+                    { date: '08-07', fee: 2.3 },
+                    { date: '08-08', fee: 2.4 },
+                    { date: '08-09', fee: 2.5 }
+                ]
+            },
+            {
+                code: '2454',
+                name: '聯發科',
+                borrowFee: 0.8,
+                availableShares: 5000,
+                updateTime: '2025-08-09 14:30',
+                trend: 'down',
+                history: [
+                    { date: '08-05', fee: 1.2 },
+                    { date: '08-06', fee: 1.0 },
+                    { date: '08-07', fee: 0.9 },
+                    { date: '08-08', fee: 0.85 },
+                    { date: '08-09', fee: 0.8 }
+                ]
+            },
+            {
+                code: '1301',
+                name: '台塑',
+                borrowFee: 1.5,
+                availableShares: 3000,
+                updateTime: '2025-08-09 14:30',
+                trend: 'up',
+                history: [
+                    { date: '08-05', fee: 1.2 },
+                    { date: '08-06', fee: 1.3 },
+                    { date: '08-07', fee: 1.4 },
+                    { date: '08-08', fee: 1.45 },
+                    { date: '08-09', fee: 1.5 }
+                ]
+            }
+        ];
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+            loadSampleData();
+            initChart();
+        });
+
+        // 事件監聽器設定
+        function initializeEventListeners() {
+            document.getElementById('searchInput').addEventListener('input', handleSearch);
+            document.getElementById('sortSelect').addEventListener('change', handleSort);
+        }
+
+        // 載入範例資料
+        function loadSampleData() {
+            allData = [...sampleData];
+            filteredData = [...allData];
+            updateDisplay();
+            showAlert('已載入範例資料', 'success');
+        }
+
+        // 從外部檔案載入資料（實際應用）
+        async function loadDataFromFile(filename = 'data/stock_data.json') {
+            try {
+                const response = await fetch(filename);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                allData = data;
+                filteredData = [...allData];
+                updateDisplay();
+                showAlert('資料載入成功', 'success');
+            } catch (error) {
+                console.error('載入資料失敗:', error);
+                showAlert('載入資料失敗，使用範例資料', 'warning');
+                loadSampleData();
+            }
+        }
+
+        // 搜尋功能
+        function handleSearch(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            filteredData = allData.filter(item => 
+                item.code.toLowerCase().includes(searchTerm) || 
+                item.name.toLowerCase().includes(searchTerm)
+            );
+            updateTable();
+            updateStats();
+        }
+
+        // 排序功能
+        function handleSort(e) {
+            const [field, order] = e.target.value.split('-');
+            filteredData.sort((a, b) => {
+                const aVal = a[field];
+                const bVal = b[field];
+                if (order === 'asc') {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+            updateTable();
+        }
+
+        // 更新顯示
+        function updateDisplay() {
+            updateTable();
+            updateStats();
+            updateLastUpdateTime();
+        }
+
+        // 更新表格
+        function updateTable() {
+            const tbody = document.getElementById('tableBody');
+            const totalCount = document.getElementById('totalCount');
+            
+            totalCount.textContent = filteredData.length;
+
+            if (filteredData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="no-data">沒有找到符合條件的資料</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filteredData.map(item => `
+                <tr onclick="selectStock('${item.code}')" ${selectedStock && selectedStock.code === item.code ? 'class="selected-row"' : ''}>
+                    <td>${item.code}</td>
+                    <td>${item.name}</td>
+                    <td>
+                        <span class="${getFeeClass(item.borrowFee)}">${item.borrowFee}%</span>
+                    </td>
+                    <td>${item.availableShares.toLocaleString()}</td>
+                    <td class="${getTrendClass(item.trend)}">${getTrendSymbol(item.trend)}</td>
+                </tr>
+            `).join('');
+        }
+
+        // 更新統計資訊
+        function updateStats() {
+            if (filteredData.length === 0) {
+                document.getElementById('totalStocks').textContent = '0';
+                document.getElementById('minFee').textContent = '-';
+                document.getElementById('maxFee').textContent = '-';
+                document.getElementById('avgFee').textContent = '-';
+                return;
+            }
+
+            const fees = filteredData.map(d => d.borrowFee);
+            const minFee = Math.min(...fees);
+            const maxFee = Math.max(...fees);
+            const avgFee = fees.reduce((sum, fee) => sum + fee, 0) / fees.length;
+
+            document.getElementById('totalStocks').textContent = filteredData.length;
+            document.getElementById('minFee').textContent = minFee.toFixed(2) + '%';
+            document.getElementById('maxFee').textContent = maxFee.toFixed(2) + '%';
+            document.getElementById('avgFee').textContent = avgFee.toFixed(2) + '%';
+        }
+
+        // 選擇股票並顯示趨勢圖
+        function selectStock(code) {
+            selectedStock = allData.find(item => item.code === code);
+            if (selectedStock) {
+                document.getElementById('chartTitle').textContent = 
+                    `${selectedStock.name} (${selectedStock.code}) 借券費率趨勢`;
+                updateChart();
+                updateTable(); // 重新繪製表格以顯示選中狀態
+            }
+        }
+
+        // 初始化圖表
+        function initChart() {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '借券費率 (%)',
+                        data: [],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        }
+
+        // 更新圖表
+        function updateChart() {
+            if (selectedStock && selectedStock.history) {
+                trendChart.data.labels = selectedStock.history.map(h => h.date);
+                trendChart.data.datasets[0].data = selectedStock.history.map(h => h.fee);
+                trendChart.update();
+            }
+        }
+
+        // 輔助函數
+        function getFeeClass(fee) {
+            if (fee > 2) return 'fee-high';
+            if (fee > 1) return 'fee-medium';
+            return 'fee-low';
+        }
+
+        function getTrendClass(trend) {
+            return `trend-${trend}`;
+        }
+
+        function getTrendSymbol(trend) {
+            switch(trend) {
+                case 'up': return '↗️';
+                case 'down': return '↘️';
+                default: return '➡️';
+            }
+        }
+
+        // 更新時間
+        function updateLastUpdateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleString('zh-TW', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('lastUpdate').textContent = `最後更新：${timeString}`;
+        }
+
+        // 重新整理資料
+        function refreshData() {
+            showAlert('正在更新資料...', 'info');
+            // 在實際應用中，這裡會重新呼叫 API 或讀取檔案
+            setTimeout(() => {
+                loadDataFromFile(); // 或 loadSampleData() for demo
+                updateLastUpdateTime();
+            }, 1000);
+        }
+
+        // 匯出 CSV
+        function exportToCSV() {
+            const headers = ['證券代號', '證券名稱', '借券費率(%)', '可借券張數', '更新時間'];
+            const csvContent = [
+                headers.join(','),
+                ...filteredData.map(item => [
+                    item.code,
+                    `"${item.name}"`,
+                    item.borrowFee,
+                    item.availableShares,
+                    `"${item.updateTime}"`
+                ].join(','))
+            ].join('\n');
+
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `借券費率_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showAlert('CSV 檔案已下載', 'success');
+        }
+
+        // 顯示警示訊息
+        function showAlert(message, type = 'info') {
+            const alertEl = document.getElementById('alertMsg');
+            alertEl.textContent = message;
+            alertEl.className = `alert alert-${type}`;
+            alertEl.style.display = 'block';
+            
+            setTimeout(() => {
+                alertEl.style.display = 'none';
+            }, 3000);
+        }
+
+        // 當頁面載入完成後嘗試從檔案載入資料
+        // loadDataFromFile(); // 取消註解以從實際檔案載入
+    </script>
+</body>
+</html>
