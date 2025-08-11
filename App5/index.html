@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>應付現股當沖券差借券費率（TWSE + TPEx 合併）</title>
+  <title>應付現股當沖券差借券費率（合併＋篩選/彙總）</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", Arial, sans-serif;
@@ -14,65 +14,119 @@
     .header p { opacity: .9; margin-top: 6px; }
     .update-time { display: inline-block; margin-top: 10px; padding: 6px 14px; border-radius: 20px;
                    background: rgba(255,255,255,.2); backdrop-filter: blur(10px); }
-    .controls { display: flex; gap: 10px; justify-content: flex-end; margin: 14px 0; }
-    button { padding: 10px 14px; font-size: 14px; border-radius: 8px; cursor: pointer; border: 2px solid #e1e5e9; transition: .2s; }
-    .btn-primary { background: #667eea; color: #fff; border-color: #667eea; font-weight: 600; }
-    .btn-primary:hover { background: #5a6fd8; transform: translateY(-1px); }
-    .btn-soft { background: #fff; color: #333; }
-    .alert { display: none; margin: 12px 0; padding: 10px 14px; border-radius: 8px; border: 1px solid #ffeaa7; background: #fff3cd; color: #856404; }
-    .card { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin: 10px 0 14px; }
-    .kpi { background: #fff; border-radius: 12px; padding: 14px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,.08); }
-    .kpi .v { font-size: 1.4rem; font-weight: 700; }
+    .controls { display: grid; gap: 10px; grid-template-columns: repeat(12, 1fr); margin: 14px 0; }
+    .controls .f { background:#fff; padding:10px; border-radius:10px; box-shadow:0 3px 10px rgba(0,0,0,.06); }
+    .controls label { display:block; font-size:12px; color:#666; margin-bottom:4px; }
+    .controls input, .controls select { width:100%; padding:8px; border:1px solid #e1e5e9; border-radius:8px; }
+    .btns { grid-column: span 12; display:flex; gap:8px; justify-content:flex-end; }
+    button { padding: 10px 14px; font-size: 14px; border-radius: 8px; cursor: pointer; border: 2px solid #e1e5e9; transition: .2s; background:#fff; }
+    .btn-primary { background:#667eea; color:#fff; border-color:#667eea; font-weight:600; }
+    .btn-primary:hover { background:#5a6fd8; transform: translateY(-1px); }
+    .alert { display:none; margin: 12px 0; padding: 10px 14px; border-radius: 8px; border: 1px solid #ffeaa7; background: #fff3cd; color: #856404; }
+    .card { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin: 10px 0 14px; }
+    .kpi { background:#fff; border-radius:12px; padding:14px; text-align:center; box-shadow:0 8px 24px rgba(0,0,0,.08);}
+    .kpi .v { font-size: 1.3rem; font-weight: 700; }
     .table-section { background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.08); overflow: hidden; }
-    .section-header { background: linear-gradient(135deg,#667eea,#764ba2); color: #fff; padding: 14px 16px; font-weight: 600; }
+    .section-header { display:flex; align-items:center; justify-content:space-between;
+      background: linear-gradient(135deg,#667eea,#764ba2); color:#fff; padding: 12px 16px; font-weight: 600; }
     .table-container { max-height: 70vh; overflow: auto; }
     table { width: 100%; border-collapse: collapse; }
     th { position: sticky; top: 0; background: #f8f9fa; color: #666; font-size: 12px; letter-spacing: .5px;
-         text-align: left; padding: 12px 10px; z-index: 1; }
-    td { padding: 12px 10px; border-bottom: 1px solid #eee; }
+         text-align: left; padding: 10px; z-index: 1; }
+    td { padding: 10px; border-bottom: 1px solid #eee; }
     tr:hover { background: #f8f9ff; }
     .src { font-size: 12px; color: #666; }
-    @media (max-width: 768px) { .header h1 { font-size: 1.6rem; } .card { grid-template-columns: 1fr; } }
+    @media (max-width: 900px){ .card{grid-template-columns:repeat(2,1fr)} }
+    @media (max-width: 600px){ .controls{grid-template-columns:repeat(2,1fr)} .card{grid-template-columns:1fr} }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>📊 應付現股當日沖銷券差借券費率（合併：TWSE + TPEx）</h1>
-      <p>直接解析兩站「當月」HTML 表格並合併顯示；無篩選/搜尋</p>
+      <h1>📊 當沖券差借券費率（TWSE + TPEx）</h1>
+      <p>合併兩站資料，支援篩選 / 彙總 / 匯出</p>
       <div class="update-time" id="lastUpdate">最後更新：—</div>
     </div>
 
+    <!-- 篩選器 -->
     <div class="controls">
-      <button id="btnRefresh" class="btn-primary">🔄 更新資料</button>
-      <button id="btnExport" class="btn-soft">💾 匯出 CSV</button>
+      <div class="f" style="grid-column: span 3;">
+        <label>來源</label>
+        <select id="fSource">
+          <option value="">全部</option>
+          <option value="TWSE">TWSE</option>
+          <option value="TPEx">TPEx</option>
+        </select>
+      </div>
+      <div class="f" style="grid-column: span 3;">
+        <label>代號 / 名稱 含字</label>
+        <input id="fKeyword" placeholder="如 2330 或 台積" />
+      </div>
+      <div class="f" style="grid-column: span 3;">
+        <label>日期（起）</label>
+        <input id="fDateFrom" type="date"/>
+      </div>
+      <div class="f" style="grid-column: span 3;">
+        <label>日期（迄）</label>
+        <input id="fDateTo" type="date"/>
+      </div>
+
+      <div class="f" style="grid-column: span 3;">
+        <label>最小借券股數</label>
+        <input id="fMinQty" inputmode="numeric" placeholder="如 10000"/>
+      </div>
+      <div class="f" style="grid-column: span 3;">
+        <label>費率介於（%）</label>
+        <div style="display:flex; gap:6px;">
+          <input id="fMinFee" inputmode="decimal" placeholder="min"/>
+          <input id="fMaxFee" inputmode="decimal" placeholder="max"/>
+        </div>
+      </div>
+      <div class="f" style="grid-column: span 3;">
+        <label>檢視</label>
+        <select id="viewMode">
+          <option value="detail">明細</option>
+          <option value="agg_code">彙總：按代號</option>
+          <option value="agg_date">彙總：按日期</option>
+        </select>
+      </div>
+      <div class="f" style="grid-column: span 3;">
+        <label>排序</label>
+        <select id="sortBy">
+          <option value="date_desc">日期 新→舊</option>
+          <option value="qty_desc">股數 高→低</option>
+          <option value="fee_desc">費率 高→低</option>
+          <option value="code_asc">代號 A→Z</option>
+        </select>
+      </div>
+
+      <div class="btns">
+        <button id="btnReset">重置篩選</button>
+        <button id="btnExport">匯出目前結果 CSV</button>
+        <button id="btnRefresh" class="btn-primary">更新資料</button>
+      </div>
     </div>
 
     <div id="alertMsg" class="alert"></div>
 
+    <!-- KPI -->
     <div class="card">
-      <div class="kpi"><div class="v" id="kpiRows">-</div><div>總筆數</div></div>
-      <div class="kpi"><div class="v" id="kpiCodes">-</div><div>涵蓋代號數</div></div>
+      <div class="kpi"><div class="v" id="kpiRows">-</div><div>筆數</div></div>
+      <div class="kpi"><div class="v" id="kpiCodes">-</div><div>代號數</div></div>
+      <div class="kpi"><div class="v" id="kpiQty">-</div><div>借券股數合計</div></div>
+      <div class="kpi"><div class="v" id="kpiFee">-</div><div>費率平均（加權）</div></div>
     </div>
 
     <div class="table-section">
       <div class="section-header">
-        合併總覽（<span id="totalCount">0</span> 筆）
+        <span id="tableTitle">明細列表</span>
+        <span id="totalCount">0 筆</span>
       </div>
       <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th style="width:120px">券差日期</th>
-              <th style="width:90px">來源</th>
-              <th style="width:110px">證券代號</th>
-              <th>證券名稱</th>
-              <th style="width:160px">借券股數(股)</th>
-              <th style="width:160px">借券費率(%)</th>
-            </tr>
-          </thead>
-          <tbody id="tableBody">
-            <tr><td colspan="6" style="text-align:center;color:#666;padding:24px">載入當月資料中…</td></tr>
+        <table id="tbl">
+          <thead id="thead"></thead>
+          <tbody id="tbody">
+            <tr><td style="text-align:center;color:#666;padding:24px">載入中…</td></tr>
           </tbody>
         </table>
       </div>
@@ -80,28 +134,37 @@
   </div>
 
   <script>
-    // ===== 小工具 =====
+    // ===== 常用 =====
     const nf = new Intl.NumberFormat('zh-TW');
-    const alertEl = document.getElementById('alertMsg');
     const showAlert = (msg, type='info') => {
-      alertEl.textContent = msg;
-      alertEl.style.display = 'block';
-      alertEl.style.background = type==='success' ? '#e8f5e9' : '#fff3cd';
-      alertEl.style.borderColor = type==='success' ? '#a5d6a7' : '#ffeaa7';
-      setTimeout(()=> alertEl.style.display = 'none', 2500);
+      const el = document.getElementById('alertMsg');
+      el.textContent = msg;
+      el.style.display = 'block';
+      el.style.background = type==='success' ? '#e8f5e9' : '#fff3cd';
+      el.style.borderColor = type==='success' ? '#a5d6a7' : '#ffeaa7';
+      setTimeout(()=> el.style.display = 'none', 2600);
     };
     const updateClock = () => {
       document.getElementById('lastUpdate').textContent =
         '最後更新：' + new Date().toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
     };
-    const toNum = v => Number(String(v ?? '').replace(/[,%\s,]/g,'').trim()) || 0;
+    const toNum = v => Number(String(v ?? '').replace(/[,\s%]/g,'')) || 0;
     const trim = s => String(s ?? '').trim();
 
-    // ===== 兩站 URL（當月 HTML）=====
+    // ROC(民國)→ISO
+    const rocToISO = (s) => {
+      const m = String(s).match(/(\d{2,3})[\/年.-](\d{1,2})[\/月.-](\d{1,2})/);
+      if(!m) return '';
+      const y = (+m[1] + 1911).toString().padStart(4,'0');
+      const mm = m[2].padStart(2,'0');
+      const dd = m[3].padStart(2,'0');
+      return `${y}-${mm}-${dd}`;
+    };
+
+    // ===== 來源 URL =====
     const URL_TPEX = 'https://www.tpex.org.tw/www/zh-tw/intraday/fee?id=&response=html';
     const URL_TWSE = 'https://www.twse.com.tw/rwd/zh/dayTrading/BFIF8U?response=html';
 
-    // CORS：先直接取，失敗再用 allorigins（僅開發測試）
     async function fetchHTML(url) {
       try {
         const r = await fetch(url, { cache: 'no-store' });
@@ -115,86 +178,144 @@
       }
     }
 
-    // 解析：找含「券差日期」表頭的第一個表格
+    // ===== 只抓真正欄名那一列建立索引（避免 colspan 影響）=====
     function parseFeeTable(htmlText, source) {
       const doc = new DOMParser().parseFromString(htmlText, 'text/html');
       const tables = Array.from(doc.querySelectorAll('table'));
-      let target = null, headers = [];
+      let table = tables.find(t =>
+        /券差日期/.test(t.textContent) && /證券代號/.test(t.textContent)
+      );
+      if (!table) return [];
 
-      for (const t of tables) {
-        const ths = Array.from(t.querySelectorAll('thead tr th, tr th')).map(th => trim(th.textContent));
-        if (ths.join(',').includes('券差日期') && ths.some(h => /借券[股|數]|借券股數|投資人借券股數/.test(h))) {
-          target = t; headers = ths; break;
-        }
-      }
-      if (!target) return [];
+      const headerTr = Array.from(table.querySelectorAll('thead tr, tr')).find(tr => {
+        const ths = Array.from(tr.querySelectorAll('th'));
+        if (ths.length < 4) return false;
+        if (ths.some(th => th.hasAttribute('colspan'))) return false;
+        const text = ths.map(th => th.textContent.trim()).join(',');
+        return /券差日期/.test(text) && /證券代號/.test(text);
+      });
+      if (!headerTr) return [];
 
-      const idx = (regex) => headers.findIndex(h => regex.test(h));
+      const headers = Array.from(headerTr.querySelectorAll('th')).map(th => th.textContent.trim());
+      const idx = (re) => headers.findIndex(h => re.test(h));
       const iDate = idx(/券差日期/);
       const iCode = idx(/證券代號/);
       const iName = idx(/證券名稱/);
-      const iQty  = idx(/借券股數|投資人借券股數/);
-      const iFee  = idx(/借券費率|投資人借券費率/);
+      const iQty  = idx(/(投資人)?借券股數/);
+      const iFee  = idx(/(投資人)?借券費率/);
+
+      const bodyTrs =
+        Array.from(table.querySelectorAll('tbody tr')).length
+          ? Array.from(table.querySelectorAll('tbody tr'))
+          : Array.from(table.querySelectorAll('tr')).filter(tr => tr.querySelectorAll('td').length);
 
       const rows = [];
-      const trs = Array.from(target.querySelectorAll('tbody tr')).length
-        ? Array.from(target.querySelectorAll('tbody tr'))
-        : Array.from(target.querySelectorAll('tr')).slice(1); // 有些頁面沒有 <thead>/<tbody> 分離
-
-      for (const tr of trs) {
-        const tds = Array.from(tr.children).map(td => trim(td.textContent));
+      for (const tr of bodyTrs) {
+        const tds = Array.from(tr.querySelectorAll('td,th')).map(td => td.textContent.trim());
         if (!tds.length) continue;
+
+        const dateStr = tds[iDate] || '';
         const code = tds[iCode] || '';
-        if (/說明|合計|總筆數/.test(code)) continue; // 跳過說明列
-        const date = tds[iDate] || '';
         const name = tds[iName] || '';
         const qty  = toNum(tds[iQty]);
-        // 可能含百分比符號
-        const fee  = String(tds[iFee] ?? '').replace('%','').trim();
-        const feeNum = fee === '' ? null : Number(fee);
 
-        // 資料完整性檢查：有代號且有日期才算
-        if (!code || !date) continue;
-        rows.push({ date, source, code, name, qty, fee: feeNum });
+        let feeRaw = (tds[iFee] ?? '').replace('%','').trim();
+        const fee = feeRaw === '' ? null : Number(feeRaw);
+
+        if (!dateStr || !code) continue;
+
+        const iso = rocToISO(dateStr);
+        rows.push({
+          date: dateStr, dateISO: iso, source, code, name, qty, fee,
+          search: (code + ' ' + name).toLowerCase()
+        });
       }
       return rows;
     }
 
-    // 抓兩站並合併
-    async function loadData() {
-      const tbody = document.getElementById('tableBody');
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#666;padding:24px">載入當月資料中…</td></tr>`;
+    // ===== 全流程：載入 → 套用篩選 → 渲染 =====
+    let ALL_ROWS = [];    // 原始明細
+    let VIEW_ROWS = [];   // 目前畫面資料（明細或彙總）
 
-      try {
-        const [tpexHTML, twseHTML] = await Promise.all([
-          fetchHTML(URL_TPEX),
-          fetchHTML(URL_TWSE),
+    function applyFilters() {
+      const src = document.getElementById('fSource').value;
+      const kw = document.getElementById('fKeyword').value.trim().toLowerCase();
+      const d1 = document.getElementById('fDateFrom').value;
+      const d2 = document.getElementById('fDateTo').value;
+      const minQty = toNum(document.getElementById('fMinQty').value);
+      const minFee = document.getElementById('fMinFee').value === '' ? null : Number(document.getElementById('fMinFee').value);
+      const maxFee = document.getElementById('fMaxFee').value === '' ? null : Number(document.getElementById('fMaxFee').value);
+
+      let rows = ALL_ROWS.filter(r => {
+        if (src && r.source !== src) return false;
+        if (kw && !r.search.includes(kw)) return false;
+        if (d1 && r.dateISO && r.dateISO < d1) return false;
+        if (d2 && r.dateISO && r.dateISO > d2) return false;
+        if (minQty && r.qty < minQty) return false;
+        if (minFee != null && (r.fee == null || r.fee < minFee)) return false;
+        if (maxFee != null && (r.fee == null || r.fee > maxFee)) return false;
+        return true;
+      });
+
+      // 檢視模式
+      const mode = document.getElementById('viewMode').value;
+      if (mode === 'agg_code') {
+        rows = aggregateBy(rows, r => r.code, (key, items) => ({
+          group: key,
+          code: key,
+          name: pickName(items),
+          rows: items.length,
+          qty: sum(items.map(i=>i.qty)),
+          fee_avg: avg(items.map(i=>i.fee).filter(x=>x!=null)),
+          fee_wavg: wavg(items.filter(i=>i.fee!=null), i => i.fee, i => i.qty)
+        }));
+        setTableHeader([
+          '證券代號','證券名稱','筆數','借券股數合計','費率平均(%)','費率加權平均(%)'
         ]);
-
-        const tpexRows = parseFeeTable(tpexHTML, 'TPEx');
-        const twseRows = parseFeeTable(twseHTML, 'TWSE');
-
-        // 合併
-        let rows = [...tpexRows, ...twseRows];
-
-        if (!rows.length) {
-          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#c00;padding:24px">當月查無資料（或尚未公布）。</td></tr>`;
-          document.getElementById('totalCount').textContent = '0';
-          document.getElementById('kpiRows').textContent = '0';
-          document.getElementById('kpiCodes').textContent = '0';
-          updateClock();
-          return;
-        }
-
-        // 依日期(新→舊)、來源、代號排序（ROC 年月日字串也能字典排序）
-        rows.sort((a,b) => (
-          b.date.localeCompare(a.date) ||
-          a.source.localeCompare(b.source) ||
-          a.code.localeCompare(b.code, 'zh-Hant')
-        ));
-
-        // 渲染
-        tbody.innerHTML = rows.map(r => `
+        VIEW_ROWS = rows;
+        renderBody(rows, r => `
+          <tr>
+            <td>${r.code}</td>
+            <td>${r.name || '-'}</td>
+            <td>${r.rows}</td>
+            <td>${nf.format(r.qty)}</td>
+            <td>${fmt(r.fee_avg)}</td>
+            <td>${fmt(r.fee_wavg)}</td>
+          </tr>
+        `);
+        setTitle(`彙總：按代號 (${rows.length} 筆)`);
+      } else if (mode === 'agg_date') {
+        rows = aggregateBy(rows, r => r.date, (key, items) => ({
+          group: key,
+          date: key,
+          rows: items.length,
+          codes: new Set(items.map(i=>i.code)).size,
+          qty: sum(items.map(i=>i.qty)),
+          fee_avg: avg(items.map(i=>i.fee).filter(x=>x!=null)),
+          fee_wavg: wavg(items.filter(i=>i.fee!=null), i => i.fee, i => i.qty)
+        }));
+        setTableHeader([
+          '券差日期','代號數','筆數','借券股數合計','費率平均(%)','費率加權平均(%)'
+        ]);
+        VIEW_ROWS = rows;
+        renderBody(rows, r => `
+          <tr>
+            <td>${r.date}</td>
+            <td>${r.codes}</td>
+            <td>${r.rows}</td>
+            <td>${nf.format(r.qty)}</td>
+            <td>${fmt(r.fee_avg)}</td>
+            <td>${fmt(r.fee_wavg)}</td>
+          </tr>
+        `);
+        setTitle(`彙總：按日期 (${rows.length} 筆)`);
+      } else {
+        // 明細
+        const sortBy = document.getElementById('sortBy').value;
+        sortRows(rows, sortBy);
+        setTableHeader(['券差日期','來源','證券代號','證券名稱','借券股數(股)','借券費率(%)']);
+        VIEW_ROWS = rows;
+        renderBody(rows, r => `
           <tr>
             <td>${r.date}</td>
             <td class="src">${r.source}</td>
@@ -203,44 +324,134 @@
             <td>${nf.format(r.qty)}</td>
             <td>${r.fee != null ? r.fee + '%' : '-'}</td>
           </tr>
-        `).join('');
+        `);
+        setTitle(`明細列表 (${rows.length} 筆)`);
+      }
 
-        // KPI
-        document.getElementById('totalCount').textContent = rows.length;
-        document.getElementById('kpiRows').textContent = rows.length;
-        document.getElementById('kpiCodes').textContent = new Set(rows.map(r=>r.code)).size;
+      // KPI
+      const kRows = VIEW_ROWS.length;
+      const kCodes = mode==='agg_code' ? VIEW_ROWS.length : new Set(rows.map(r=>r.code)).size;
+      const kQty = sum((mode==='detail' ? VIEW_ROWS : rows).map(r=> r.qty || 0));
+      const base = mode==='detail' ? VIEW_ROWS : rows.flatMap ? rows : []; // 保守
+      const feeW = wavg(
+        (mode==='detail' ? VIEW_ROWS : ALL_ROWS).filter(x => x.fee!=null),
+        i => i.fee, i => i.qty
+      );
+      document.getElementById('kpiRows').textContent = nf.format(kRows);
+      document.getElementById('kpiCodes').textContent = nf.format(kCodes);
+      document.getElementById('kpiQty').textContent = nf.format(kQty);
+      document.getElementById('kpiFee').textContent = isFinite(feeW) ? (Math.round(feeW*1000)/1000)+'%' : '-';
+      document.getElementById('totalCount').textContent = nf.format(kRows) + ' 筆';
+    }
+
+    function setTableHeader(cols){
+      const thead = document.getElementById('thead');
+      thead.innerHTML = '<tr>' + cols.map(c=>`<th>${c}</th>`).join('') + '</tr>';
+    }
+    function renderBody(rows, tpl){
+      const tbody = document.getElementById('tbody');
+      if(!rows.length){
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#c00;padding:18px">查無符合條件資料</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = rows.map(tpl).join('');
+    }
+    function setTitle(t){ document.getElementById('tableTitle').textContent = t; }
+
+    function sortRows(rows, sortBy){
+      if (sortBy==='qty_desc') rows.sort((a,b)=> b.qty-a.qty || b.dateISO.localeCompare(a.dateISO));
+      else if (sortBy==='fee_desc') rows.sort((a,b)=> (b.fee??-1)-(a.fee??-1) || b.qty-a.qty);
+      else if (sortBy==='code_asc') rows.sort((a,b)=> a.code.localeCompare(b.code));
+      else rows.sort((a,b)=> b.dateISO.localeCompare(a.dateISO) || a.code.localeCompare(b.code));
+    }
+
+    // ===== 聚合工具 =====
+    const sum = arr => arr.reduce((s,v)=> s + (Number(v)||0), 0);
+    const avg = arr => arr.length ? sum(arr)/arr.length : NaN;
+    const wavg = (items, vFn, wFn) => {
+      const wsum = items.reduce((s,i)=> s + (wFn(i)||0), 0);
+      if (!wsum) return NaN;
+      const vsum = items.reduce((s,i)=> s + (vFn(i)||0) * (wFn(i)||0), 0);
+      return vsum / wsum;
+    };
+    const pickName = items => {
+      // 取出現最多的名稱（避免同代號不同平台名稱細微差）
+      const m = new Map();
+      for (const i of items){ const k = i.name||''; m.set(k, (m.get(k)||0)+1); }
+      let best = '', cnt = -1; for (const [k,v] of m){ if (v>cnt){ best=k; cnt=v; } }
+      return best;
+    };
+    function aggregateBy(rows, keyFn, build){
+      const map = new Map();
+      for (const r of rows){
+        const k = keyFn(r);
+        if (!map.has(k)) map.set(k, []);
+        map.get(k).push(r);
+      }
+      return Array.from(map.entries()).map(([k,items])=> build(k, items));
+    }
+    const fmt = v => (v==null || isNaN(v)) ? '-' : (Math.round(v*1000)/1000)+'%';
+
+    // ===== 載入資料 =====
+    async function loadData() {
+      document.getElementById('tbody').innerHTML =
+        `<tr><td colspan="8" style="text-align:center;color:#666;padding:24px">載入當月資料中…</td></tr>`;
+      try {
+        const [tpexHTML, twseHTML] = await Promise.all([ fetchHTML(URL_TPEX), fetchHTML(URL_TWSE) ]);
+        const tpexRows = parseFeeTable(tpexHTML, 'TPEx');
+        const twseRows = parseFeeTable(twseHTML, 'TWSE');
+
+        ALL_ROWS = [...tpexRows, ...twseRows].sort((a,b)=>
+          b.dateISO.localeCompare(a.dateISO) || a.source.localeCompare(b.source) || a.code.localeCompare(b.code,'zh-Hant')
+        );
 
         updateClock();
-        showAlert(`載入成功（TWSE ${twseRows.length} 筆，TPEx ${tpexRows.length} 筆；合計 ${rows.length}）`, 'success');
-        window.__ROWS__ = rows; // 匯出用
+        showAlert(`載入成功（TWSE ${twseRows.length}、TPEx ${tpexRows.length}；合計 ${ALL_ROWS.length}）`, 'success');
+        applyFilters();
       } catch (e) {
         console.error(e);
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#c00;padding:24px">載入失敗</td></tr>`;
+        document.getElementById('tbody').innerHTML =
+          `<tr><td colspan="8" style="text-align:center;color:#c00;padding:24px">載入失敗</td></tr>`;
       }
     }
 
-    // 匯出目前表格為 CSV
+    // ===== 匯出目前畫面 =====
     function exportCSV() {
-      const rows = window.__ROWS__ || [];
-      const header = ['券差日期','來源','證券代號','證券名稱','借券股數(股)','借券費率(%)'].join(',');
-      const csvRows = rows.map(r => [
-        r.date, r.source, r.code,
-        `"${(r.name || '').replace(/"/g,'""')}"`,
-        r.qty, (r.fee != null ? r.fee : '')
-      ].join(','));
-      const csv = [header, ...csvRows].join('\n');
+      if (!VIEW_ROWS.length) { showAlert('沒有可匯出的資料'); return; }
+      const mode = document.getElementById('viewMode').value;
+      let header, rows;
+      if (mode === 'agg_code') {
+        header = ['證券代號','證券名稱','筆數','借券股數合計','費率平均(%)','費率加權平均(%)'];
+        rows = VIEW_ROWS.map(r=>[r.code, r.name||'', r.rows, r.qty, cleanPct(r.fee_avg), cleanPct(r.fee_wavg)]);
+      } else if (mode === 'agg_date') {
+        header = ['券差日期','代號數','筆數','借券股數合計','費率平均(%)','費率加權平均(%)'];
+        rows = VIEW_ROWS.map(r=>[r.date, r.codes, r.rows, r.qty, cleanPct(r.fee_avg), cleanPct(r.fee_wavg)]);
+      } else {
+        header = ['券差日期','來源','證券代號','證券名稱','借券股數(股)','借券費率(%)'];
+        rows = VIEW_ROWS.map(r=>[r.date, r.source, r.code, r.name||'', r.qty, r.fee??'']);
+      }
+      const csv = [header.join(','), ...rows.map(r=> r.map(s => typeof s==='string' ? `"${s.replace(/"/g,'""')}"` : s).join(','))].join('\n');
       const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `當沖券差_合併_${new Date().toISOString().slice(0,10)}.csv`;
+      a.download = `當沖券差_${mode}_${new Date().toISOString().slice(0,10)}.csv`;
       document.body.appendChild(a); a.click(); a.remove();
-      showAlert('CSV 檔案已下載', 'success');
+      showAlert('已匯出目前結果', 'success');
     }
+    const cleanPct = v => (v==null || isNaN(v)) ? '' : Math.round(v*1000)/1000;
 
-    // 綁定與啟動
+    // ===== 綁定 =====
     document.addEventListener('DOMContentLoaded', () => {
+      ['fSource','fKeyword','fDateFrom','fDateTo','fMinQty','fMinFee','fMaxFee','viewMode','sortBy']
+        .forEach(id => document.getElementById(id).addEventListener('input', applyFilters));
       document.getElementById('btnRefresh').addEventListener('click', loadData);
       document.getElementById('btnExport').addEventListener('click', exportCSV);
+      document.getElementById('btnReset').addEventListener('click', () => {
+        ['fSource','fKeyword','fDateFrom','fDateTo','fMinQty','fMinFee','fMaxFee'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('viewMode').value = 'detail';
+        document.getElementById('sortBy').value = 'date_desc';
+        applyFilters();
+      });
       loadData();
     });
   </script>
