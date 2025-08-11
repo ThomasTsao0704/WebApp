@@ -101,7 +101,7 @@
 
     // ===== API：可借券（TWSE TWT96U）=====
     async function fetchAvailableShares() {
-      const url = 'https://openapi.twse.com.tw/v1/SBL/TWT96U';
+      const url = 'https://www.tpex.org.tw/www/zh-tw/intraday/fee?id=&response=html';
       try {
         const res = await fetch(url, { cache:'no-store' });
         if (!res.ok) throw new Error(`TWT96U HTTP ${res.status}`);
@@ -123,7 +123,7 @@
       } catch (e) {
         console.error(e);
         // 備援：公開代理（僅測試用）
-        const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://openapi.twse.com.tw/v1/SBL/TWT96U');
+        const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://www.tpex.org.tw/www/zh-tw/intraday/fee?id=&response=html');
         const res2 = await fetch(proxy);
         if (!res2.ok) throw new Error('TWT96U proxy failed');
         const data = await res2.json();
