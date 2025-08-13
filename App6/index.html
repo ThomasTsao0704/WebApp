@@ -1,1 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>酒吧餐廳活動搜尋</title>
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+    <div class="language-selector">
+        <button class="language-btn active" data-lang="zh-tw">繁中</button>
+        <button class="language-btn" data-lang="zh-cn">簡中</button>
+        <button class="language-btn" data-lang="en">English</button>
+        <button class="language-btn" data-lang="ja">日本語</button>
+        <button class="language-btn" data-lang="ko">한국어</button>
+        <button class="language-btn" data-lang="th">ไทย</button>
+    </div>
 
+    <div class="container">
+        <div class="header">
+            <h1 data-translate="title">酒吧餐廳活動搜尋</h1>
+            <p data-translate="subtitle">發現您附近最熱門的酒吧和餐廳活動</p>
+        </div>
+
+        <div class="search-section">
+            <div class="search-grid">
+                <div class="form-group">
+                    <label data-translate="search_name">活動名稱</label>
+                    <input type="text" id="searchName" placeholder="輸入活動名稱..." />
+                </div>
+                <div class="form-group">
+                    <label data-translate="search_location">地點</label>
+                    <input type="text" id="searchLocation" placeholder="輸入地點..." />
+                </div>
+                <div class="form-group">
+                    <label data-translate="search_type">活動類型</label>
+                    <select id="searchType">
+                        <option value="">所有類型</option>
+                        <option value="music">音樂表演</option>
+                        <option value="food">美食活動</option>
+                        <option value="cocktail">調酒體驗</option>
+                        <option value="party">主題派對</option>
+                        <option value="special">特別活動</option>
+                    </select>
+                </div>
+            </div>
+            <button class="search-btn" id="searchBtn" data-translate="search_btn">搜尋活動</button>
+        </div>
+
+        <div id="eventsContainer" class="events-grid"></div>
+
+        <div id="noResults" class="no-results" style="display:none;">
+            <p data-translate="no_results">找不到符合條件的活動</p>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="eventModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeModalBtn">&times;</span>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <script src="js/javascript.js"></script>
+</body>
+</html>

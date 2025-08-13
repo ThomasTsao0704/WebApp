@@ -1,0 +1,296 @@
+[
+  {
+    "id": 1,
+    "name": {
+      "zh-tw": "爵士之夜",
+      "zh-cn": "爵士之夜",
+      "en": "Jazz Night",
+      "ja": "ジャズナイト",
+      "ko": "재즈 나이트",
+      "th": "คืนแจ๊ส"
+    },
+    "venue": {
+      "zh-tw": "藍調酒吧",
+      "zh-cn": "蓝调酒吧",
+      "en": "Blue Note Bar",
+      "ja": "ブルーノートバー",
+      "ko": "블루 노트 바",
+      "th": "บลู โน้ต บาร์"
+    },
+    "location": {
+      "zh-tw": "台北市大安區",
+      "zh-cn": "台北市大安区",
+      "en": "Da'an District, Taipei",
+      "ja": "台北市大安区",
+      "ko": "타이베이시 다안구",
+      "th": "เขตดาอัน ไทเป"
+    },
+    "address": "台北市大安區敦化南路一段187號",
+    "date": "2025-08-15",
+    "time": "20:00",
+    "type": "music",
+    "price": {
+      "zh-tw": "NT$500",
+      "zh-cn": "NT$500",
+      "en": "NT$500",
+      "ja": "NT$500",
+      "ko": "NT$500",
+      "th": "NT$500"
+    },
+    "description": {
+      "zh-tw": "享受一個充滿爵士樂的夜晚，由知名爵士樂手現場演出，搭配精緻調酒和美食。",
+      "zh-cn": "享受一个充满爵士乐的夜晚，由知名爵士乐手现场演出，搭配精致调酒和美食。",
+      "en": "Enjoy an evening filled with jazz music, featuring live performances by renowned jazz musicians, paired with exquisite cocktails and cuisine.",
+      "ja": "有名なジャズミュージシャンによるライブパフォーマンスと、絶品カクテル、料理と共にジャズに満ちた夜をお楽しみください。",
+      "ko": "유명한 재즈 뮤지션의 라이브 공연과 함께 정교한 칵테일과 요리를 즐기며 재즈로 가득한 저녁을 만끽하세요.",
+      "th": "เพลิดเพลินกับค่ำคืนที่เต็มไปด้วยดนตรีแจ๊ส โดยนักดนตรีแจ๊สชื่อดังแสดงสด พร้อมค็อกเทลและอาหารชั้นเลิศ"
+    },
+    "contact": "Tel: 02-2345-6789",
+    "image": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": 2,
+    "name": {
+      "zh-tw": "威士忌品鑑會",
+      "zh-cn": "威士忌品鉴会",
+      "en": "Whiskey Tasting",
+      "ja": "ウイスキーテイスティング",
+      "ko": "위스키 테이스팅",
+      "th": "การชิมวิสกี้"
+    },
+    "venue": {
+      "zh-tw": "麥芽威士忌館",
+      "zh-cn": "麦芽威士忌馆",
+      "en": "Malt Whiskey House",
+      "ja": "モルトウイスキーハウス",
+      "ko": "몰트 위스키 하우스",
+      "th": "มอลท์ วิสกี้ เฮาส์"
+    },
+    "location": {
+      "zh-tw": "台北市信義區",
+      "zh-cn": "台北市信义区",
+      "en": "Xinyi District, Taipei",
+      "ja": "台北市信義区",
+      "ko": "타이베이시 신이구",
+      "th": "เขตซินอี้ ไทเป"
+    },
+    "address": "台北市信義區市府路45號15樓",
+    "date": "2025-08-16",
+    "time": "19:30",
+    "type": "cocktail",
+    "price": {
+      "zh-tw": "NT$1200",
+      "zh-cn": "NT$1200",
+      "en": "NT$1200",
+      "ja": "NT$1200",
+      "ko": "NT$1200",
+      "th": "NT$1200"
+    },
+    "description": {
+      "zh-tw": "專業調酒師帶領品鑑來自蘇格蘭的頂級威士忌，包含5款不同年份的威士忌和精緻下酒菜。",
+      "zh-cn": "专业调酒师带领品鉴来自苏格兰的顶级威士忌，包含5款不同年份的威士忌和精致下酒菜。",
+      "en": "Professional mixologists guide you through tasting premium Scottish whiskeys, including 5 different aged whiskeys and exquisite appetizers.",
+      "ja": "プロのミクソロジストが、5種類の異なる年代のウイスキーと絶品おつまみを含む、スコットランドのプレミアムウイスキーのテイスティングをご案内します。",
+      "ko": "전문 믹솔로지스트가 5가지 다른 연도의 위스키와 정교한 안주를 포함한 스코틀랜드 프리미엄 위스키 테이스팅을 안내합니다.",
+      "th": "นักผสมเครื่องดื่มมืออาชีพจะแนะนำการชิมวิสกี้พรีเมียมจากสกอตแลนด์ รวม 5 ชนิดที่มีอายุต่างกัน พร้อมกับอาหารเรียกน้ำย่อยชั้นเลิศ"
+    },
+    "contact": "Tel: 02-2876-5432",
+    "image": "https://images.unsplash.com/photo-1527281400683-1aae777175f8?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": 3,
+    "name": {
+      "zh-tw": "義式美食節",
+      "zh-cn": "意式美食节",
+      "en": "Italian Food Festival",
+      "ja": "イタリアングルメフェスティバル",
+      "ko": "이탈리아 음식 축제",
+      "th": "เทศกาลอาหารอิตาลี"
+    },
+    "venue": {
+      "zh-tw": "羅馬假日餐廳",
+      "zh-cn": "罗马假日餐厅",
+      "en": "Roman Holiday Restaurant",
+      "ja": "ローマの休日レストラン",
+      "ko": "로마의 휴일 레스토랑",
+      "th": "ร้านอาหารโรมัน ฮอลิเดย์"
+    },
+    "location": {
+      "zh-tw": "台北市中山區",
+      "zh-cn": "台北市中山区",
+      "en": "Zhongshan District, Taipei",
+      "ja": "台北市中山区",
+      "ko": "타이베이시 중산구",
+      "th": "เขตจงซาน ไทเป"
+    },
+    "address": "台北市中山區南京東路二段125號",
+    "date": "2025-08-17",
+    "time": "18:00",
+    "type": "food",
+    "price": {
+      "zh-tw": "NT$800",
+      "zh-cn": "NT$800",
+      "en": "NT$800",
+      "ja": "NT$800",
+      "ko": "NT$800",
+      "th": "NT$800"
+    },
+    "description": {
+      "zh-tw": "正宗義大利主廚親自料理，提供經典義式料理包括手工義大利麵、比薩和提拉米蘇。",
+      "zh-cn": "正宗意大利主厨亲自料理，提供经典意式料理包括手工意大利面、比萨和提拉米苏。",
+      "en": "Authentic Italian chef personally prepares classic Italian dishes including handmade pasta, pizza, and tiramisu.",
+      "ja": "本格的なイタリア人シェフが、手作りパスタ、ピザ、ティラミスなどの古典的なイタリア料理を自ら調理します。",
+      "ko": "정통 이탈리아 셰프가 직접 조리하는 수제 파스타, 피자, 티라미수를 포함한 클래식 이탈리아 요리를 제공합니다.",
+      "th": "เชฟอิตาลีแท้จะปรุงอาหารอิตาลีคลาสสิกด้วยตนเอง รวมถึงพาสต้าทำมือ พิซซ่า และทิรามิสุ"
+    },
+    "contact": "Tel: 02-2567-8901",
+    "image": "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": 4,
+    "name": {
+      "zh-tw": "電音派對夜",
+      "zh-cn": "电音派对夜",
+      "en": "Electronic Music Party",
+      "ja": "エレクトロニックミュージックパーティー",
+      "ko": "일렉트로닉 뮤직 파티",
+      "th": "ปาร์ตี้เพลงอิเล็กทรอนิกส์"
+    },
+    "venue": {
+      "zh-tw": "夜光俱樂部",
+      "zh-cn": "夜光俱乐部",
+      "en": "Neon Club",
+      "ja": "ネオンクラブ",
+      "ko": "네온 클럽",
+      "th": "นีออน คลับ"
+    },
+    "location": {
+      "zh-tw": "台北市松山區",
+      "zh-cn": "台北市松山区",
+      "en": "Songshan District, Taipei",
+      "ja": "台北市松山区",
+      "ko": "타이베이시 송산구",
+      "th": "เขตซงซาน ไทเป"
+    },
+    "address": "台北市松山區八德路三段155號B1",
+    "date": "2025-08-18",
+    "time": "22:00",
+    "type": "party",
+    "price": {
+      "zh-tw": "NT$300",
+      "zh-cn": "NT$300",
+      "en": "NT$300",
+      "ja": "NT$300",
+      "ko": "NT$300",
+      "th": "NT$300"
+    },
+    "description": {
+      "zh-tw": "知名DJ現場打碟，最新電音節拍讓您徹夜狂歡，還有特色調酒和霓虹燈光秀。",
+      "zh-cn": "知名DJ现场打碟，最新电音节拍让您彻夜狂欢，还有特色调酒和霓虹灯光秀。",
+      "en": "Famous DJs spinning live, latest electronic beats for all-night partying, featuring signature cocktails and neon light shows.",
+      "ja": "有名なDJのライブスピニング、一晩中パーティーを楽しめる最新のエレクトロニックビート、シグネチャーカクテルとネオンライトショーをフィーチャー。",
+      "ko": "유명한 DJ의 라이브 스피닝, 밤새 파티를 즐길 수 있는 최신 일렉트로닉 비트, 시그니처 칵테일과 네온 라이트 쇼를 특징으로 합니다.",
+      "th": "ดีเจชื่อดังเล่นสด จังหวะอิเล็กทรอนิกส์ล่าสุดสำหรับปาร์ตี้ตลอดคืน พร้อมค็อกเทลซิกเนเจอร์และโชว์ไฟนีออน"
+    },
+    "contact": "Tel: 02-2345-1234",
+    "image": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": 5,
+    "name": {
+      "zh-tw": "精釀啤酒節",
+      "zh-cn": "精酿啤酒节",
+      "en": "Craft Beer Festival",
+      "ja": "クラフトビールフェスティバル",
+      "ko": "크래프트 비어 페스티벌",
+      "th": "เทศกาลเบียร์คราฟต์"
+    },
+    "venue": {
+      "zh-tw": "工業風啤酒屋",
+      "zh-cn": "工业风啤酒屋",
+      "en": "Industrial Brewery",
+      "ja": "インダストリアルブルワリー",
+      "ko": "인더스트리얼 브루어리",
+      "th": "อินดัสเทรียล บรูเวอรี่"
+    },
+    "location": {
+      "zh-tw": "新北市板橋區",
+      "zh-cn": "新北市板桥区",
+      "en": "Banqiao District, New Taipei",
+      "ja": "新北市板橋区",
+      "ko": "신베이시 반차오구",
+      "th": "เขตปันเจียว นิวไทเป"
+    },
+    "address": "新北市板橋區文化路一段266號",
+    "date": "2025-08-19",
+    "time": "17:00",
+    "type": "special",
+    "price": {
+      "zh-tw": "免費",
+      "zh-cn": "免费",
+      "en": "Free",
+      "ja": "無料",
+      "ko": "무료",
+      "th": "ฟรี"
+    },
+    "description": {
+      "zh-tw": "品嚐來自台灣各地的精釀啤酒，搭配現烤香腸和德式料理，還有現場樂團演出。",
+      "zh-cn": "品尝来自台湾各地的精酿啤酒，搭配现烤香肠和德式料理，还有现场乐团演出。",
+      "en": "Taste craft beers from all over Taiwan, paired with grilled sausages and German cuisine, with live band performances.",
+      "ja": "台湾各地のクラフトビールを味わい、グリルソーセージとドイツ料理と合わせ、ライブバンドパフォーマンスもお楽しみいただけます。",
+      "ko": "대만 전역의 크래프트 비어를 맛보고, 구운 소시지와 독일 요리와 함께 라이브 밴드 공연을 즐기세요.",
+      "th": "ลิ้มรสเบียร์คราฟต์จากทั่วไทหวัน เสิร์ฟพร้อมไส้กรอกย่างและอาหารเยอรมัน พร้อมการแสดงของวงดนตรีสด"
+    },
+    "contact": "Tel: 02-2960-1111",
+    "image": "https://images.unsplash.com/photo-1608270586620-248524c67de9?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": 6,
+    "name": {
+      "zh-tw": "燭光晚餐音樂會",
+      "zh-cn": "烛光晚餐音乐会",
+      "en": "Candlelight Dinner Concert",
+      "ja": "キャンドルライトディナーコンサート",
+      "ko": "캔들라이트 디너 콘서트",
+      "th": "คอนเสิร์ตดินเนอร์แสงเทียน"
+    },
+    "venue": {
+      "zh-tw": "浪漫星空餐廳",
+      "zh-cn": "浪漫星空餐厅",
+      "en": "Romantic Starry Restaurant",
+      "ja": "ロマンチックスターリーレストラン",
+      "ko": "로맨틱 스타리 레스토랑",
+      "th": "โรแมนติก สตาร์รี่ เรสเตอรองต์"
+    },
+    "location": {
+      "zh-tw": "台北市北投區",
+      "zh-cn": "台北市北投区",
+      "en": "Beitou District, Taipei",
+      "ja": "台北市北投区",
+      "ko": "타이베이시 베이터우구",
+      "th": "เขตเป่ยโถว ไทเป"
+    },
+    "address": "台北市北投區中山路5-1號",
+    "date": "2025-08-20",
+    "time": "19:00",
+    "type": "music",
+    "price": {
+      "zh-tw": "NT$1500",
+      "zh-cn": "NT$1500",
+      "en": "NT$1500",
+      "ja": "NT$1500",
+      "ko": "NT$1500",
+      "th": "NT$1500"
+    },
+    "description": {
+      "zh-tw": "在燭光和星空下享受浪漫晚餐，搭配古典音樂現場演奏，是約會的完美選擇。",
+      "zh-cn": "在烛光和星空下享受浪漫晚餐，搭配古典音乐现场演奏，是约会的完美选择。",
+      "en": "Enjoy a romantic dinner under candlelight and starry sky, accompanied by live classical music performances, perfect for dates.",
+      "ja": "キャンドルライトと星空の下でロマンチックなディナーを楽しみ、ライブクラシック音乐の演奏が伴います。デートに最適です。",
+      "ko": "캔들라이트와 별이 빛나는 하늘 아래에서 로맨틱한 저녁 식사를 즐기고, 라이브 클래식 음악 연주와 함께 데이트에 완벽합니다.",
+      "th": "เพลิดเพลินกับอาหารค่ำโรแมนติกใต้แสงเทียนและท้องฟ้าดาว พร้อมการแสดงดนตรีคลาสสิกสด เหมาะสำหรับเดท"
+    },
+    "contact": "Tel: 02-2891-2345",
+    "image": "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+  }
+]
