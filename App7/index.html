@@ -1,996 +1,568 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Calendar, MapPin, Users, Clock, Filter, Globe, Star, Share2, ExternalLink, Phone, Globe2, TrendingUp, Activity, Map } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>休閒活動搜尋（單檔版）</title>
+  <!-- Tailwind CSS CDN（免安裝） -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* 深色漸層背景 & 小動畫 */
+    body { min-height:100vh; background: linear-gradient(135deg,#4c1d95 0%,#1e3a8a 50%,#312e81 100%); }
+    .glass { background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); backdrop-filter: blur(6px); }
+    .spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }
+    .rtl { direction: rtl; }
+  </style>
+</head>
+<body class="text-white">
+  <!-- 導航列 -->
+  <nav class="sticky top-0 z-50 glass">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="text-2xl">🎪</div>
+        <h1 id="nav-title" class="text-xl font-bold">休閒活動搜尋</h1>
+      </div>
+      <div class="hidden md:flex items-center space-x-2" id="tabs"></div>
+      <!-- 語言切換 -->
+      <div class="relative">
+        <button id="langBtn" class="px-3 py-2 rounded-lg bg-white/20 hover:bg-white/30 flex items-center space-x-2">
+          <span id="langFlag">🇹🇼</span><span id="langNative" class="hidden sm:inline">繁體中文</span>
+        </button>
+        <div id="langMenu" class="absolute right-0 mt-2 w-56 max-h-72 overflow-auto bg-white text-gray-800 rounded-lg shadow-xl border hidden"></div>
+      </div>
+    </div>
+  </nav>
 
-// 完整翻譯檔案
-const translations = {
-  'zh-TW': {
-    app: {
-      title: '休閒活動搜尋',
-      subtitle: '探索城市中最精彩的休閒娛樂活動'
-    },
-    navigation: {
-      home: '首頁',
-      events: '活動',
-      venues: '場所',
-      about: '關於'
-    },
-    filter: {
-      city: '城市',
-      allCities: '所有城市',
-      venueType: '場所類型',
-      allVenues: '所有場所',
-      startDate: '開始日期',
-      endDate: '結束日期',
-      keyword: '關鍵字',
-      keywordPlaceholder: '搜尋活動名稱或描述...'
-    },
-    venueTypes: {
-      all: '所有場所',
-      bar: '酒吧',
-      restaurant: '餐廳',
-      cafe: '咖啡廳',
-      hotspring: '溫泉',
-      other: '其他'
-    },
-    button: {
-      search: '搜尋活動',
-      clear: '清除',
-      viewMore: '查看更多',
-      loadMore: '載入更多',
-      close: '關閉'
-    },
-    result: {
-      searchResults: '搜尋結果',
-      foundEvents: '個活動',
-      noEvents: '找不到活動',
-      tryDifferent: '請嘗試調整搜尋條件或選擇不同的日期範圍'
-    },
-    event: {
-      attending: '參加',
-      interested: '感興趣',
-      viewDetails: '查看詳情',
-      shareEvent: '分享活動',
-      addToCalendar: '加入行事曆',
-      free: '免費',
-      ticketPrice: '票價',
-      ageLimit: '年齡限制',
-      website: '官網',
-      phone: '電話',
-      description: '活動描述'
-    },
-    stats: {
-      totalEvents: '總活動數',
-      totalVenues: '總場所數',
-      totalCities: '覆蓋城市',
-      thisWeekEvents: '本週活動'
-    },
-    status: {
-      searching: '搜尋活動中...',
-      translating: '翻譯中...',
-      loading: '載入中...',
-      loadingMore: '載入更多中...'
-    },
-    error: {
-      searchFailed: '搜尋失敗，請稍後再試',
-      translationFailed: '翻譯服務暫時無法使用',
-      networkError: '網路連線錯誤',
-      loadFailed: '載入失敗'
-    }
-  },
-  'en': {
-    app: {
-      title: 'Leisure Events Search',
-      subtitle: 'Discover the most exciting leisure and entertainment events in the city'
-    },
-    navigation: {
-      home: 'Home',
-      events: 'Events',
-      venues: 'Venues',
-      about: 'About'
-    },
-    filter: {
-      city: 'City',
-      allCities: 'All Cities',
-      venueType: 'Venue Type',
-      allVenues: 'All Venues',
-      startDate: 'Start Date',
-      endDate: 'End Date',
-      keyword: 'Keyword',
-      keywordPlaceholder: 'Search event names or descriptions...'
-    },
-    venueTypes: {
-      all: 'All Venues',
-      bar: 'Bars',
-      restaurant: 'Restaurants',
-      cafe: 'Cafes',
-      hotspring: 'Hot Springs',
-      other: 'Others'
-    },
-    button: {
-      search: 'Search Events',
-      clear: 'Clear',
-      viewMore: 'View More',
-      loadMore: 'Load More',
-      close: 'Close'
-    },
-    result: {
-      searchResults: 'Search Results',
-      foundEvents: 'events found',
-      noEvents: 'No events found',
-      tryDifferent: 'Try adjusting search criteria or selecting different date range'
-    },
-    event: {
-      attending: 'Attending',
-      interested: 'Interested',
-      viewDetails: 'View Details',
-      shareEvent: 'Share Event',
-      addToCalendar: 'Add to Calendar',
-      free: 'Free',
-      ticketPrice: 'Price',
-      ageLimit: 'Age Limit',
-      website: 'Website',
-      phone: 'Phone',
-      description: 'Event Description'
-    },
-    stats: {
-      totalEvents: 'Total Events',
-      totalVenues: 'Total Venues',
-      totalCities: 'Cities Covered',
-      thisWeekEvents: 'This Week'
-    },
-    status: {
-      searching: 'Searching events...',
-      translating: 'Translating...',
-      loading: 'Loading...',
-      loadingMore: 'Loading more...'
-    },
-    error: {
-      searchFailed: 'Search failed, please try again later',
-      translationFailed: 'Translation service unavailable',
-      networkError: 'Network connection error',
-      loadFailed: 'Load failed'
-    }
-  },
-  'ja': {
-    app: {
-      title: 'レジャーイベント検索',
-      subtitle: '街で最も刺激的なレジャー・エンターテイメントイベントを発見しよう'
-    },
-    navigation: {
-      home: 'ホーム',
-      events: 'イベント',
-      venues: '会場',
-      about: 'について'
-    },
-    filter: {
-      city: '都市',
-      allCities: 'すべての都市',
-      venueType: '会場タイプ',
-      allVenues: 'すべての会場',
-      startDate: '開始日',
-      endDate: '終了日',
-      keyword: 'キーワード',
-      keywordPlaceholder: 'イベント名や説明を検索...'
-    },
-    venueTypes: {
-      all: 'すべての会場',
-      bar: 'バー',
-      restaurant: 'レストラン',
-      cafe: 'カフェ',
-      hotspring: '温泉',
-      other: 'その他'
-    },
-    button: {
-      search: 'イベント検索',
-      clear: 'クリア',
-      viewMore: '詳細を見る',
-      loadMore: 'もっと読み込む',
-      close: '閉じる'
-    },
-    result: {
-      searchResults: '検索結果',
-      foundEvents: 'イベントが見つかりました',
-      noEvents: 'イベントが見つかりません',
-      tryDifferent: '検索条件を調整するか、異なる日付範囲を選択してください'
-    },
-    event: {
-      attending: '参加',
-      interested: '興味あり',
-      viewDetails: '詳細を見る',
-      shareEvent: 'イベントをシェア',
-      addToCalendar: 'カレンダーに追加',
-      free: '無料',
-      ticketPrice: '料金',
-      ageLimit: '年齢制限',
-      website: 'ウェブサイト',
-      phone: '電話',
-      description: 'イベント詳細'
-    },
-    stats: {
-      totalEvents: '総イベント数',
-      totalVenues: '総会場数',
-      totalCities: '対応都市',
-      thisWeekEvents: '今週のイベント'
-    },
-    status: {
-      searching: 'イベントを検索中...',
-      translating: '翻訳中...',
-      loading: '読み込み中...',
-      loadingMore: '追加読み込み中...'
-    },
-    error: {
-      searchFailed: '検索に失敗しました。後でもう一度お試しください',
-      translationFailed: '翻訳サービスが利用できません',
-      networkError: 'ネットワーク接続エラー',
-      loadFailed: '読み込みに失敗しました'
-    }
-  }
-};
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <!-- 標題與統計 -->
+    <section class="text-center mb-10">
+      <h2 id="app-title" class="text-4xl md:text-6xl font-extrabold mb-3">休閒活動搜尋</h2>
+      <p id="app-subtitle" class="text-white/80 text-lg mb-8">探索城市中最精彩的休閒娛樂活動</p>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+        <div class="glass rounded-xl p-4 text-center">
+          <div class="text-sky-300 mb-1">📈</div>
+          <div id="stat-events" class="text-2xl font-bold">0</div>
+          <div id="stat-events-label" class="text-white/70 text-sm">總活動數</div>
+        </div>
+        <div class="glass rounded-xl p-4 text-center">
+          <div class="text-emerald-300 mb-1">🗺️</div>
+          <div id="stat-venues" class="text-2xl font-bold">0</div>
+          <div id="stat-venues-label" class="text-white/70 text-sm">總場所數</div>
+        </div>
+        <div class="glass rounded-xl p-4 text-center">
+          <div class="text-fuchsia-300 mb-1">🌐</div>
+          <div id="stat-cities" class="text-2xl font-bold">0</div>
+          <div id="stat-cities-label" class="text-white/70 text-sm">覆蓋城市</div>
+        </div>
+        <div class="glass rounded-xl p-4 text-center">
+          <div class="text-orange-300 mb-1">📅</div>
+          <div id="stat-thisweek" class="text-2xl font-bold">0</div>
+          <div id="stat-thisweek-label" class="text-white/70 text-sm">本週活動</div>
+        </div>
+      </div>
+    </section>
 
-// 語言列表
-const languages = [
-  { code: 'zh-TW', name: 'Traditional Chinese', native: '繁體中文', flag: '🇹🇼' },
-  { code: 'zh-CN', name: 'Simplified Chinese', native: '简体中文', flag: '🇨🇳' },
-  { code: 'en', name: 'English', native: 'English', flag: '🇺🇸' },
-  { code: 'ja', name: 'Japanese', native: '日本語', flag: '🇯🇵' },
-  { code: 'ko', name: 'Korean', native: '한국어', flag: '🇰🇷' },
-  { code: 'es', name: 'Spanish', native: 'Español', flag: '🇪🇸' },
-  { code: 'fr', name: 'French', native: 'Français', flag: '🇫🇷' },
-  { code: 'de', name: 'German', native: 'Deutsch', flag: '🇩🇪' },
-  { code: 'ar', name: 'Arabic', native: 'العربية', flag: '🇸🇦', rtl: true },
-  { code: 'th', name: 'Thai', native: 'ไทย', flag: '🇹🇭' },
-  { code: 'vi', name: 'Vietnamese', native: 'Tiếng Việt', flag: '🇻🇳' }
-];
+    <!-- 快速選擇場所類型 -->
+    <section class="mb-8">
+      <h3 class="text-xl font-semibold text-center mb-3">快速選擇場所類型</h3>
+      <div id="typeChips" class="flex flex-wrap justify-center gap-2"></div>
+    </section>
 
-// 場所類型列表
-const venueTypes = [
-  { value: 'all', icon: '🏢', color: 'bg-gray-500', gradientFrom: 'from-gray-500', gradientTo: 'to-gray-600' },
-  { value: 'bar', icon: '🍻', color: 'bg-purple-500', gradientFrom: 'from-purple-500', gradientTo: 'to-purple-600' },
-  { value: 'restaurant', icon: '🍽️', color: 'bg-orange-500', gradientFrom: 'from-orange-500', gradientTo: 'to-orange-600' },
-  { value: 'cafe', icon: '☕', color: 'bg-yellow-600', gradientFrom: 'from-yellow-500', gradientTo: 'to-yellow-600' },
-  { value: 'hotspring', icon: '♨️', color: 'bg-blue-500', gradientFrom: 'from-blue-500', gradientTo: 'to-blue-600' },
-  { value: 'other', icon: '🎪', color: 'bg-green-500', gradientFrom: 'from-green-500', gradientTo: 'to-green-600' }
-];
+    <!-- 篩選器 -->
+    <section class="glass rounded-2xl p-6 mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+        <div>
+          <label id="lbl-city" class="block text-sm font-medium mb-2">城市</label>
+          <select id="f-city" class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg">
+            <option value="">所有城市</option>
+          </select>
+        </div>
+        <div>
+          <label id="lbl-venueType" class="block text-sm font-medium mb-2">場所類型</label>
+          <select id="f-type" class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg"></select>
+        </div>
+        <div>
+          <label id="lbl-startDate" class="block text-sm font-medium mb-2">開始日期</label>
+          <input id="f-start" type="date" class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg">
+        </div>
+        <div>
+          <label id="lbl-endDate" class="block text-sm font-medium mb-2">結束日期</label>
+          <input id="f-end" type="date" class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg">
+        </div>
+        <div>
+          <label id="lbl-keyword" class="block text-sm font-medium mb-2">關鍵字</label>
+          <input id="f-key" type="text" class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg" placeholder="搜尋活動名稱或描述...">
+        </div>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-3">
+        <button id="btn-search" class="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 flex items-center justify-center gap-2">
+          <span id="txt-search">搜尋活動</span>
+        </button>
+        <button id="btn-clear" class="px-6 py-3 bg-white/20 rounded-lg font-semibold hover:bg-white/30 flex items-center justify-center gap-2">
+          <span id="txt-clear">清除</span>
+        </button>
+      </div>
+    </section>
 
-// 模擬 API 數據
-const mockCities = ['台北市', '台中市', '高雄市', '台南市', '新北市', '宜蘭縣'];
+    <!-- 錯誤訊息 -->
+    <div id="errorBox" class="hidden glass rounded-xl p-4 border border-red-400 text-red-100 mb-6"></div>
 
-const mockStats = {
-  total_events: 156,
-  total_venues: 89,
-  total_cities: 6,
-  this_week_events: 24
-};
+    <!-- 搜尋結果 -->
+    <section id="resultSection" class="mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="lbl-results" class="text-2xl font-bold">搜尋結果</h3>
+        <div id="countBox" class="text-white/70">0 個活動</div>
+      </div>
+      <div id="emptyBox" class="hidden text-center py-12">
+        <div class="text-6xl mb-3">🔍</div>
+        <h4 id="emptyTitle" class="text-xl font-semibold mb-2">找不到活動</h4>
+        <p id="emptyHint" class="text-white/70">請嘗試調整搜尋條件或選擇不同的日期範圍</p>
+      </div>
+      <div id="cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      <div class="text-center mt-8">
+        <button id="btn-load" class="hidden bg-gradient-to-r from-purple-500 to-pink-500 px-8 py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600">
+          <span id="txt-load">載入更多</span>
+        </button>
+      </div>
+    </section>
+  </main>
 
-const mockEvents = [
-  {
-    id: 1,
-    name: '週五夜爵士音樂會',
-    description: '知名爵士樂團現場演出，享受美酒與音樂的完美結合。在優雅的環境中聆聽經典爵士曲目。',
-    venue_name: 'Blue Note 爵士酒吧',
-    city: '台北市',
-    venue_type: 'bar',
-    date: '2025-08-15',
-    time: '20:00',
-    attending: 156,
-    interested: 324,
-    image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=250&fit=crop',
-    ticket_price: 800
-  },
-  {
-    id: 2,
-    name: '港式點心製作課程',
-    description: '學習正宗港式點心製作技巧，由專業師傅親自指導，品嚐美味成果。',
-    venue_name: '天香樓',
-    city: '台北市',
-    venue_type: 'restaurant',
-    date: '2025-08-16',
-    time: '14:00',
-    attending: 32,
-    interested: 78,
-    image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=250&fit=crop',
-    ticket_price: 1500
-  },
-  {
-    id: 3,
-    name: '咖啡拉花藝術課程',
-    description: '學習專業咖啡拉花技巧，創作屬於自己的咖啡藝術作品。',
-    venue_name: '藍山咖啡',
-    city: '台北市',
-    venue_type: 'cafe',
-    date: '2025-08-17',
-    time: '10:00',
-    attending: 25,
-    interested: 56,
-    image: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400&h=250&fit=crop',
-    ticket_price: 800
-  },
-  {
-    id: 4,
-    name: '溫泉養生之旅',
-    description: '一日溫泉體驗，包含泡湯、按摩、養生餐點，讓身心完全放鬆。',
-    venue_name: '烏來溫泉會館',
-    city: '新北市',
-    venue_type: 'hotspring',
-    date: '2025-08-18',
-    time: '09:00',
-    attending: 45,
-    interested: 87,
-    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=250&fit=crop',
-    ticket_price: 2500
-  },
-  {
-    id: 5,
-    name: '當代藝術展覽',
-    description: '展出本土藝術家最新作品，探索當代藝術之美，感受創作的力量。',
-    venue_name: '文化展演中心',
-    city: '台北市',
-    venue_type: 'other',
-    date: '2025-08-19',
-    time: '10:00',
-    attending: 234,
-    interested: 456,
-    image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&h=250&fit=crop',
-    ticket_price: 300
-  },
-  {
-    id: 6,
-    name: '電音狂歡節',
-    description: '頂尖DJ帶來震撼電音體驗，夜晚狂歡不停歇，感受音樂的震撼力。',
-    venue_name: 'Neon Nights',
-    city: '台中市',
-    venue_type: 'bar',
-    date: '2025-08-20',
-    time: '21:00',
-    attending: 423,
-    interested: 892,
-    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=250&fit=crop',
-    ticket_price: 1000
-  }
-];
+  <!-- 詳情 Modal -->
+  <div id="modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 items-center justify-center p-4 hidden">
+    <div class="bg-white text-gray-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-auto">
+      <div class="relative">
+        <img id="m-img" src="" alt="" class="w-full h-64 object-cover">
+        <button id="m-close" class="absolute top-4 right-4 bg-black/50 text-white rounded-full p-2 hover:bg-black/70">✕</button>
+        <div id="m-type" class="absolute top-4 left-4 bg-indigo-500 text-white rounded-full px-3 py-1 text-sm font-semibold"></div>
+      </div>
+      <div class="p-6">
+        <h2 id="m-title" class="text-2xl font-bold mb-4"></h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 text-gray-800">
+          <div class="space-y-2">
+            <div class="flex items-center"><span class="mr-2">📍</span><div><div id="m-venue" class="font-semibold"></div><div id="m-city" class="text-sm"></div></div></div>
+            <div class="flex items-center"><span class="mr-2">📅</span><span id="m-date"></span></div>
+            <div class="flex items-center"><span class="mr-2">⏰</span><span id="m-time"></span></div>
+          </div>
+          <div class="space-y-2">
+            <div class="flex items-center"><span class="mr-2">👥</span><span id="m-att"></span></div>
+            <div class="flex items-center"><span class="mr-2">⭐</span><span id="m-int"></span></div>
+            <div class="flex items-center"><span class="mr-2">💰</span><span id="m-price"></span></div>
+          </div>
+        </div>
+        <div class="mb-6">
+          <h3 id="m-desc-title" class="text-lg font-semibold mb-2">活動描述</h3>
+          <p id="m-desc" class="leading-relaxed"></p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button id="m-share" class="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700">分享活動</button>
+          <button id="m-close2" class="flex-1 bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300">關閉</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-// API 基礎 URL
-const API_BASE_URL = '/api';
-
-export default function LeisureEventsSearchApp() {
-  // 狀態管理
-  const [currentLang, setCurrentLang] = useState('zh-TW');
-  const [showLangMenu, setShowLangMenu] = useState(false);
-  const [searchFilters, setSearchFilters] = useState({
-    city: '',
-    venueType: '',
-    startDate: '',
-    endDate: '',
-    keyword: ''
-  });
-  
-  const [events, setEvents] = useState(mockEvents);
-  const [cities, setCities] = useState(mockCities);
-  const [isSearching, setIsSearching] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [activeTab, setActiveTab] = useState('events');
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [error, setError] = useState('');
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
-  const [stats, setStats] = useState(mockStats);
-
-  // 取得翻譯文字
-  const t = useCallback((path) => {
-    const keys = path.split('.');
-    let value = translations[currentLang];
-    for (const key of keys) {
-      value = value?.[key];
-    }
-    return value || path;
-  }, [currentLang]);
-
-  // 語言偵測與設定
-  useEffect(() => {
-    const detectLanguage = () => {
-      const browserLang = navigator.language;
-      const supportedLang = languages.find(lang => 
-        lang.code === browserLang || lang.code.split('-')[0] === browserLang.split('-')[0]
-      );
-      return supportedLang ? supportedLang.code : 'zh-TW';
+  <script>
+    // ====== 翻譯（與你原始檔一致語意） ======
+    const translations = {
+      "zh-TW": {
+        app:{title:"休閒活動搜尋",subtitle:"探索城市中最精彩的休閒娛樂活動"},
+        navigation:{home:"首頁",events:"活動",venues:"場所",about:"關於"},
+        filter:{city:"城市",allCities:"所有城市",venueType:"場所類型",allVenues:"所有場所",startDate:"開始日期",endDate:"結束日期",keyword:"關鍵字",keywordPlaceholder:"搜尋活動名稱或描述..."},
+        venueTypes:{all:"所有場所",bar:"酒吧",restaurant:"餐廳",cafe:"咖啡廳",hotspring:"溫泉",other:"其他"},
+        button:{search:"搜尋活動",clear:"清除",viewMore:"查看詳情",loadMore:"載入更多",close:"關閉"},
+        result:{searchResults:"搜尋結果",foundEvents:"個活動",noEvents:"找不到活動",tryDifferent:"請嘗試調整搜尋條件或選擇不同的日期範圍"},
+        event:{attending:"參加",interested:"感興趣",viewDetails:"查看詳情",shareEvent:"分享活動",addToCalendar:"加入行事曆",free:"免費",ticketPrice:"票價",ageLimit:"年齡限制",website:"官網",phone:"電話",description:"活動描述"},
+        stats:{totalEvents:"總活動數",totalVenues:"總場所數",totalCities:"覆蓋城市",thisWeekEvents:"本週活動"},
+        status:{searching:"搜尋活動中...",translating:"翻譯中...",loading:"載入中...",loadingMore:"載入更多中..."},
+        error:{searchFailed:"搜尋失敗，請稍後再試",translationFailed:"翻譯服務暫時無法使用",networkError:"網路連線錯誤",loadFailed:"載入失敗"}
+      },
+      "en": {
+        app:{title:"Leisure Events Search",subtitle:"Discover the most exciting leisure and entertainment events in the city"},
+        navigation:{home:"Home",events:"Events",venues:"Venues",about:"About"},
+        filter:{city:"City",allCities:"All Cities",venueType:"Venue Type",allVenues:"All Venues",startDate:"Start Date",endDate:"End Date",keyword:"Keyword",keywordPlaceholder:"Search event names or descriptions..."},
+        venueTypes:{all:"All Venues",bar:"Bars",restaurant:"Restaurants",cafe:"Cafes",hotspring:"Hot Springs",other:"Others"},
+        button:{search:"Search Events",clear:"Clear",viewMore:"View Details",loadMore:"Load More",close:"Close"},
+        result:{searchResults:"Search Results",foundEvents:"events found",noEvents:"No events found",tryDifferent:"Try adjusting search criteria or selecting different date range"},
+        event:{attending:"Attending",interested:"Interested",viewDetails:"View Details",shareEvent:"Share Event",addToCalendar:"Add to Calendar",free:"Free",ticketPrice:"Price",ageLimit:"Age Limit",website:"Website",phone:"Phone",description:"Event Description"},
+        stats:{totalEvents:"Total Events",totalVenues:"Total Venues",totalCities:"Cities Covered",thisWeekEvents:"This Week"},
+        status:{searching:"Searching events...",translating:"Translating...",loading:"Loading...",loadingMore:"Loading more..."},
+        error:{searchFailed:"Search failed, please try again later",translationFailed:"Translation service unavailable",networkError:"Network connection error",loadFailed:"Load failed"}
+      },
+      "ja": {
+        app:{title:"レジャーイベント検索",subtitle:"街で最も刺激的なレジャー・エンターテイメントイベントを発見しよう"},
+        navigation:{home:"ホーム",events:"イベント",venues:"会場",about:"について"},
+        filter:{city:"都市",allCities:"すべての都市",venueType:"会場タイプ",allVenues:"すべての会場",startDate:"開始日",endDate:"終了日",keyword:"キーワード",keywordPlaceholder:"イベント名や説明を検索..."},
+        venueTypes:{all:"すべての会場",bar:"バー",restaurant:"レストラン",cafe:"カフェ",hotspring:"温泉",other:"その他"},
+        button:{search:"イベント検索",clear:"クリア",viewMore:"詳細を見る",loadMore:"もっと読み込む",close:"閉じる"},
+        result:{searchResults:"検索結果",foundEvents:"イベントが見つかりました",noEvents:"イベントが見つかりません",tryDifferent:"検索条件を調整するか、異なる日付範囲を選択してください"},
+        event:{attending:"参加",interested:"興味あり",viewDetails:"詳細を見る",shareEvent:"イベントをシェア",addToCalendar:"カレンダーに追加",free:"無料",ticketPrice:"料金",ageLimit:"年齢制限",website:"ウェブサイト",phone:"電話",description:"イベント詳細"},
+        stats:{totalEvents:"総イベント数",totalVenues:"総会場数",totalCities:"対応都市",thisWeekEvents:"今週のイベント"},
+        status:{searching:"イベントを検索中...",translating:"翻訳中...",loading:"読み込み中...",loadingMore:"追加読み込み中..."},
+        error:{searchFailed:"検索に失敗しました。後でもう一度お試しください",translationFailed:"翻訳サービスが利用できません",networkError:"ネットワーク接続エラー",loadFailed:"読み込みに失敗しました"}
+      }
     };
-    
-    const savedLang = localStorage.getItem('preferred-language') || detectLanguage();
-    setCurrentLang(savedLang);
-  }, []);
 
-  // 模擬 API 調用
-  const fetchEvents = async (filters = searchFilters, pageNum = 1, append = false) => {
-    try {
-      if (!append) {
-        setIsSearching(true);
-        setError('');
-      } else {
-        setIsLoadingMore(true);
-      }
+    // 語言列表
+    const languages = [
+      { code:"zh-TW", name:"Traditional Chinese", native:"繁體中文", flag:"🇹🇼" },
+      { code:"en", name:"English", native:"English", flag:"🇺🇸" },
+      { code:"ja", name:"Japanese", native:"日本語", flag:"🇯🇵" }
+    ];
 
-      // 模擬 API 延遲
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    // 場所類型
+    const venueTypes = [
+      { value:"all", icon:"🏢" },
+      { value:"bar", icon:"🍻" },
+      { value:"restaurant", icon:"🍽️" },
+      { value:"cafe", icon:"☕" },
+      { value:"hotspring", icon:"♨️" },
+      { value:"other", icon:"🎪" }
+    ];
 
-      let filteredEvents = mockEvents;
+    // 模擬資料
+    const mockCities = ["台北市","台中市","高雄市","台南市","新北市","宜蘭縣"];
+    const mockStats = { total_events:156, total_venues:89, total_cities:6, this_week_events:24 };
+    const mockEvents = [
+      { id:1, name:"週五夜爵士音樂會", description:"知名爵士樂團現場演出，享受美酒與音樂的完美結合。在優雅的環境中聆聽經典爵士曲目。", venue_name:"Blue Note 爵士酒吧", city:"台北市", venue_type:"bar", date:"2025-08-15", time:"20:00", attending:156, interested:324, image:"https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=480&fit=crop", ticket_price:800 },
+      { id:2, name:"港式點心製作課程", description:"學習正宗港式點心製作技巧，由專業師傅親自指導，品嚐美味成果。", venue_name:"天香樓", city:"台北市", venue_type:"restaurant", date:"2025-08-16", time:"14:00", attending:32, interested:78, image:"https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=480&fit=crop", ticket_price:1500 },
+      { id:3, name:"咖啡拉花藝術課程", description:"學習專業咖啡拉花技巧，創作屬於自己的咖啡藝術作品。", venue_name:"藍山咖啡", city:"台北市", venue_type:"cafe", date:"2025-08-17", time:"10:00", attending:25, interested:56, image:"https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&h=480&fit=crop", ticket_price:800 },
+      { id:4, name:"溫泉養生之旅", description:"一日溫泉體驗，包含泡湯、按摩、養生餐點，讓身心完全放鬆。", venue_name:"烏來溫泉會館", city:"新北市", venue_type:"hotspring", date:"2025-08-18", time:"09:00", attending:45, interested:87, image:"https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=480&fit=crop", ticket_price:2500 },
+      { id:5, name:"當代藝術展覽", description:"展出本土藝術家最新作品，探索當代藝術之美，感受創作的力量。", venue_name:"文化展演中心", city:"台北市", venue_type:"other", date:"2025-08-19", time:"10:00", attending:234, interested:456, image:"https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&h=480&fit=crop", ticket_price:300 },
+      { id:6, name:"電音狂歡節", description:"頂尖DJ帶來震撼電音體驗，夜晚狂歡不停歇，感受音樂的震撼力。", venue_name:"Neon Nights", city:"台中市", venue_type:"bar", date:"2025-08-20", time:"21:00", attending:423, interested:892, image:"https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=480&fit=crop", ticket_price:1000 }
+    ];
 
-      // 篩選邏輯
-      if (filters.city) {
-        filteredEvents = filteredEvents.filter(event => event.city === filters.city);
-      }
-      
-      if (filters.venueType) {
-        filteredEvents = filteredEvents.filter(event => event.venue_type === filters.venueType);
-      }
-      
-      if (filters.keyword) {
-        const keyword = filters.keyword.toLowerCase();
-        filteredEvents = filteredEvents.filter(event => 
-          event.name.toLowerCase().includes(keyword) ||
-          event.description.toLowerCase().includes(keyword) ||
-          event.venue_name.toLowerCase().includes(keyword)
+    // ====== 狀態 ======
+    let state = {
+      lang: "zh-TW",
+      showLangMenu: false,
+      filters: { city:"", venueType:"", startDate:"", endDate:"", keyword:"" },
+      events: [...mockEvents],
+      page: 1,
+      hasMore: true,
+      isSearching: false
+    };
+
+    // ====== 小工具 ======
+    const $ = (sel) => document.querySelector(sel);
+    const t = (path) => {
+      const dict = translations[state.lang] || translations["zh-TW"];
+      return path.split(".").reduce((acc,key)=>acc?.[key], dict) ?? path;
+    };
+    const setText = (sel, txt) => { const el = $(sel); if (el) el.textContent = txt; };
+
+    // 語言偵測
+    (function detectLang(){
+      const saved = localStorage.getItem("preferred-language");
+      if (saved && translations[saved]) { state.lang = saved; return; }
+      const nav = navigator.language || "zh-TW";
+      const langKey = ["zh-TW","en","ja"].find(code => code === nav || code.split("-")[0] === nav.split("-")[0]) || "zh-TW";
+      state.lang = langKey;
+    })();
+
+    // ====== 初始化 UI ======
+    function initUI(){
+      // 標題/字幕
+      setText("#nav-title", t("app.title"));
+      setText("#app-title", t("app.title"));
+      setText("#app-subtitle", t("app.subtitle"));
+
+      // 統計
+      $("#stat-events").textContent =  mockStats.total_events;
+      $("#stat-venues").textContent =  mockStats.total_venues;
+      $("#stat-cities").textContent =  mockStats.total_cities;
+      $("#stat-thisweek").textContent = mockStats.this_week_events;
+      setText("#stat-events-label", t("stats.totalEvents"));
+      setText("#stat-venues-label", t("stats.totalVenues"));
+      setText("#stat-cities-label", t("stats.totalCities"));
+      setText("#stat-thisweek-label", t("stats.thisWeekEvents"));
+
+      // Tabs（僅展示）
+      const tabs = ["home","events","venues","about"];
+      const tabsBox = $("#tabs"); tabsBox.innerHTML = "";
+      tabs.forEach(tab=>{
+        const b = document.createElement("button");
+        b.className = "px-3 py-2 rounded-lg hover:bg-white/10 text-white/80 hover:text-white";
+        b.textContent = t("navigation."+tab);
+        tabsBox.appendChild(b);
+      });
+
+      // 語言顯示
+      const langMeta = languages.find(l=>l.code===state.lang) || languages[0];
+      $("#langFlag").textContent = langMeta.flag;
+      $("#langNative").textContent = langMeta.native;
+
+      // 語言選單
+      const menu = $("#langMenu"); menu.innerHTML = "";
+      languages.forEach(l=>{
+        const item = document.createElement("button");
+        item.className = "w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2";
+        item.innerHTML = `<span>${l.flag}</span><div><div class="font-medium">${l.native}</div><div class="text-sm text-gray-500">${l.name}</div></div>`;
+        item.onclick = ()=> changeLanguage(l.code);
+        menu.appendChild(item);
+      });
+
+      // 篩選 labels
+      setText("#lbl-city", t("filter.city"));
+      setText("#lbl-venueType", t("filter.venueType"));
+      setText("#lbl-startDate", t("filter.startDate"));
+      setText("#lbl-endDate", t("filter.endDate"));
+      setText("#lbl-keyword", t("filter.keyword"));
+      $("#f-key").placeholder = t("filter.keywordPlaceholder");
+
+      // 按鈕
+      setText("#txt-search", t("button.search"));
+      setText("#txt-clear", t("button.clear"));
+      setText("#lbl-results", t("result.searchResults"));
+      setText("#txt-load", t("button.loadMore"));
+      setText("#emptyTitle", t("result.noEvents"));
+      setText("#emptyHint", t("result.tryDifferent"));
+      setText("#m-desc-title", t("event.description"));
+      $("#m-share").textContent = t("event.shareEvent");
+      $("#m-close2").textContent = t("button.close");
+
+      // 城市
+      const fcity = $("#f-city");
+      fcity.innerHTML = `<option value="">${t("filter.allCities")}</option>`;
+      mockCities.forEach(c=>{
+        const op = document.createElement("option");
+        op.value = c; op.textContent = c;
+        fcity.appendChild(op);
+      });
+
+      // 類型 select
+      const ftype = $("#f-type"); ftype.innerHTML = "";
+      venueTypes.forEach(v=>{
+        const op = document.createElement("option");
+        op.value = (v.value==="all" ? "" : v.value);
+        op.textContent = `${t("venueTypes."+v.value)}`;
+        ftype.appendChild(op);
+      });
+
+      // 快速 chips
+      const chips = $("#typeChips"); chips.innerHTML = "";
+      venueTypes.forEach(v=>{
+        const btn = document.createElement("button");
+        btn.className = "px-4 py-2 rounded-full bg-white/20 hover:bg-white/30";
+        btn.textContent = `${v.icon} ${t("venueTypes."+v.value)}`;
+        btn.onclick = () => {
+          state.filters.venueType = (v.value==="all" ? "" : v.value);
+          $("#f-type").value = state.filters.venueType;
+          doSearch(false);
+        };
+        chips.appendChild(btn);
+      });
+
+      // 語系方向
+      document.documentElement.lang = state.lang;
+      const isRTL = (state.lang === "ar"); // 若未來加入阿拉伯文
+      document.body.classList.toggle("rtl", isRTL);
+
+      // 首次渲染
+      renderEvents();
+      updateCount();
+    }
+
+    // ====== 語言切換 ======
+    function changeLanguage(code){
+      if (!translations[code]) return;
+      state.lang = code;
+      localStorage.setItem("preferred-language", code);
+      $("#langMenu").classList.add("hidden");
+      initUI(); // 重新渲染所有字串
+    }
+
+    // ====== 搜尋邏輯 ======
+    function filterEvents(all, f){
+      let arr = all.slice();
+      if (f.city)     arr = arr.filter(e => e.city === f.city);
+      if (f.venueType)arr = arr.filter(e => e.venue_type === f.venueType);
+      if (f.startDate)arr = arr.filter(e => e.date >= f.startDate);
+      if (f.endDate)  arr = arr.filter(e => e.date <= f.endDate);
+      if (f.keyword) {
+        const kw = f.keyword.toLowerCase();
+        arr = arr.filter(e =>
+          e.name.toLowerCase().includes(kw) ||
+          e.description.toLowerCase().includes(kw) ||
+          e.venue_name.toLowerCase().includes(kw)
         );
       }
+      return arr;
+    }
 
-      if (append) {
-        setEvents(prev => [...prev, ...filteredEvents]);
+    function doSearch(append){
+      $("#errorBox").classList.add("hidden");
+      state.isSearching = true;
+      $("#btn-search").disabled = true;
+      $("#btn-search").innerHTML = `<span class="spin inline-block border-2 border-white border-t-transparent rounded-full w-4 h-4"></span> ${t("status.searching")}`;
+
+      // 模擬 API 延遲
+      setTimeout(()=>{
+        const result = filterEvents(mockEvents, state.filters);
+        if (append) {
+          state.events = [...state.events, ...result];
+        } else {
+          state.events = result;
+        }
+        state.hasMore = result.length > 6;
+        renderEvents();
+        updateCount();
+
+        $("#btn-search").disabled = false;
+        $("#btn-search").textContent = t("button.search");
+        state.isSearching = false;
+      }, 600);
+    }
+
+    function clearFilters(){
+      state.filters = { city:"", venueType:"", startDate:"", endDate:"", keyword:"" };
+      $("#f-city").value = "";
+      $("#f-type").value = "";
+      $("#f-start").value = "";
+      $("#f-end").value = "";
+      $("#f-key").value = "";
+      state.events = [...mockEvents];
+      state.hasMore = true;
+      renderEvents();
+      updateCount();
+    }
+
+    function renderEvents(){
+      const box = $("#cards"); box.innerHTML = "";
+      const list = state.events;
+      if (!list.length){
+        $("#emptyBox").classList.remove("hidden");
       } else {
-        setEvents(filteredEvents);
+        $("#emptyBox").classList.add("hidden");
       }
-      
-      setHasMore(filteredEvents.length > 6);
-      setPage(pageNum);
 
-    } catch (err) {
-      console.error('搜尋失敗:', err);
-      setError(t('error.networkError'));
-    } finally {
-      setIsSearching(false);
-      setIsLoadingMore(false);
-    }
-  };
+      list.forEach(ev=>{
+        const card = document.createElement("div");
+        card.className = "glass rounded-2xl overflow-hidden hover:bg-white/20 transition";
+        card.innerHTML = `
+          <div class="relative">
+            <img src="${ev.image}" alt="${ev.name}" class="w-full h-48 object-cover">
+            <div class="absolute top-4 left-4 bg-indigo-500 rounded-full px-3 py-1 text-white text-sm font-semibold">${getVenueLabel(ev.venue_type)}</div>
+            <div class="absolute bottom-4 left-4 bg-green-500/90 rounded-full px-3 py-1 text-white text-sm font-semibold">
+              ${ev.ticket_price === 0 ? t("event.free") : "NT$"+ev.ticket_price}
+            </div>
+          </div>
+          <div class="p-5">
+            <h4 class="text-xl font-bold mb-2">${ev.name}</h4>
+            <p class="text-white/80 mb-4 h-12 overflow-hidden">${ev.description}</p>
+            <div class="space-y-2 mb-4 text-white/80">
+              <div>📍 ${ev.venue_name}, ${ev.city}</div>
+              <div>📅 ${ev.date}</div>
+              <div>⏰ ${ev.time}</div>
+            </div>
+            <div class="flex items-center justify-between mb-4 text-sm text-white/80">
+              <div>👥 ${ev.attending} ${t("event.attending")}</div>
+              <div>⭐ ${ev.interested} ${t("event.interested")}</div>
+            </div>
+            <div class="flex gap-2">
+              <button class="flex-1 bg-gradient-to-r from-pink-500 to-red-500 px-4 py-2 rounded-lg font-semibold hover:from-pink-600 hover:to-red-600 text-sm" data-action="detail" data-id="${ev.id}">
+                ${t("event.viewDetails")}
+              </button>
+              <button class="px-3 py-2 bg-white/20 rounded-lg hover:bg-white/30 text-sm" data-action="share" data-id="${ev.id}">🔗</button>
+            </div>
+          </div>
+        `;
+        box.appendChild(card);
+      });
 
-  // 切換語言
-  const changeLanguage = (langCode) => {
-    setCurrentLang(langCode);
-    localStorage.setItem('preferred-language', langCode);
-    setShowLangMenu(false);
-  };
+      // 綁定卡片內按鈕事件
+      box.querySelectorAll("button[data-action='detail']").forEach(b=>{
+        b.onclick = ()=> openModal(parseInt(b.dataset.id,10));
+      });
+      box.querySelectorAll("button[data-action='share']").forEach(b=>{
+        b.onclick = ()=> shareEvent(parseInt(b.dataset.id,10));
+      });
 
-  // 搜尋活動
-  const handleSearch = () => {
-    fetchEvents(searchFilters, 1, false);
-  };
-
-  // 載入更多
-  const handleLoadMore = () => {
-    fetchEvents(searchFilters, page + 1, true);
-  };
-
-  // 清除篩選
-  const clearFilters = () => {
-    const emptyFilters = {
-      city: '',
-      venueType: '',
-      startDate: '',
-      endDate: '',
-      keyword: ''
-    };
-    setSearchFilters(emptyFilters);
-    setEvents(mockEvents);
-  };
-
-  // 分享活動
-  const handleShare = async (event) => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: event.name,
-          text: event.description,
-          url: window.location.href
-        });
-      } catch (err) {
-        console.log('分享取消');
+      // 載入更多
+      const loadBtn = $("#btn-load");
+      if (state.hasMore && state.events.length > 0){
+        loadBtn.classList.remove("hidden");
+        loadBtn.onclick = ()=> doSearch(true);
+      } else {
+        loadBtn.classList.add("hidden");
       }
-    } else {
-      navigator.clipboard.writeText(`${event.name} - ${window.location.href}`);
-      alert('活動連結已複製到剪貼簿');
     }
-  };
 
-  // 取得當前語言設定
-  const currentLangConfig = languages.find(lang => lang.code === currentLang);
-  const isRTL = currentLangConfig?.rtl || false;
+    function getVenueLabel(v){
+      switch(v){
+        case "bar": return t("venueTypes.bar");
+        case "restaurant": return t("venueTypes.restaurant");
+        case "cafe": return t("venueTypes.cafe");
+        case "hotspring": return t("venueTypes.hotspring");
+        case "other": return t("venueTypes.other");
+        default: return t("venueTypes.all");
+      }
+    }
 
-  return (
-    <div className={`min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 ${isRTL ? 'rtl' : 'ltr'}`}>
-      {/* 導航列 */}
-      <nav className="bg-black/30 backdrop-blur-md border-b border-white/10 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="text-2xl font-bold text-white">🎪</div>
-              <h1 className="text-xl font-bold text-white">{t('app.title')}</h1>
-            </div>
-            
-            <div className="hidden md:flex items-center space-x-6">
-              {['home', 'events', 'venues', 'about'].map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-2 rounded-lg transition-all ${
-                    activeTab === tab 
-                      ? 'bg-white/20 text-white' 
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
-                  }`}
-                >
-                  {t(`navigation.${tab}`)}
-                </button>
-              ))}
-            </div>
-            
-            {/* 語言選擇器 */}
-            <div className="relative">
-              <button
-                onClick={() => setShowLangMenu(!showLangMenu)}
-                className="flex items-center space-x-2 px-3 py-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-all"
-              >
-                <Globe size={16} />
-                <span>{currentLangConfig?.flag}</span>
-                <span className="hidden sm:inline">{currentLangConfig?.native}</span>
-              </button>
-              
-              {showLangMenu && (
-                <div className="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-xl border border-gray-200 min-w-48 max-h-64 overflow-y-auto z-50">
-                  {languages.map(lang => (
-                    <button
-                      key={lang.code}
-                      onClick={() => changeLanguage(lang.code)}
-                      className={`w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-3 ${
-                        currentLang === lang.code ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
-                      }`}
-                    >
-                      <span className="text-lg">{lang.flag}</span>
-                      <div>
-                        <div className="font-medium">{lang.native}</div>
-                        <div className="text-sm text-gray-500">{lang.name}</div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
+    function updateCount(){
+      $("#countBox").textContent = `${state.events.length} ${t("result.foundEvents")}`;
+    }
 
-      {/* 主要內容 */}
-      <main className="container mx-auto px-4 py-8">
-        {/* 錯誤訊息 */}
-        {error && (
-          <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4 mb-6">
-            <div className="text-red-100 font-medium">{error}</div>
-          </div>
-        )}
+    // ====== Modal ======
+    function openModal(id){
+      const ev = state.events.find(e=>e.id===id) || mockEvents.find(e=>e.id===id);
+      if (!ev) return;
+      $("#m-img").src = ev.image;
+      $("#m-title").textContent = ev.name;
+      $("#m-type").textContent = getVenueLabel(ev.venue_type);
+      $("#m-venue").textContent = ev.venue_name;
+      $("#m-city").textContent = ev.city;
+      $("#m-date").textContent = ev.date;
+      $("#m-time").textContent = ev.time;
+      $("#m-att").textContent = `${ev.attending} ${t("event.attending")}`;
+      $("#m-int").textContent = `${ev.interested} ${t("event.interested")}`;
+      $("#m-price").textContent = ev.ticket_price===0 ? t("event.free") : "NT$"+ev.ticket_price;
+      $("#m-desc").textContent = ev.description;
 
-        {/* 標題區與統計 */}
-        <div className="text-center mb-12">
-          <h2 className="text-4xl md:text-6xl font-bold text-white mb-4">
-            {t('app.title')}
-          </h2>
-          <p className="text-xl text-white/80 max-w-2xl mx-auto mb-8">
-            {t('app.subtitle')}
-          </p>
-          
-          {/* 統計卡片 */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-8">
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-              <div className="flex items-center justify-center mb-2">
-                <Activity className="w-6 h-6 text-blue-400 mr-2" />
-              </div>
-              <div className="text-2xl font-bold text-white">{stats.total_events}</div>
-              <div className="text-white/70 text-sm">{t('stats.totalEvents')}</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-              <div className="flex items-center justify-center mb-2">
-                <Map className="w-6 h-6 text-green-400 mr-2" />
-              </div>
-              <div className="text-2xl font-bold text-white">{stats.total_venues}</div>
-              <div className="text-white/70 text-sm">{t('stats.totalVenues')}</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-              <div className="flex items-center justify-center mb-2">
-                <Globe2 className="w-6 h-6 text-purple-400 mr-2" />
-              </div>
-              <div className="text-2xl font-bold text-white">{stats.total_cities}</div>
-              <div className="text-white/70 text-sm">{t('stats.totalCities')}</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-              <div className="flex items-center justify-center mb-2">
-                <TrendingUp className="w-6 h-6 text-orange-400 mr-2" />
-              </div>
-              <div className="text-2xl font-bold text-white">{stats.this_week_events}</div>
-              <div className="text-white/70 text-sm">{t('stats.thisWeekEvents')}</div>
-            </div>
-          </div>
-        </div>
+      $("#modal").classList.remove("hidden");
+      $("#modal").classList.add("flex");
+      $("#m-share").onclick = ()=> shareEvent(id);
+    }
 
-        {/* 場所類型快速選擇 */}
-        <div className="mb-8">
-          <h3 className="text-xl font-semibold text-white mb-4 text-center">快速選擇場所類型</h3>
-          <div className="flex flex-wrap justify-center gap-3">
-            {venueTypes.map(type => (
-              <button
-                key={type.value}
-                onClick={() => {
-                  setSearchFilters({...searchFilters, venueType: type.value === 'all' ? '' : type.value});
-                  const newFilters = {...searchFilters, venueType: type.value === 'all' ? '' : type.value};
-                  fetchEvents(newFilters, 1, false);
-                }}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-full text-white font-medium transition-all hover:scale-105 ${
-                  searchFilters.venueType === (type.value === 'all' ? '' : type.value)
-                    ? `bg-gradient-to-r ${type.gradientFrom} ${type.gradientTo} shadow-lg`
-                    : 'bg-white/20 hover:bg-white/30'
-                }`}
-              >
-                <span className="text-lg">{type.icon}</span>
-                <span>{t(`venueTypes.${type.value}`)}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+    function closeModal(){
+      $("#modal").classList.add("hidden");
+      $("#modal").classList.remove("flex");
+    }
 
-        {/* 搜尋篩選器 */}
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 mb-8 border border-white/20">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-            {/* 城市選擇 */}
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">
-                {t('filter.city')}
-              </label>
-              <select
-                value={searchFilters.city}
-                onChange={(e) => setSearchFilters({...searchFilters, city: e.target.value})}
-                className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              >
-                <option value="" className="text-gray-900">{t('filter.allCities')}</option>
-                {cities.map(city => (
-                  <option key={city} value={city} className="text-gray-900">{city}</option>
-                ))}
-              </select>
-            </div>
+    function shareEvent(id){
+      const ev = state.events.find(e=>e.id===id) || mockEvents.find(e=>e.id===id);
+      if (!ev) return;
+      const url = location.href;
+      if (navigator.share){
+        navigator.share({ title: ev.name, text: ev.description, url }).catch(()=>{});
+      } else {
+        navigator.clipboard.writeText(`${ev.name} - ${url}`);
+        alert("活動連結已複製到剪貼簿");
+      }
+    }
 
-            {/* 場所類型選擇 */}
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">
-                {t('filter.venueType')}
-              </label>
-              <select
-                value={searchFilters.venueType}
-                onChange={(e) => setSearchFilters({...searchFilters, venueType: e.target.value})}
-                className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              >
-                {venueTypes.map(type => (
-                  <option key={type.value} value={type.value === 'all' ? '' : type.value} className="text-gray-900">
-                    {type.icon} {t(`venueTypes.${type.value}`)}
-                  </option>
-                ))}
-              </select>
-            </div>
+    // ====== 事件綁定 ======
+    $("#langBtn").onclick = ()=> $("#langMenu").classList.toggle("hidden");
+    document.addEventListener("click", (e)=>{
+      if (!$("#langBtn").contains(e.target) && !$("#langMenu").contains(e.target)){
+        $("#langMenu").classList.add("hidden");
+      }
+    });
 
-            {/* 開始日期 */}
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">
-                {t('filter.startDate')}
-              </label>
-              <input
-                type="date"
-                value={searchFilters.startDate}
-                onChange={(e) => setSearchFilters({...searchFilters, startDate: e.target.value})}
-                className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
+    $("#f-city").onchange = (e)=>{ state.filters.city = e.target.value; };
+    $("#f-type").onchange = (e)=>{ state.filters.venueType = e.target.value; };
+    $("#f-start").onchange = (e)=>{ state.filters.startDate = e.target.value; };
+    $("#f-end").onchange = (e)=>{ state.filters.endDate = e.target.value; };
+    $("#f-key").addEventListener("keypress", (e)=>{ if (e.key==="Enter") doSearch(false); });
 
-            {/* 結束日期 */}
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">
-                {t('filter.endDate')}
-              </label>
-              <input
-                type="date"
-                value={searchFilters.endDate}
-                onChange={(e) => setSearchFilters({...searchFilters, endDate: e.target.value})}
-                className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
+    $("#btn-search").onclick = ()=> doSearch(false);
+    $("#btn-clear").onclick = ()=> clearFilters();
 
-            {/* 關鍵字搜尋 */}
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">
-                {t('filter.keyword')}
-              </label>
-              <input
-                type="text"
-                placeholder={t('filter.keywordPlaceholder')}
-                value={searchFilters.keyword}
-                onChange={(e) => setSearchFilters({...searchFilters, keyword: e.target.value})}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-          </div>
+    $("#m-close").onclick = closeModal;
+    $("#m-close2").onclick = closeModal;
+    $("#modal").addEventListener("click", (e)=>{ if (e.target.id === "modal") closeModal(); });
 
-          {/* 搜尋按鈕 */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <button
-              onClick={handleSearch}
-              disabled={isSearching}
-              className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
-            >
-              {isSearching ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  <span>{t('status.searching')}</span>
-                </>
-              ) : (
-                <>
-                  <Search size={18} />
-                  <span>{t('button.search')}</span>
-                </>
-              )}
-            </button>
-            
-            <button
-              onClick={clearFilters}
-              className="px-6 py-3 bg-white/20 text-white rounded-lg font-semibold hover:bg-white/30 transition-all flex items-center justify-center space-x-2"
-            >
-              <Filter size={18} />
-              <span>{t('button.clear')}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* 搜尋結果 */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl font-bold text-white">
-              {t('result.searchResults')}
-            </h3>
-            <div className="text-white/70">
-              {events.length} {t('result.foundEvents')}
-            </div>
-          </div>
-
-          {events.length === 0 && !isSearching ? (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">🔍</div>
-              <h3 className="text-xl font-semibold text-white mb-2">{t('result.noEvents')}</h3>
-              <p className="text-white/70">{t('result.tryDifferent')}</p>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {events.map(event => {
-                  const venueTypeInfo = venueTypes.find(t => t.value === event.venue_type);
-                  return (
-                    <div key={event.id} className="bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden border border-white/20 hover:bg-white/20 transition-all group hover:scale-105">
-                      <div className="relative">
-                        <img
-                          src={event.image}
-                          alt={event.name}
-                          className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
-                        />
-                        <div className="absolute top-4 right-4">
-                          <div className="bg-black/50 backdrop-blur-sm rounded-full p-2">
-                            <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                          </div>
-                        </div>
-                        <div className="absolute top-4 left-4">
-                          <div className={`${venueTypeInfo?.color || 'bg-gray-500'} backdrop-blur-sm rounded-full px-3 py-1 text-white text-sm font-semibold flex items-center space-x-1`}>
-                            <span>{venueTypeInfo?.icon}</span>
-                            <span>{t(`venueTypes.${event.venue_type}`)}</span>
-                          </div>
-                        </div>
-                        {event.ticket_price !== null && (
-                          <div className="absolute bottom-4 left-4">
-                            <div className="bg-green-500/90 backdrop-blur-sm rounded-full px-3 py-1 text-white text-sm font-semibold">
-                              {event.ticket_price === 0 ? t('event.free') : `NT$${event.ticket_price}`}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="p-6">
-                        <h4 className="text-xl font-bold text-white mb-2">
-                          {event.name}
-                        </h4>
-                        
-                        <p className="text-white/80 mb-4 h-12 overflow-hidden">
-                          {event.description}
-                        </p>
-                        
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-center text-white/70">
-                            <MapPin size={16} className="mr-2 flex-shrink-0" />
-                            <span className="truncate">{event.venue_name}, {event.city}</span>
-                          </div>
-                          
-                          <div className="flex items-center text-white/70">
-                            <Calendar size={16} className="mr-2 flex-shrink-0" />
-                            <span>{event.date}</span>
-                          </div>
-                          
-                          <div className="flex items-center text-white/70">
-                            <Clock size={16} className="mr-2 flex-shrink-0" />
-                            <span>{event.time}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center space-x-4 text-sm text-white/70">
-                            <div className="flex items-center">
-                              <Users size={14} className="mr-1" />
-                              {event.attending} {t('event.attending')}
-                            </div>
-                            <div className="flex items-center">
-                              <Star size={14} className="mr-1" />
-                              {event.interested} {t('event.interested')}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex space-x-2">
-                          <button 
-                            onClick={() => setSelectedEvent(event)}
-                            className="flex-1 bg-gradient-to-r from-pink-500 to-red-500 text-white px-4 py-2 rounded-lg font-semibold hover:from-pink-600 hover:to-red-600 transition-all text-sm"
-                          >
-                            {t('event.viewDetails')}
-                          </button>
-                          
-                          <button 
-                            onClick={() => handleShare(event)}
-                            className="px-3 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-all"
-                          >
-                            <Share2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* 載入更多按鈕 */}
-              {hasMore && events.length > 0 && (
-                <div className="text-center mt-8">
-                  <button
-                    onClick={handleLoadMore}
-                    disabled={isLoadingMore}
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 mx-auto"
-                  >
-                    {isLoadingMore ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                        <span>{t('status.loadingMore')}</span>
-                      </>
-                    ) : (
-                      <span>{t('button.loadMore')}</span>
-                    )}
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </main>
-
-      {/* 活動詳情模態框 */}
-      {selectedEvent && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="relative">
-              <img
-                src={selectedEvent.image}
-                alt={selectedEvent.name}
-                className="w-full h-64 object-cover"
-              />
-              <button
-                onClick={() => setSelectedEvent(null)}
-                className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-full p-2 text-white hover:bg-black/70 transition-all"
-              >
-                ✕
-              </button>
-              <div className="absolute top-4 left-4">
-                {(() => {
-                  const venueTypeInfo = venueTypes.find(t => t.value === selectedEvent.venue_type);
-                  return (
-                    <div className={`${venueTypeInfo?.color || 'bg-gray-500'} backdrop-blur-sm rounded-full px-3 py-1 text-white text-sm font-semibold flex items-center space-x-1`}>
-                      <span>{venueTypeInfo?.icon}</span>
-                      <span>{t(`venueTypes.${selectedEvent.venue_type}`)}</span>
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-            
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                {selectedEvent.name}
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="space-y-3">
-                  <div className="flex items-center text-gray-700">
-                    <MapPin size={20} className="mr-3 text-blue-600" />
-                    <div>
-                      <div className="font-semibold">{selectedEvent.venue_name}</div>
-                      <div className="text-sm">{selectedEvent.city}</div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center text-gray-700">
-                    <Calendar size={20} className="mr-3 text-green-600" />
-                    <span>{selectedEvent.date}</span>
-                  </div>
-                  
-                  <div className="flex items-center text-gray-700">
-                    <Clock size={20} className="mr-3 text-purple-600" />
-                    <span>{selectedEvent.time}</span>
-                  </div>
-                </div>
-                
-                <div className="space-y-3">
-                  <div className="flex items-center text-gray-700">
-                    <Users size={20} className="mr-3 text-orange-600" />
-                    <span>{selectedEvent.attending} {t('event.attending')}</span>
-                  </div>
-                  
-                  <div className="flex items-center text-gray-700">
-                    <Star size={20} className="mr-3 text-yellow-600" />
-                    <span>{selectedEvent.interested} {t('event.interested')}</span>
-                  </div>
-                  
-                  {selectedEvent.ticket_price !== null && (
-                    <div className="flex items-center text-gray-700">
-                      <span className="w-5 h-5 mr-3 text-green-600">💰</span>
-                      <span>
-                        {selectedEvent.ticket_price === 0 
-                          ? t('event.free') 
-                          : `NT$${selectedEvent.ticket_price}`
-                        }
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('event.description')}</h3>
-                <p className="text-gray-700 leading-relaxed">
-                  {selectedEvent.description}
-                </p>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={() => handleShare(selectedEvent)}
-                  className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all flex items-center justify-center space-x-2"
-                >
-                  <Share2 size={18} />
-                  <span>{t('event.shareEvent')}</span>
-                </button>
-                
-                <button
-                  onClick={() => setSelectedEvent(null)}
-                  className="flex-1 bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-all"
-                >
-                  {t('button.close')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+    // 首次載入
+    initUI();
+  </script>
+</body>
+</html>
