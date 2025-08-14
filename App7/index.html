@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>股票篩選工具 - 本地版</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .version-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .data-management {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .data-management h3 {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .data-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .data-btn {
+            padding: 8px 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .data-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .upload-section {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .upload-area {
+            border: 3px dashed rgba(255, 255, 255, 0.5);
+            border-radius: 15px;
+            padding: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .upload-area:hover {
+            border-color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .upload-area input {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.8;
+        }
+
+        .filter-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+        .filter-presets {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid #28a745;
+        }
+
+        .filter-presets h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .preset-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .preset-btn {
+            padding: 8px 16px;
+            border: 2px solid #28a745;
+            border-radius: 20px;
+            background: white;
+            color: #28a745;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .preset-btn:hover {
+            background: #28a745;
+            color: white;
+        }
+
+        .preset-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .preset-input input {
+            padding: 8px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            flex: 1;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .filter-group {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .filter-group h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .filter-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .filter-row label {
+            min-width: 80px;
+            font-weight: 500;
+            color: #34495e;
+        }
+
+        .filter-row input, .filter-row select {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .filter-row input:focus, .filter-row select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            color: #333;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .results-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f1f3f4;
+        }
+
+        .results-count {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 10px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #f1f3f4;
+            font-size: 0.9rem;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 50px;
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 30px;
+            font-size: 1.1rem;
+            color: #667eea;
+        }
+
+        .status-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #28a745;
+        }
+
+        .storage-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons, .data-actions, .preset-actions {
+                flex-direction: column;
+            }
+            
+            .results-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .preset-input {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="version-badge">💾 本地儲存版</div>
+            <h1>📈 股票篩選工具</h1>
+            <p>本地版本 - 支援資料永久儲存與篩選條件記憶</p>
+        </div>
+
+        <div class="main-content">
+            <!-- 資料管理區域 -->
+            <div class="data-management">
+                <h3>💾 資料管理</h3>
+                <div class="data-actions">
+                    <button class="data-btn" onclick="loadStoredData()">📂 載入已儲存資料</button>
+                    <button class="data-btn" onclick="clearStoredData()">🗑️ 清除儲存資料</button>
+                    <button class="data-btn" onclick="showStorageInfo()">ℹ️ 儲存狀態</button>
+                </div>
+                <div class="storage-info" id="storageInfo" style="display: none;"></div>
+            </div>
+
+            <div class="upload-section">
+                <div class="upload-area" onclick="document.getElementById('csvFile').click()">
+                    <div class="upload-icon">📁</div>
+                    <h3>點擊或拖拽上傳CSV文件</h3>
+                    <p>支援包含股票數據的CSV文件 | 自動儲存到瀏覽器本地</p>
+                    <input type="file" id="csvFile" accept=".csv" onchange="handleFileUpload(event)">
+                </div>
+            </div>
+
+            <div id="statusMessage"></div>
+
+            <div id="filterSection" class="filter-section">
+                <!-- 篩選條件預設 -->
+                <div class="filter-presets">
+                    <h3>⭐ 篩選條件預設</h3>
+                    <div class="preset-actions">
+                        <button class="preset-btn" onclick="loadPreset('growth')">🚀 成長股</button>
+                        <button class="preset-btn" onclick="loadPreset('value')">💎 價值股</button>
+                        <button class="preset-btn" onclick="loadPreset('volume')">📊 高成交量</button>
+                        <button class="preset-btn" onclick="loadPreset('near52h')">📈 接近高點</button>
+                    </div>
+                    <div class="preset-input">
+                        <input type="text" id="presetName" placeholder="輸入預設名稱">
+                        <button class="preset-btn" onclick="saveCurrentAsPreset()">💾 儲存目前條件</button>
+                        <select id="savedPresets" onchange="loadSavedPreset()">
+                            <option value="">選擇已儲存的預設</option>
+                        </select>
+                    </div>
+                </div>
+
+                <h2 style="color: #2c3e50; margin-bottom: 25px; text-align: center;">📊 設定篩選條件</h2>
+                
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        <h3>🏢 基本資訊</h3>
+                        <div class="filter-row">
+                            <label>股票代碼:</label>
+                            <input type="text" id="stockCode" placeholder="例: 2330">
+                        </div>
+                        <div class="filter-row">
+                            <label>商品名稱:</label>
+                            <input type="text" id="stockName" placeholder="例: 台積電">
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <h3>💰 價格區間</h3>
+                        <div class="filter-row">
+                            <label>收盤價 ≥:</label>
+                            <input type="number" id="minClosePrice" step="0.01" placeholder="最低價">
+                        </div>
+                        <div class="filter-row">
+                            <label>收盤價 ≤:</label>
+                            <input type="number" id="maxClosePrice" step="0.01" placeholder="最高價">
+                        </div>
+                        <div class="filter-row">
+                            <label>開盤價 ≥:</label>
+                            <input type="number" id="minOpenPrice" step="0.01" placeholder="最低開盤價">
+                        </div>
+                        <div class="filter-row">
+                            <label>開盤價 ≤:</label>
+                            <input type="number" id="maxOpenPrice" step="0.01" placeholder="最高開盤價">
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <h3>📊 成交量</h3>
+                        <div class="filter-row">
+                            <label>成交量 ≥:</label>
+                            <input type="number" id="minVolume" placeholder="最低成交量">
+                        </div>
+                        <div class="filter-row">
+                            <label>成交量 ≤:</label>
+                            <input type="number" id="maxVolume" placeholder="最高成交量">
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <h3>📈 技術指標</h3>
+                        <div class="filter-row">
+                            <label>52H價 ≥:</label>
+                            <input type="number" id="min52H" step="0.01" placeholder="52週高點">
+                        </div>
+                        <div class="filter-row">
+                            <label>均價 ≥:</label>
+                            <input type="number" id="minAvgPrice" step="0.01" placeholder="均價">
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <h3>📊 漲跌幅 & 振幅</h3>
+                        <div class="filter-row">
+                            <label>漲跌幅 ≥:</label>
+                            <input type="number" id="minChangePercent" step="0.01" placeholder="最小漲跌幅%">
+                        </div>
+                        <div class="filter-row">
+                            <label>漲跌幅 ≤:</label>
+                            <input type="number" id="maxChangePercent" step="0.01" placeholder="最大漲跌幅%">
+                        </div>
+                        <div class="filter-row">
+                            <label>振幅 ≥:</label>
+                            <input type="number" id="minAmplitude" step="0.01" placeholder="最小振幅%">
+                        </div>
+                        <div class="filter-row">
+                            <label>振幅 ≤:</label>
+                            <input type="number" id="maxAmplitude" step="0.01" placeholder="最大振幅%">
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <h3>🏆 排名篩選</h3>
+                        <div class="filter-row">
+                            <label>成交量 TOP20:</label>
+                            <input type="checkbox" id="volumeTop20" style="width: auto;">
+                        </div>
+                        <div class="filter-row">
+                            <label>融券餘額 TOP20:</label>
+                            <input type="checkbox" id="marginBalanceTop20" style="width: auto;">
+                        </div>
+                        <div class="filter-row">
+                            <label>融券增減 TOP20:</label>
+                            <input type="checkbox" id="marginChangeTop20" style="width: auto;">
+                        </div>
+                        <div class="filter-row">
+                            <label>近52H價 TOP20:</label>
+                            <input type="checkbox" id="near52HTop20" style="width: auto;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="applyFilters()">🔍 開始篩選</button>
+                    <button class="btn btn-secondary" onclick="clearFilters()">🗑️ 清除條件</button>
+                </div>
+            </div>
+
+            <div id="resultsSection" class="results-section">
+                <div class="results-header">
+                    <div class="results-count" id="resultsCount">找到 0 檔股票</div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-secondary" onclick="saveResults()">💾 儲存結果</button>
+                        <button class="btn btn-secondary" onclick="exportResults()">📥 匯出CSV</button>
+                    </div>
+                </div>
+                <div class="table-container" id="resultsTable"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let stockData = [];
+        let filteredData = [];
+        let headers = [];
+
+        // 載入頁面時自動檢查已儲存的資料
+        window.onload = function() {
+            loadStoredFilterSettings();
+            checkStoredData();
+            loadSavedPresets();
+        };
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            showStatus('正在讀取文件...', 'info');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csvText = e.target.result;
+                
+                Papa.parse(csvText, {
+                    complete: function(results) {
+                        if (results.errors.length > 0) {
+                            showStatus('文件解析出現錯誤: ' + results.errors[0].message, 'error');
+                            return;
+                        }
+
+                        stockData = results.data;
+                        headers = stockData[0];
+                        stockData = stockData.slice(1).filter(row => row.some(cell => cell && cell.trim()));
+
+                        if (stockData.length === 0) {
+                            showStatus('文件中沒有找到有效數據', 'error');
+                            return;
+                        }
+
+                        // 儲存到 localStorage
+                        saveDataToStorage(csvText, file.name);
+                        
+                        showStatus(`成功載入 ${stockData.length} 筆股票數據並儲存到本地`, 'success');
+                        document.getElementById('filterSection').style.display = 'block';
+                    },
+                    header: false,
+                    skipEmptyLines: true,
+                    worker: false
+                });
+            };
+            
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function saveDataToStorage(csvText, fileName) {
+            try {
+                const dataToStore = {
+                    csvData: csvText,
+                    fileName: fileName,
+                    uploadDate: new Date().toISOString(),
+                    headers: headers,
+                    recordCount: stockData.length
+                };
+                localStorage.setItem('stockData', JSON.stringify(dataToStore));
+                localStorage.setItem('stockDataLastUpdate', new Date().toISOString());
+            } catch (error) {
+                showStatus('儲存資料時發生錯誤: ' + error.message, 'error');
+            }
+        }
+
+        function loadStoredData() {
+            try {
+                const storedData = localStorage.getItem('stockData');
+                if (!storedData) {
+                    showStatus('沒有找到已儲存的資料', 'error');
+                    return;
+                }
+
+                const parsedData = JSON.parse(storedData);
+                
+                Papa.parse(parsedData.csvData, {
+                    complete: function(results) {
+                        stockData = results.data;
+                        headers = stockData[0];
+                        stockData = stockData.slice(1).filter(row => row.some(cell => cell && cell.trim()));
+                        
+                        showStatus(`已載入儲存的資料: ${parsedData.fileName} (${stockData.length} 筆記錄)`, 'success');
+                        document.getElementById('filterSection').style.display = 'block';
+                    },
+                    header: false,
+                    skipEmptyLines: true
+                });
+            } catch (error) {
+                showStatus('載入儲存資料時發生錯誤: ' + error.message, 'error');
+            }
+        }
+
+        function clearStoredData() {
+            if (confirm('確定要清除所有儲存的資料嗎？此操作無法復原。')) {
+                localStorage.removeItem('stockData');
+                localStorage.removeItem('stockDataLastUpdate');
+                localStorage.removeItem('filterSettings');
+                localStorage.removeItem('savedPresets');
+                localStorage.removeItem('savedResults');
+                
+                stockData = [];
+                filteredData = [];
+                headers = [];
+                
+                document.getElementById('filterSection').style.display = 'none';
+                document.getElementById('resultsSection').style.display = 'none';
+                
+                showStatus('所有儲存資料已清除', 'success');
+            }
+        }
+
+        function checkStoredData() {
+            const storedData = localStorage.getItem('stockData');
+            if (storedData) {
+                try {
+                    const parsedData = JSON.parse(storedData);
+                    showStatus(`發現已儲存的資料: ${parsedData.fileName} (${parsedData.recordCount} 筆記錄)`, 'info');
+                } catch (error) {
+                    // 忽略錯誤
+                }
+            }
+        }
+
+        function showStorageInfo() {
+            const storageInfo = document.getElementById('storageInfo');
+            const storedData = localStorage.getItem('stockData');
+            const lastUpdate = localStorage.getItem('stockDataLastUpdate');
+            
+            if (storedData) {
+                try {
+                    const parsedData = JSON.parse(storedData);
+                    const updateDate = new Date(lastUpdate).toLocaleString('zh-TW');
+                    const dataSize = (JSON.stringify(storedData).length / 1024).toFixed(2);
+                    
+                    storageInfo.innerHTML = `
+                        <strong>📊 儲存資料資訊:</strong><br>
+                        檔案名稱: ${parsedData.fileName}<br>
+                        記錄數量: ${parsedData.recordCount} 筆<br>
+                        上傳時間: ${updateDate}<br>
+                        資料大小: ${dataSize} KB
+                    `;
+                } catch (error) {
+                    storageInfo.innerHTML = '無法讀取儲存資料資訊';
+                }
+            } else {
+                storageInfo.innerHTML = '目前沒有儲存任何資料';
+            }
+            
+            storageInfo.style.display = storageInfo.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // 篩選條件預設功能
+        function loadPreset(type) {
+            clearFilters();
+            
+            switch(type) {
+                case 'growth':
+                    document.getElementById('minChangePercent').value = '3';
+                    document.getElementById('minVolume').value = '1000';
+                    break;
+                case 'value':
+                    document.getElementById('maxClosePrice').value = '100';
+                    document.getElementById('minVolume').value = '500';
+                    document.getElementById('maxChangePercent').value = '2';
+                    break;
+                case 'volume':
+                    document.getElementById('volumeTop20').checked = true;
+                    break;
+                case 'near52h':
+                    document.getElementById('near52HTop20').checked = true;
+                    break;
+            }
+            
+            showStatus(`已套用「${getPresetName(type)}」預設條件`, 'success');
+        }
+
+        function getPresetName(type) {
+            const names = {
+                'growth': '成長股',
+                'value': '價值股', 
+                'volume': '高成交量',
+                'near52h': '接近高點'
+            };
+            return names[type] || type;
+        }
+
+        function saveCurrentAsPreset() {
+            const presetName = document.getElementById('presetName').value.trim();
+            if (!presetName) {
+                showStatus('請輸入預設名稱', 'error');
+                return;
+            }
+
+            const currentSettings = getCurrentFilterSettings();
+            let savedPresets = JSON.parse(localStorage.getItem('savedPresets') || '{}');
+            
+            savedPresets[presetName] = currentSettings;
+            localStorage.setItem('savedPresets', JSON.stringify(savedPresets));
+            
+            document.getElementById('presetName').value = '';
+            loadSavedPresets();
+            showStatus(`預設「${presetName}」已儲存`, 'success');
+        }
+
+        function loadSavedPresets() {
+            const savedPresets = JSON.parse(localStorage.getItem('savedPresets') || '{}');
+            const select = document.getElementById('savedPresets');
+            
+            select.innerHTML = '<option value="">選擇已儲存的預設</option>';
+            
+            Object.keys(savedPresets).forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+        }
+
+        function loadSavedPreset() {
+            const presetName = document.getElementById('savedPresets').value;
+            if (!presetName) return;
+
+            const savedPresets = JSON.parse(localStorage.getItem('savedPresets') || '{}');
+            const preset = savedPresets[presetName];
+            
+            if (preset) {
+                loadFilterSettings(preset);
+                showStatus(`已載入預設「${presetName}」`, 'success');
+            }
+        }
+
+        function getCurrentFilterSettings() {
+            return {
+                stockCode: document.getElementById('stockCode').value,
+                stockName: document.getElementById('stockName').value,
+                minClosePrice: document.getElementById('minClosePrice').value,
+                maxClosePrice: document.getElementById('maxClosePrice').value,
+                minOpenPrice: document.getElementById('minOpenPrice').value,
+                maxOpenPrice: document.getElementById('maxOpenPrice').value,
+                minVolume: document.getElementById('minVolume').value,
+                maxVolume: document.getElementById('maxVolume').value,
+                min52H: document.getElementById('min52H').value,
+                minAvgPrice: document.getElementById('minAvgPrice').value,
+                minChangePercent: document.getElementById('minChangePercent').value,
+                maxChangePercent: document.getElementById('maxChangePercent').value,
+                minAmplitude: document.getElementById('minAmplitude').value,
+                maxAmplitude: document.getElementById('maxAmplitude').value,
+                volumeTop20: document.getElementById('volumeTop20').checked,
+                marginBalanceTop20: document.getElementById('marginBalanceTop20').checked,
+                marginChangeTop20: document.getElementById('marginChangeTop20').checked,
+                near52HTop20: document.getElementById('near52HTop20').checked
+            };
+        }
+
+        function loadFilterSettings(settings) {
+            document.getElementById('stockCode').value = settings.stockCode || '';
+            document.getElementById('stockName').value = settings.stockName || '';
+            document.getElementById('minClosePrice').value = settings.minClosePrice || '';
+            document.getElementById('maxClosePrice').value = settings.maxClosePrice || '';
+            document.getElementById('minOpenPrice').value = settings.minOpenPrice || '';
+            document.getElementById('maxOpenPrice').value = settings.maxOpenPrice || '';
+            document.getElementById('minVolume').value = settings.minVolume || '';
+            document.getElementById('maxVolume').value = settings.maxVolume || '';
+            document.getElementById('min52H').value = settings.min52H || '';
+            document.getElementById('minAvgPrice').value = settings.minAvgPrice || '';
+            document.getElementById('minChangePercent').value = settings.minChangePercent || '';
+            document.getElementById('maxChangePercent').value = settings.maxChangePercent || '';
+            document.getElementById('minAmplitude').value = settings.minAmplitude || '';
+            document.getElementById('maxAmplitude').value = settings.maxAmplitude || '';
+            document.getElementById('volumeTop20').checked = settings.volumeTop20 || false;
+            document.getElementById('marginBalanceTop20').checked = settings.marginBalanceTop20 || false;
+            document.getElementById('marginChangeTop20').checked = settings.marginChangeTop20 || false;
+            document.getElementById('near52HTop20').checked = settings.near52HTop20 || false;
+        }
+
+        function saveFilterSettings() {
+            const settings = getCurrentFilterSettings();
+            localStorage.setItem('filterSettings', JSON.stringify(settings));
+        }
+
+        function loadStoredFilterSettings() {
+            const storedSettings = localStorage.getItem('filterSettings');
+            if (storedSettings) {
+                try {
+                    const settings = JSON.parse(storedSettings);
+                    loadFilterSettings(settings);
+                } catch (error) {
+                    // 忽略錯誤
+                }
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            const bgColor = type === 'success' ? '#d4edda' : type === 'error' ? '#f8d7da' : '#d1ecf1';
+            const textColor = type === 'success' ? '#155724' : type === 'error' ? '#721c24' : '#0c5460';
+            const borderColor = type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#17a2b8';
+            
+            statusDiv.innerHTML = `
+                <div style="background: ${bgColor}; color: ${textColor}; padding: 15px; border-radius: 10px; border-left: 4px solid ${borderColor};">
+                    ${message}
+                </div>
+            `;
+        }
+
+        function getColumnIndex(columnName) {
+            return headers.findIndex(header => header.includes(columnName));
+        }
+
+        function applyFilters() {
+            if (stockData.length === 0) {
+                showStatus('請先上傳CSV文件或載入已儲存的資料', 'error');
+                return;
+            }
+
+            // 儲存篩選條件
+            saveFilterSettings();
+
+            const filters = {
+                stockCode: document.getElementById('stockCode').value.trim(),
+                stockName: document.getElementById('stockName').value.trim(),
+                minClosePrice: parseFloat(document.getElementById('minClosePrice').value) || null,
+                maxClosePrice: parseFloat(document.getElementById('maxClosePrice').value) || null,
+                minOpenPrice: parseFloat(document.getElementById('minOpenPrice').value) || null,
+                maxOpenPrice: parseFloat(document.getElementById('maxOpenPrice').value) || null,
+                minVolume: parseInt(document.getElementById('minVolume').value) || null,
+                maxVolume: parseInt(document.getElementById('maxVolume').value) || null,
+                min52H: parseFloat(document.getElementById('min52H').value) || null,
+                minAvgPrice: parseFloat(document.getElementById('minAvgPrice').value) || null,
+                minChangePercent: parseFloat(document.getElementById('minChangePercent').value) || null,
+                maxChangePercent: parseFloat(document.getElementById('maxChangePercent').value) || null,
+                minAmplitude: parseFloat(document.getElementById('minAmplitude').value) || null,
+                maxAmplitude: parseFloat(document.getElementById('maxAmplitude').value) || null,
+                volumeTop20: document.getElementById('volumeTop20').checked,
+                marginBalanceTop20: document.getElementById('marginBalanceTop20').checked,
+                marginChangeTop20: document.getElementById('marginChangeTop20').checked,
+                near52HTop20: document.getElementById('near52HTop20').checked
+            };
+
+            // 取得欄位索引
+            const codeIndex = getColumnIndex('代碼') || getColumnIndex('½X') || 0;
+            const nameIndex = getColumnIndex('名稱') || getColumnIndex('Ó«~') || 1;
+            const openIndex = getColumnIndex('開盤') || getColumnIndex('}½L»ù') || 3;
+            const highIndex = getColumnIndex('最高') || getColumnIndex('³Ì°ª»ù') || 4;
+            const lowIndex = getColumnIndex('最低') || getColumnIndex('³Ì§C»ù') || 5;
+            const closeIndex = getColumnIndex('收盤') || getColumnIndex('¬½L»ù') || 6;
+            const changePercentIndex = getColumnIndex('漲跌') || getColumnIndex('º¦¶^´T') || 7;
+            const amplitudeIndex = getColumnIndex('振幅') || getColumnIndex('®¶´T') || 8;
+            const volumeIndex = getColumnIndex('成交量') || getColumnIndex('¨¥æ¶q') || 9;
+            const marginBalanceIndex = getColumnIndex('融券餘額') || getColumnIndex('¿Ä¨é¾lÃB±i¼Æ') || 20;
+            const marginChangeIndex = getColumnIndex('融券增減') || getColumnIndex('¿Ä¨é¼W´î±i¼Æ') || 21;
+            const high52Index = getColumnIndex('52H') || getColumnIndex('52H»ù') || 14;
+            const avgPriceIndex = getColumnIndex('均價') || getColumnIndex('§¡»ù') || 15;
+
+            // 先進行一般篩選
+            let tempFilteredData = stockData.filter(row => {
+                // 股票代碼篩選
+                if (filters.stockCode && !row[codeIndex].toString().includes(filters.stockCode)) {
+                    return false;
+                }
+
+                // 股票名稱篩選
+                if (filters.stockName && !row[nameIndex].toString().includes(filters.stockName)) {
+                    return false;
+                }
+
+                // 收盤價篩選
+                const closePrice = parseFloat(row[closeIndex]);
+                if (filters.minClosePrice && closePrice < filters.minClosePrice) return false;
+                if (filters.maxClosePrice && closePrice > filters.maxClosePrice) return false;
+
+                // 開盤價篩選
+                const openPrice = parseFloat(row[openIndex]);
+                if (filters.minOpenPrice && openPrice < filters.minOpenPrice) return false;
+                if (filters.maxOpenPrice && openPrice > filters.maxOpenPrice) return false;
+
+                // 成交量篩選
+                const volume = parseInt(row[volumeIndex]);
+                if (filters.minVolume && volume < filters.minVolume) return false;
+                if (filters.maxVolume && volume > filters.maxVolume) return false;
+
+                // 52H價篩選
+                if (filters.min52H) {
+                    const high52 = parseFloat(row[high52Index]);
+                    if (high52 < filters.min52H) return false;
+                }
+
+                // 均價篩選
+                if (filters.minAvgPrice) {
+                    const avgPrice = parseFloat(row[avgPriceIndex]);
+                    if (avgPrice < filters.minAvgPrice) return false;
+                }
+
+                // 漲跌幅篩選
+                const changePercent = parseFloat(row[changePercentIndex]);
+                if (filters.minChangePercent !== null && changePercent < filters.minChangePercent) return false;
+                if (filters.maxChangePercent !== null && changePercent > filters.maxChangePercent) return false;
+
+                // 振幅篩選
+                const amplitude = parseFloat(row[amplitudeIndex]);
+                if (filters.minAmplitude !== null && amplitude < filters.minAmplitude) return false;
+                if (filters.maxAmplitude !== null && amplitude > filters.maxAmplitude) return false;
+
+                return true;
+            });
+
+            // 排名篩選處理
+            if (filters.volumeTop20) {
+                tempFilteredData = tempFilteredData
+                    .sort((a, b) => parseInt(b[volumeIndex]) - parseInt(a[volumeIndex]))
+                    .slice(0, 20);
+            }
+
+            if (filters.marginBalanceTop20) {
+                tempFilteredData = tempFilteredData
+                    .sort((a, b) => parseInt(b[marginBalanceIndex]) - parseInt(a[marginBalanceIndex]))
+                    .slice(0, 20);
+            }
+
+            if (filters.marginChangeTop20) {
+                tempFilteredData = tempFilteredData
+                    .sort((a, b) => parseInt(b[marginChangeIndex]) - parseInt(a[marginChangeIndex]))
+                    .slice(0, 20);
+            }
+
+            if (filters.near52HTop20) {
+                tempFilteredData = tempFilteredData
+                    .map(row => {
+                        const high52 = parseFloat(row[high52Index]);
+                        const closePrice = parseFloat(row[closeIndex]);
+                        const diff = high52 - closePrice;
+                        return [...row, diff]; // 保持數組結構
+                    })
+                    .sort((a, b) => {
+                        const diffA = a[a.length - 1]; // 最後一個元素是diff
+                        const diffB = b[b.length - 1];
+                        return diffA - diffB;
+                    })
+                    .slice(0, 20)
+                    .map(row => row.slice(0, -1)); // 移除添加的diff欄位
+            }
+
+            filteredData = tempFilteredData;
+            displayResults();
+        }
+
+        function displayResults() {
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsCount = document.getElementById('resultsCount');
+            const resultsTable = document.getElementById('resultsTable');
+
+            resultsCount.textContent = `找到 ${filteredData.length} 檔股票`;
+
+            if (filteredData.length === 0) {
+                resultsTable.innerHTML = '<div class="no-results">沒有找到符合條件的股票</div>';
+            } else {
+                let tableHTML = '<table><thead><tr>';
+                
+                // 顯示所有重要欄位
+                const displayHeaders = ['股票代碼', '商品名稱', '開盤價', '最高價', '最低價', '收盤價', '漲跌幅%', '振幅%', '成交量', '融券餘額', '融券增減', '52H價', '近52H差距'];
+                displayHeaders.forEach(header => {
+                    tableHTML += `<th>${header}</th>`;
+                });
+                tableHTML += '</tr></thead><tbody>';
+
+                filteredData.forEach(row => {
+                    // 取得欄位索引
+                    const changePercentIndex = getColumnIndex('漲跌') || getColumnIndex('º¦¶^´T') || 7;
+                    const amplitudeIndex = getColumnIndex('振幅') || getColumnIndex('®¶´T') || 8;
+                    const marginBalanceIndex = getColumnIndex('融券餘額') || getColumnIndex('¿Ä¨é¾lÃB±i¼Æ') || 20;
+                    const marginChangeIndex = getColumnIndex('融券增減') || getColumnIndex('¿Ä¨é¼W´î±i¼Æ') || 21;
+                    const high52Index = getColumnIndex('52H') || getColumnIndex('52H»ù') || 14;
+                    
+                    const high52 = parseFloat(row[high52Index]);
+                    const closePrice = parseFloat(row[6]);
+                    const diff52H = (high52 - closePrice).toFixed(2);
+                    
+                    tableHTML += '<tr>';
+                    tableHTML += `<td>${row[0] || ''}</td>`; // 股票代碼
+                    tableHTML += `<td>${row[1] || ''}</td>`; // 商品名稱
+                    tableHTML += `<td>${parseFloat(row[3]).toFixed(2) || ''}</td>`; // 開盤價
+                    tableHTML += `<td>${parseFloat(row[4]).toFixed(2) || ''}</td>`; // 最高價
+                    tableHTML += `<td>${parseFloat(row[5]).toFixed(2) || ''}</td>`; // 最低價
+                    tableHTML += `<td>${parseFloat(row[6]).toFixed(2) || ''}</td>`; // 收盤價
+                    tableHTML += `<td style="color: ${parseFloat(row[changePercentIndex]) >= 0 ? 'red' : 'green'}">${parseFloat(row[changePercentIndex]).toFixed(2) || ''}%</td>`; // 漲跌幅
+                    tableHTML += `<td>${parseFloat(row[amplitudeIndex]).toFixed(2) || ''}%</td>`; // 振幅
+                    tableHTML += `<td>${parseInt(row[9]).toLocaleString() || ''}</td>`; // 成交量
+                    tableHTML += `<td>${parseInt(row[marginBalanceIndex]).toLocaleString() || ''}</td>`; // 融券餘額
+                    tableHTML += `<td style="color: ${parseInt(row[marginChangeIndex]) >= 0 ? 'red' : 'green'}">${parseInt(row[marginChangeIndex]).toLocaleString() || ''}</td>`; // 融券增減
+                    tableHTML += `<td>${high52.toFixed(2) || ''}</td>`; // 52H價
+                    tableHTML += `<td>${diff52H}</td>`; // 近52H差距
+                    tableHTML += '</tr>';
+                });
+
+                tableHTML += '</tbody></table>';
+                resultsTable.innerHTML = tableHTML;
+            }
+
+            resultsSection.style.display = 'block';
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function clearFilters() {
+            document.getElementById('stockCode').value = '';
+            document.getElementById('stockName').value = '';
+            document.getElementById('minClosePrice').value = '';
+            document.getElementById('maxClosePrice').value = '';
+            document.getElementById('minOpenPrice').value = '';
+            document.getElementById('maxOpenPrice').value = '';
+            document.getElementById('minVolume').value = '';
+            document.getElementById('maxVolume').value = '';
+            document.getElementById('min52H').value = '';
+            document.getElementById('minAvgPrice').value = '';
+            document.getElementById('minChangePercent').value = '';
+            document.getElementById('maxChangePercent').value = '';
+            document.getElementById('minAmplitude').value = '';
+            document.getElementById('maxAmplitude').value = '';
+            document.getElementById('volumeTop20').checked = false;
+            document.getElementById('marginBalanceTop20').checked = false;
+            document.getElementById('marginChangeTop20').checked = false;
+            document.getElementById('near52HTop20').checked = false;
+            document.getElementById('savedPresets').value = '';
+            
+            document.getElementById('resultsSection').style.display = 'none';
+            showStatus('篩選條件已清除', 'success');
+        }
+
+        function saveResults() {
+            if (filteredData.length === 0) {
+                showStatus('沒有結果可以儲存', 'error');
+                return;
+            }
+
+            try {
+                const resultData = {
+                    timestamp: new Date().toISOString(),
+                    filterConditions: getCurrentFilterSettings(),
+                    results: filteredData,
+                    resultCount: filteredData.length
+                };
+
+                let savedResults = JSON.parse(localStorage.getItem('savedResults') || '[]');
+                savedResults.unshift(resultData); // 新結果放在最前面
+                
+                // 最多保存10個結果
+                if (savedResults.length > 10) {
+                    savedResults = savedResults.slice(0, 10);
+                }
+                
+                localStorage.setItem('savedResults', JSON.stringify(savedResults));
+                showStatus(`篩選結果已儲存 (${filteredData.length} 筆記錄)`, 'success');
+            } catch (error) {
+                showStatus('儲存結果時發生錯誤: ' + error.message, 'error');
+            }
+        }
+
+        function exportResults() {
+            if (filteredData.length === 0) {
+                showStatus('沒有結果可以匯出', 'error');
+                return;
+            }
+
+            const csvContent = [headers, ...filteredData]
+                .map(row => row.map(cell => `"${cell}"`).join(','))
+                .join('\n');
+
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `股票篩選結果_${new Date().toISOString().slice(0, 10)}.csv`;
+            link.click();
+
+            showStatus('結果已匯出為CSV文件', 'success');
+        }
+
+        // 拖拽上傳功能
+        const uploadArea = document.querySelector('.upload-area');
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.8)';
+            uploadArea.style.background = 'rgba(255, 255, 255, 0.2)';
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+            uploadArea.style.background = 'rgba(255, 255, 255, 0.1)';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+            uploadArea.style.background = 'rgba(255, 255, 255, 0.1)';
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('csvFile').files = files;
+                handleFileUpload({ target: { files: files } });
+            }
+        });
+
+        // 自動儲存篩選條件 (每當條件改變時)
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputs = document.querySelectorAll('#filterSection input, #filterSection select');
+            inputs.forEach(input => {
+                input.addEventListener('change', saveFilterSettings);
+            });
+        });
+    </script>
+</body>
+</html>
