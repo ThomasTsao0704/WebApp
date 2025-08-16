@@ -1,3 +1,13 @@
+const PORT = process.env.PORT || 3000;
+
+// 支援 HTTPS WebSocket
+wss.on('connection', (ws, req) => {
+  // 處理 X-Forwarded-Proto header（雲端平台需要）
+  const protocol = req.headers['x-forwarded-proto'] || 'http';
+  console.log(`Client connected via ${protocol}`);
+  
+  // 其他程式碼...
+});
 // ===== package.json =====
 {
   "name": "smart-restaurant-ws",
