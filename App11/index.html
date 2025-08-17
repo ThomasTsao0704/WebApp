@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>進階股票市場分析系統</title>
+  
+  <!-- External Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  
+  <style>
+    * { box-sizing: border-box; }
+    
+    body { 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin: 0; 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    
+    .main-container { 
+      max-width: 1600px; 
+      margin: auto; 
+      padding: 20px; 
+      background: rgba(255,255,255,0.95); 
+      border-radius: 15px; 
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15); 
+      margin-top: 20px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .system-header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 20px;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      color: white;
+      border-radius: 10px;
+    }
+    
+    .system-header h1 { 
+      margin: 0;
+      font-size: 2.2em;
+      font-weight: 700;
+    }
+    
+    .system-header p {
+      margin: 10px 0 0 0;
+      opacity: 0.9;
+      font-size: 1.1em;
+    }
+    
+    .module-tabs {
+      display: flex;
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 5px;
+      margin-bottom: 25px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .tab-button {
+      flex: 1;
+      padding: 12px 20px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      font-size: 14px;
+    }
+    
+    .tab-button.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .tab-button:hover:not(.active) {
+      background: rgba(102, 126, 234, 0.1);
+    }
+    
+    .module-content {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    .module-content.active {
+      display: block;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .control-panel {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      color: white;
+    }
+    
+    .control-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    
+    .control-item label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      font-size: 13px;
+    }
+    
+    .control-item input, .control-item select {
+      width: 100%;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      background: rgba(255,255,255,0.9);
+    }
+    
+    .control-item button {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.2);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .control-item button:hover {
+      background: rgba(255,255,255,0.3);
+      transform: translateY(-2px);
+    }
+    
+    .data-grid {
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    
+    .data-table th {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 8px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid rgba(255,255,255,0.2);
+    }
+    
+    .data-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #eee;
+      transition: background-color 0.2s ease;
+    }
+    
+    .data-table tr:hover {
+      background-color: rgba(102, 126, 234, 0.05);
+    }
+    
+    .trend-positive { color: #e74c3c; font-weight: 600; }
+    .trend-negative { color: #27ae60; font-weight: 600; }
+    .trend-neutral { color: #7f8c8d; }
+    
+    .stats-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .stats-card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+    }
+    
+    .stats-card:hover {
+      transform: translateY(-5px);
+    }
+    
+    .stats-card .value {
+      font-size: 2em;
+      font-weight: 700;
+      color: #2c3e50;
+      margin-bottom: 5px;
+    }
+    
+    .stats-card .label {
+      color: #7f8c8d;
+      font-size: 0.9em;
+      font-weight: 500;
+    }
+    
+    .chart-container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    
+    .chart-container h3 {
+      margin-top: 0;
+      color: #2c3e50;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 10px;
+    }
+    
+    .concept-tag {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      margin: 2px;
+      font-weight: 500;
+    }
+    
+    .alert-panel {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-weight: 500;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #7f8c8d;
+      font-style: italic;
+    }
+    
+    .filter-panel {
+      background: rgba(255,255,255,0.9);
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border: 1px solid rgba(102, 126, 234, 0.2);
+    }
+    
+    .filter-row {
+      display: flex;
+      gap: 10px;
+      align-items: end;
+      flex-wrap: wrap;
+    }
+    
+    .filter-row > div {
+      flex: 1;
+      min-width: 120px;
+    }
+    
+    @media (max-width: 768px) {
+      .main-container { 
+        padding: 15px; 
+        margin: 10px;
+      }
+      .module-tabs {
+        flex-direction: column;
+      }
+      .control-grid {
+        grid-template-columns: 1fr;
+      }
+      .stats-cards {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="main-container">
+    <div class="system-header">
+      <h1>🚀 進階股票市場分析系統</h1>
+      <p>專業投資決策支援平台 - 漲停分析 | 概念股追蹤 | 成交數據</p>
+    </div>
+
+    <!-- 模組切換標籤 -->
+    <div class="module-tabs">
+      <button class="tab-button active" onclick="switchModule('limitUp')">📈 漲停股分析</button>
+      <button class="tab-button" onclick="switchModule('concept')">🎯 概念股追蹤</button>
+      <button class="tab-button" onclick="switchModule('trading')">📊 成交紀錄</button>
+      <button class="tab-button" onclick="switchModule('portfolio')">💼 投資組合</button>
+    </div>
+
+    <!-- 漲停股分析模組 -->
+    <div id="limitUp" class="module-content active">
+      <div class="control-panel">
+        <h3>🎯 漲停股票查詢與趨勢分析</h3>
+        <div class="control-grid">
+          <div class="control-item">
+            <label>查詢日期</label>
+            <input type="date" id="limitUpDate" value="2024-08-17">
+          </div>
+          <div class="control-item">
+            <label>市場別</label>
+            <select id="limitUpMarket">
+              <option value="">全部市場</option>
+              <option value="台股">台股</option>
+              <option value="美股">美股</option>
+            </select>
+          </div>
+          <div class="control-item">
+            <label>產業分類</label>
+            <select id="limitUpIndustry">
+              <option value="">全部產業</option>
+              <option value="科技業">科技業</option>
+              <option value="金融業">金融業</option>
+              <option value="傳統產業">傳統產業</option>
+            </select>
+          </div>
+          <div class="control-item">
+            <label>操作</label>
+            <button onclick="searchLimitUpStocks()">查詢漲停股</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-cards" id="limitUpStats">
+        <div class="stats-card">
+          <div class="value" id="limitUpCount">0</div>
+          <div class="label">今日漲停股數</div>
+        </div>
+        <div class="stats-card">
+          <div class="value" id="limitUpAvgVolume">0</div>
+          <div class="label">平均成交量(萬股)</div>
+        </div>
+        <div class="stats-card">
+          <div class="value" id="limitUpNextDayUp">0%</div>
+          <div class="label">次日續漲機率</div>
+        </div>
+        <div class="stats-card">
+          <div class="value" id="limitUpWeekReturn">0%</div>
+          <div class="label">一週平均報酬</div>
+        </div>
+      </div>
+
+      <div class="data-grid">
+        <table class="data-table" id="limitUpTable">
+          <thead>
+            <tr>
+              <th>股票代碼</th>
+              <th>股票名稱</th>
+              <th>產業</th>
+              <th>漲停價</th>
+              <th>成交量</th>
+              <th>次日表現</th>
+              <th>一週報酬</th>
+              <th>一月報酬</th>
+              <th>漲停原因</th>
+            </tr>
+          </thead>
+          <tbody id="limitUpTableBody">
+            <tr><td colspan="9" class="loading">請選擇查詢條件後點擊查詢</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="chart-container">
+        <h3>漲停股後續表現分析</h3>
+        <canvas id="limitUpChart" width="400" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- 概念股追蹤模組 -->
+    <div id="concept" class="module-content">
+      <div class="control-panel">
+        <h3>🎯 概念股趨勢分析</h3>
+        <div class="control-grid">
+          <div class="control-item">
+            <label>概念股主題</label>
+            <select id="conceptTheme">
+              <option value="">選擇概念股</option>
+              <option value="AI人工智慧">AI人工智慧</option>
+              <option value="電動車">電動車</option>
+              <option value="元宇宙">元宇宙</option>
+              <option value="5G通訊">5G通訊</option>
+              <option value="生技醫療">生技醫療</option>
+              <option value="綠能環保">綠能環保</option>
+            </select>
+          </div>
+          <div class="control-item">
+            <label>時間範圍</label>
+            <select id="conceptPeriod">
+              <option value="1D">今日</option>
+              <option value="1W">一週</option>
+              <option value="1M">一月</option>
+              <option value="3M">三月</option>
+            </select>
+          </div>
+          <div class="control-item">
+            <label>排序方式</label>
+            <select id="conceptSort">
+              <option value="return">報酬率</option>
+              <option value="volume">成交量</option>
+              <option value="marketCap">市值</option>
+            </select>
+          </div>
+          <div class="control-item">
+            <label>操作</label>
+            <button onclick="analyzeConcept()">分析概念股</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-cards" id="conceptStats">
+        <div class="stats-card">
+          <div class="value" id="conceptStockCount">0</div>
+          <div class="label">概念股總數</div>
+        </div>
+        <div class="stats-card">
+          <div class="value" id="conceptAvgReturn">0%</div>
+          <div class="label">平均報酬率</div>
+        </div>
+        <div class="stats-card">
+          <div class="value" id="conceptLeader">-</div>
+          <div class="label">領漲股票</div>
+        </div>
+        <div class="stats-card">
+          <div class="value" id="conceptTotalValue">0億</div>
+          <div class="label">總市值</div>
+        </div>
+      </div>
+
+      <div class="filter-panel">
+        <div class="filter-row">
+          <div>
+            <label>市值篩選</label>
+            <select id="conceptMarketCapFilter">
+              <option value="">不限</option>
+              <option value="large">大型股(>1000億)</option>
+              <option value="medium">中型股(100-1000億)</option>
+              <option value="small">小型股(<100億)</option>
+            </select>
+          </div>
+          <div>
+            <label>報酬率篩選</label>
+            <select id="conceptReturnFilter">
+              <option value="">不限</option>
+              <option value="positive">正報酬</option>
+              <option value="negative">負報酬</option>
+              <option value="outperform">超越大盤</option>
+            </select>
+          </div>
+          <div>
+            <button onclick="applyConceptFilter()">套用篩選</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="data-grid">
+        <table class="data-table" id="conceptTable">
+          <thead>
+            <tr>
+              <th>排名</th>
+              <th>股票代碼</th>
+              <th>股票名稱</th>
+              <th>概念標籤</th>
+              <th>目前股價</th>
+              <th>今日報酬</th>
+              <th>週報酬</th>
+              <th>月報酬</th>
+              <th>市值</th>
+              <th>成交量</th>
+            </tr>
+          </thead>
+          <tbody id="conceptTableBody">
+            <tr><td colspan="10" class="loading">請選擇概念股主題進行分析</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="chart-container">
+        <h3>概念股表現趨勢</h3>
+        <canvas id="conceptChart" width="400" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- 成交紀錄模組 -->
+    <div id="trading" class="module-content">
+      <div class="control-panel">
+        <h3>📊 每日成交紀錄分析</h3>
+        <div class="control-grid">
+          <div class="control-item">
+            <label>股票代碼</label>
+            <input type="text" id="tradingSymbol" placeholder="輸入股票代碼" value="2330">
+          </div>
+          <div class="control-item">
+            <label>起始日期</label>
+            <input type="date" id="tradingStartDate" value="2024-07-01">
+          </div>
+          <div class="control-item">
+            <label>結束日期</label>
+            <input type="date" id="tradingEndDate" value="2024-08-17">
+          </div>
+          <div class="control-item">
+            <label>操作</label>
+            <button onclick="loadTradingData()">載入交易數據</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-cards" id="tradingStats">
+        <div class="stats-card">
+          <div class="value" id="tradingDays">0</div>
+          <div class="label">交易天數</div>
+        </div>
+        <div class="stats-card">
+          <div class="value" id="totalVolume">0萬股</div>
+          <div class="label">總成交量</div>
+        </div>
+        <div class="stats-card">
+          <div class="value" id="avgPrice">0</div>
+          <div class="label">平均價格</div>
+        </div>
+        <div class="stats-card">
+          <div class="value" id="priceReturn">0%</div>
+          <div class="label">期間報酬率</div>
+        </div>
+      </div>
+
+      <div class="filter-panel">
+        <div class="filter-row">
+          <div>
+            <label>成交量篩選</label>
+            <select id="volumeFilter">
+              <option value="">不限</option>
+              <option value="high">高於平均</option>
+              <option value="low">低於平均</option>
+              <option value="abnormal">異常放量</option>
+            </select>
+          </div>
+          <div>
+            <label>價格變動篩選</label>
+            <select id="priceChangeFilter">
+              <option value="">不限</option>
+              <option value="up">上漲日</option>
+              <option value="down">下跌日</option>
+              <option value="flat">平盤</option>
+            </select>
+          </div>
+          <div>
+            <button onclick="applyTradingFilter()">套用篩選</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="data-grid">
+        <table class="data-table" id="tradingTable">
+          <thead>
+            <tr>
+              <th>交易日期</th>
+              <th>開盤價</th>
+              <th>最高價</th>
+              <th>最低價</th>
+              <th>收盤價</th>
+              <th>漲跌</th>
+              <th>漲跌幅</th>
+              <th>成交量</th>
+              <th>成交金額</th>
+              <th>技術指標</th>
+            </tr>
+          </thead>
+          <tbody id="tradingTableBody">
+            <tr><td colspan="10" class="loading">請輸入股票代碼並選擇日期範圍</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="chart-container">
+        <h3>價格與成交量走勢</h3>
+        <canvas id="tradingChart" width="400" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- 投資組合模組 -->
+    <div id="portfolio" class="module-content">
+      <div class="control-panel">
+        <h3>💼 投資組合分析</h3>
+        <div class="control-grid">
+          <div class="control-item">
+            <label>組合名稱</label>
+            <input type="text" id="portfolioName" placeholder="輸入組合名稱">
+          </div>
+          <div class="control-item">
+            <label>基準指數</label>
+            <select id="benchmarkIndex">
+              <option value="TAIEX">台股加權指數</option>
+              <option value="SP500">標普500</option>
+              <option value="NASDAQ">那斯達克</option>
+            </select>
+          </div>
+          <div class="control-item">
+            <label>分析期間</label>
+            <select id="portfolioPeriod">
+              <option value="1M">一個月</option>
+              <option value="3M">三個月</option>
+              <option value="6M">半年</option>
+              <option value="1Y">一年</option>
+            </select>
+          </div>
+          <div class="control-item">
+            <label>操作</label>
+            <button onclick="analyzePortfolio()">分析組合</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-cards">
+        <div class="stats-card">
+          <div class="value" id="portfolioReturn">0%</div>
+          <div class="label">組合報酬率</div>
+        </div>
+        <div class="stats-card">
+          <div class="value" id="portfolioRisk">0%</div>
+          <div class="label">組合風險</div>
+        </div>
+        <div class="stats-card">
+          <div class="value" id="sharpeRatio">0</div>
+          <div class="label">夏普比率</div>
+        </div>
+        <div class="stats-card">
+          <div class="value" id="maxDrawdown">0%</div>
+          <div class="label">最大回檔</div>
+        </div>
+      </div>
+
+      <div class="data-grid">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>股票代碼</th>
+              <th>股票名稱</th>
+              <th>權重</th>
+              <th>持股成本</th>
+              <th>目前價格</th>
+              <th>損益</th>
+              <th>貢獻度</th>
+              <th>風險係數</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="8" class="loading">建立投資組合後開始分析</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 全域變數
+    let currentModule = 'limitUp';
+    let chartInstances = {};
+    
+    // 模組切換功能
+    function switchModule(moduleName) {
+      // 隱藏所有模組
+      document.querySelectorAll('.module-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      
+      // 移除所有標籤的active狀態
+      document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+      });
+      
+      // 顯示選中的模組
+      document.getElementById(moduleName).classList.add('active');
+      event.target.classList.add('active');
+      
+      currentModule = moduleName;
+      
+      // 載入對應的範例資料
+      switch(moduleName) {
+        case 'limitUp':
+          loadLimitUpSampleData();
+          break;
+        case 'concept':
+          loadConceptSampleData();
+          break;
+        case 'trading':
+          loadTradingSampleData();
+          break;
+        case 'portfolio':
+          loadPortfolioSampleData();
+          break;
+      }
+    }
+
+    // 漲停股分析功能
+    function searchLimitUpStocks() {
+      const date = document.getElementById('limitUpDate').value;
+      const market = document.getElementById('limitUpMarket').value;
+      const industry = document.getElementById('limitUpIndustry').value;
+      
+      // 模擬載入資料
+      document.getElementById('limitUpTableBody').innerHTML = '<tr><td colspan="9" class="loading">正在查詢漲停股資料...</td></tr>';
+      
+      setTimeout(() => {
+        loadLimitUpSampleData();
+        updateLimitUpStats();
+        createLimitUpChart();
+      }, 1000);
+    }
+
+    function loadLimitUpSampleData() {
+      const sampleData = [
+        {code: '2330', name: '台積電', industry: '半導體', price: 630, volume: 85420, nextDay: '+2.1%', weekReturn: '+8.5%', monthReturn: '+15.2%', reason: '業績超預期'},
+        {code: '2454', name: '聯發科', industry: '半導體', price: 820, volume: 45280, nextDay: '+3.8%', weekReturn: '+12.3%', monthReturn: '+22.1%', reason: 'AI晶片訂單'},
+        {code: '2317', name: '鴻海', industry: '電子製造', price: 115, volume: 125600, nextDay: '-0.5%', weekReturn: '+5.2%', monthReturn: '+18.7%', reason: '電動車合作'},
+        {code: '3008', name: '大立光', industry: '光學', price: 2850, volume: 8520, nextDay: '+1.2%', weekReturn: '+6.8%', monthReturn: '+28.3%', reason: '新品發表'},
+        {code: '2892', name: '第一金', industry: '金融', price: 28.5, volume: 95600, nextDay: '+0.8%', weekReturn: '+3.1%', monthReturn: '+12.5%', reason: '利率政策'}
+      ];
+
+      let tableHTML = '';
+      sampleData.forEach(stock => {
+        const nextDayClass = stock.nextDay.includes('+') ? 'trend-positive' : 'trend-negative';
+        const weekClass = stock.weekReturn.includes('+') ? 'trend-positive' : 'trend-negative';
+        const monthClass = stock.monthReturn.includes('+') ? 'trend-positive' : 'trend-negative';
+        
+        tableHTML += `
+          <tr>
+            <td>${stock.code}</td>
+            <td>${stock.name}</td>
+            <td>${stock.industry}</td>
+            <td>${stock.price}</td>
+            <td>${stock.volume.toLocaleString()}</td>
+            <td class="${nextDayClass}">${stock.nextDay}</td>
+            <td class="${weekClass}">${stock.weekReturn}</td>
+            <td class="${monthClass}">${stock.monthReturn}</td>
+            <td>${stock.reason}</td>
+          </tr>
+        `;
+      });
+      
+      document.getElementById('limitUpTableBody').innerHTML = tableHTML;
+    }
+
+    function updateLimitUpStats() {
+      document.getElementById('limitUpCount').textContent = '5';
+      document.getElementById('limitUpAvgVolume').textContent = '72.1';
+      document.getElementById('limitUpNextDayUp').textContent = '75%';
+      document.getElementById('limitUpWeekReturn').textContent = '+7.2%';
+    }
+
+    function createLimitUpChart() {
+      const ctx = document.getElementById('limitUpChart').getContext('2d');
+      if (chartInstances.limitUp) {
+        chartInstances.limitUp.destroy();
+      }
+      
+      chartInstances.limitUp = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['漲停日', '+1日', '+3日', '+7日', '+30日'],
+          datasets: [{
+            label: '平均報酬率',
+            data: [10, 2.1, 4.8, 7.2, 15.8],
+            borderColor: '#e74c3c',
+            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: '報酬率 (%)'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 概念股分析功能
+    function analyzeConcept() {
+      const theme = document.getElementById('conceptTheme').value;
+      const period = document.getElementById('conceptPeriod').value;
+      const sort = document.getElementById('conceptSort').value;
+      
+      if (!theme) {
+        alert('請選擇概念股主題');
+        return;
+      }
+      
+      document.getElementById('conceptTableBody').innerHTML = '<tr><td colspan="10" class="loading">正在分析概念股資料...</td></tr>';
+      
+      setTimeout(() => {
+        loadConceptSampleData();
+        updateConceptStats();
+        createConceptChart();
+      }, 1000);
+    }
+
+    function loadConceptSampleData() {
+      const sampleData = [
+        {rank: 1, code: 'NVDA', name: '輝達', tags: 'AI人工智慧,GPU運算', price: 825, dailyReturn: '+5.2%', weekReturn: '+18.5%', monthReturn: '+42.1%', marketCap: 2062500, volume: 125600},
+        {rank: 2, code: '2330', name: '台積電', tags: 'AI人工智慧,半導體', price: 595, dailyReturn: '+3.1%', weekReturn: '+12.3%', monthReturn: '+28.7%', marketCap: 15437000, volume: 85420},
+        {rank: 3, code: 'MSFT', name: '微軟', tags: 'AI人工智慧,雲端運算', price: 365, dailyReturn: '+2.8%', weekReturn: '+8.9%', monthReturn: '+35.2%', marketCap: 2715000, volume: 68950},
+        {rank: 4, code: '2454', name: '聯發科', tags: 'AI人工智慧,晶片', price: 795, dailyReturn: '+4.5%', weekReturn: '+15.2%', monthReturn: '+32.1%', marketCap: 127200, volume: 45280},
+        {rank: 5, code: 'GOOGL', name: '谷歌', tags: 'AI人工智慧,搜尋', price: 145, dailyReturn: '+1.9%', weekReturn: '+6.8%', monthReturn: '+38.5%', marketCap: 1827000, volume: 35600}
+      ];
+
+      let tableHTML = '';
+      sampleData.forEach(stock => {
+        const dailyClass = stock.dailyReturn.includes('+') ? 'trend-positive' : 'trend-negative';
+        const weekClass = stock.weekReturn.includes('+') ? 'trend-positive' : 'trend-negative';
+        const monthClass = stock.monthReturn.includes('+') ? 'trend-positive' : 'trend-negative';
+        
+        const tags = stock.tags.split(',').map(tag => `<span class="concept-tag">${tag}</span>`).join('');
+        
+        tableHTML += `
+          <tr>
+            <td>${stock.rank}</td>
+            <td>${stock.code}</td>
+            <td>${stock.name}</td>
+            <td>${tags}</td>
+            <td>${stock.price}</td>
+            <td class="${dailyClass}">${stock.dailyReturn}</td>
+            <td class="${weekClass}">${stock.weekReturn}</td>
+            <td class="${monthClass}">${stock.monthReturn}</td>
+            <td>${(stock.marketCap / 10000).toFixed(0)}億</td>
+            <td>${stock.volume.toLocaleString()}</td>
+          </tr>
+        `;
+      });
+      
+      document.getElementById('conceptTableBody').innerHTML = tableHTML;
+    }
+
+    function updateConceptStats() {
+      document.getElementById('conceptStockCount').textContent = '5';
+      document.getElementById('conceptAvgReturn').textContent = '+35.3%';
+      document.getElementById('conceptLeader').textContent = 'NVDA';
+      document.getElementById('conceptTotalValue').textContent = '22,168';
+    }
+
+    function createConceptChart() {
+      const ctx = document.getElementById('conceptChart').getContext('2d');
+      if (chartInstances.concept) {
+        chartInstances.concept.destroy();
+      }
+      
+      chartInstances.concept = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['NVDA', '台積電', '微軟', '聯發科', '谷歌'],
+          datasets: [{
+            label: '月報酬率 (%)',
+            data: [42.1, 28.7, 35.2, 32.1, 38.5],
+            backgroundColor: [
+              'rgba(231, 76, 60, 0.8)',
+              'rgba(52, 152, 219, 0.8)',
+              'rgba(46, 204, 113, 0.8)',
+              'rgba(155, 89, 182, 0.8)',
+              'rgba(241, 196, 15, 0.8)'
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: '報酬率 (%)'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function applyConceptFilter() {
+      // 實現概念股篩選邏輯
+      analyzeConcept();
+    }
+
+    // 成交紀錄分析功能
+    function loadTradingData() {
+      const symbol = document.getElementById('tradingSymbol').value;
+      const startDate = document.getElementById('tradingStartDate').value;
+      const endDate = document.getElementById('tradingEndDate').value;
+      
+      if (!symbol) {
+        alert('請輸入股票代碼');
+        return;
+      }
+      
+      document.getElementById('tradingTableBody').innerHTML = '<tr><td colspan="10" class="loading">正在載入交易資料...</td></tr>';
+      
+      setTimeout(() => {
+        loadTradingSampleData();
+        updateTradingStats();
+        createTradingChart();
+      }, 1000);
+    }
+
+    function loadTradingSampleData() {
+      const sampleData = [
+        {date: '2024-08-17', open: 590, high: 605, low: 585, close: 595, change: '+5', changePercent: '+0.85%', volume: 85420, amount: 5082000, indicator: 'RSI:65'},
+        {date: '2024-08-16', open: 585, high: 592, low: 580, close: 590, change: '+8', changePercent: '+1.37%', volume: 92600, amount: 5463000, indicator: 'RSI:62'},
+        {date: '2024-08-15', open: 580, high: 588, low: 575, close: 582, change: '-3', changePercent: '-0.51%', volume: 76800, amount: 4468000, indicator: 'RSI:58'},
+        {date: '2024-08-14', open: 588, high: 595, low: 583, close: 585, change: '-5', changePercent: '-0.85%', volume: 68950, amount: 4052000, indicator: 'RSI:55'},
+        {date: '2024-08-13', open: 585, high: 592, low: 582, close: 590, change: '+7', changePercent: '+1.20%', volume: 81200, amount: 4778000, indicator: 'RSI:60'}
+      ];
+
+      let tableHTML = '';
+      sampleData.forEach(trade => {
+        const changeClass = trade.change.includes('+') ? 'trend-positive' : trade.change.includes('-') ? 'trend-negative' : 'trend-neutral';
+        const percentClass = trade.changePercent.includes('+') ? 'trend-positive' : trade.changePercent.includes('-') ? 'trend-negative' : 'trend-neutral';
+        
+        tableHTML += `
+          <tr>
+            <td>${trade.date}</td>
+            <td>${trade.open}</td>
+            <td>${trade.high}</td>
+            <td>${trade.low}</td>
+            <td>${trade.close}</td>
+            <td class="${changeClass}">${trade.change}</td>
+            <td class="${percentClass}">${trade.changePercent}</td>
+            <td>${trade.volume.toLocaleString()}</td>
+            <td>${trade.amount.toLocaleString()}</td>
+            <td>${trade.indicator}</td>
+          </tr>
+        `;
+      });
+      
+      document.getElementById('tradingTableBody').innerHTML = tableHTML;
+    }
+
+    function updateTradingStats() {
+      document.getElementById('tradingDays').textContent = '5';
+      document.getElementById('totalVolume').textContent = '405';
+      document.getElementById('avgPrice').textContent = '588.4';
+      document.getElementById('priceReturn').textContent = '+1.7%';
+    }
+
+    function createTradingChart() {
+      const ctx = document.getElementById('tradingChart').getContext('2d');
+      if (chartInstances.trading) {
+        chartInstances.trading.destroy();
+      }
+      
+      chartInstances.trading = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['8/13', '8/14', '8/15', '8/16', '8/17'],
+          datasets: [{
+            label: '收盤價',
+            data: [590, 585, 582, 590, 595],
+            borderColor: '#3498db',
+            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+            tension: 0.4,
+            yAxisID: 'y'
+          }, {
+            label: '成交量',
+            data: [81200, 68950, 76800, 92600, 85420],
+            type: 'bar',
+            backgroundColor: 'rgba(231, 76, 60, 0.3)',
+            yAxisID: 'y1'
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              title: {
+                display: true,
+                text: '價格'
+              }
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              title: {
+                display: true,
+                text: '成交量'
+              },
+              grid: {
+                drawOnChartArea: false,
+              },
+            }
+          }
+        }
+      });
+    }
+
+    function applyTradingFilter() {
+      // 實現交易資料篩選邏輯
+      loadTradingData();
+    }
+
+    // 投資組合分析功能
+    function analyzePortfolio() {
+      // 實現投資組合分析邏輯
+      alert('投資組合分析功能開發中');
+    }
+
+    function loadPortfolioSampleData() {
+      // 載入投資組合範例資料
+    }
+
+    function loadConceptSampleData() {
+      // 預設載入AI概念股資料
+    }
+
+    function loadTradingSampleData() {
+      // 預設載入台積電交易資料
+    }
+
+    // 頁面初始化
+    $(document).ready(function() {
+      // 載入漲停股範例資料
+      loadLimitUpSampleData();
+      updateLimitUpStats();
+      createLimitUpChart();
+    });
+  </script>
+</body>
+</html>
