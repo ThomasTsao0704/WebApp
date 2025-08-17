@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel 工作表</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .toolbar {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .toolbar h1 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+        
+        .toolbar button {
+            padding: 5px 12px;
+            border: 1px solid #007bff;
+            background: #007bff;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .toolbar button:hover {
+            background: #0056b3;
+        }
+        
+        .current-cell {
+            margin-left: auto;
+            font-weight: bold;
+            color: #666;
+        }
+        
+        .spreadsheet-container {
+            overflow: auto;
+            max-height: 600px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .spreadsheet {
+            display: table;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        .row {
+            display: table-row;
+        }
+        
+        .cell, .header-cell {
+            display: table-cell;
+            border: 1px solid #dee2e6;
+            min-width: 100px;
+            height: 30px;
+            position: relative;
+            vertical-align: middle;
+        }
+        
+        .header-cell {
+            background: #f8f9fa;
+            font-weight: bold;
+            text-align: center;
+            min-width: 80px;
+            color: #666;
+            user-select: none;
+        }
+        
+        .row-header {
+            min-width: 50px;
+            background: #f8f9fa;
+            font-weight: bold;
+            text-align: center;
+            color: #666;
+            user-select: none;
+        }
+        
+        .cell {
+            cursor: cell;
+            transition: background-color 0.1s;
+        }
+        
+        .cell:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .cell.selected {
+            background-color: #e3f2fd;
+            border: 2px solid #2196f3;
+        }
+        
+        .cell-input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            padding: 5px;
+            font-family: inherit;
+            font-size: 14px;
+            background: transparent;
+        }
+        
+        .cell-content {
+            padding: 5px;
+            height: 20px;
+            line-height: 20px;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        
+        .status {
+            padding: 10px 15px;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="toolbar">
+            <h1>📊 Excel 工作表</h1>
+            <button onclick="saveData()">💾 儲存</button>
+            <button onclick="clearAll()">🗑️ 清除全部</button>
+            <button onclick="addRow()">➕ 新增列</button>
+            <button onclick="addColumn()">➕ 新增欄</button>
+            <div class="current-cell" id="currentCell">A1</div>
+        </div>
+        
+        <div class="spreadsheet-container">
+            <div class="spreadsheet" id="spreadsheet">
+                <!-- 工作表內容將由 JavaScript 生成 -->
+            </div>
+        </div>
+        
+        <div class="status" id="status">
+            準備就緒 - 點擊任何儲存格開始輸入數據
+        </div>
+    </div>
+
+    <script>
+        // 數據儲存物件
+        let spreadsheetData = {};
+        let currentSelectedCell = null;
+        let rows = 20;
+        let cols = 10;
+
+        // 將數字轉換為字母 (A, B, C...)
+        function numberToLetter(num) {
+            let result = '';
+            while (num > 0) {
+                num--;
+                result = String.fromCharCode(65 + (num % 26)) + result;
+                num = Math.floor(num / 26);
+            }
+            return result;
+        }
+
+        // 生成工作表
+        function generateSpreadsheet() {
+            const spreadsheet = document.getElementById('spreadsheet');
+            spreadsheet.innerHTML = '';
+
+            // 建立標題列
+            const headerRow = document.createElement('div');
+            headerRow.className = 'row';
+            
+            // 左上角空白儲存格
+            const cornerCell = document.createElement('div');
+            cornerCell.className = 'header-cell row-header';
+            headerRow.appendChild(cornerCell);
+
+            // 欄標題 (A, B, C...)
+            for (let col = 0; col < cols; col++) {
+                const headerCell = document.createElement('div');
+                headerCell.className = 'header-cell';
+                headerCell.textContent = numberToLetter(col + 1);
+                headerRow.appendChild(headerCell);
+            }
+            spreadsheet.appendChild(headerRow);
+
+            // 建立數據列
+            for (let row = 0; row < rows; row++) {
+                const rowElement = document.createElement('div');
+                rowElement.className = 'row';
+
+                // 列標題 (1, 2, 3...)
+                const rowHeader = document.createElement('div');
+                rowHeader.className = 'header-cell row-header';
+                rowHeader.textContent = row + 1;
+                rowElement.appendChild(rowHeader);
+
+                // 數據儲存格
+                for (let col = 0; col < cols; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    
+                    const cellContent = document.createElement('div');
+                    cellContent.className = 'cell-content';
+                    cell.appendChild(cellContent);
+
+                    // 載入已儲存的數據
+                    const cellKey = `${numberToLetter(col + 1)}${row + 1}`;
+                    if (spreadsheetData[cellKey]) {
+                        cellContent.textContent = spreadsheetData[cellKey];
+                    }
+
+                    cell.addEventListener('click', () => selectCell(cell));
+                    cell.addEventListener('dblclick', () => editCell(cell));
+                    
+                    rowElement.appendChild(cell);
+                }
+                spreadsheet.appendChild(rowElement);
+            }
+        }
+
+        // 選擇儲存格
+        function selectCell(cell) {
+            // 移除之前選擇的儲存格樣式
+            if (currentSelectedCell) {
+                currentSelectedCell.classList.remove('selected');
+            }
+
+            // 選擇新的儲存格
+            currentSelectedCell = cell;
+            cell.classList.add('selected');
+
+            // 更新當前儲存格顯示
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            const cellName = `${numberToLetter(col + 1)}${row + 1}`;
+            document.getElementById('currentCell').textContent = cellName;
+
+            // 更新狀態列
+            const content = cell.querySelector('.cell-content').textContent;
+            document.getElementById('status').textContent = 
+                `選擇了儲存格 ${cellName}${content ? ': ' + content : ' (空白)'}`;
+        }
+
+        // 編輯儲存格
+        function editCell(cell) {
+            const cellContent = cell.querySelector('.cell-content');
+            const currentValue = cellContent.textContent;
+
+            // 建立輸入框
+            const input = document.createElement('input');
+            input.className = 'cell-input';
+            input.type = 'text';
+            input.value = currentValue;
+
+            // 替換內容
+            cell.innerHTML = '';
+            cell.appendChild(input);
+            input.focus();
+            input.select();
+
+            // 處理輸入完成
+            function finishEdit() {
+                const newValue = input.value;
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+                const cellKey = `${numberToLetter(col + 1)}${row + 1}`;
+
+                // 儲存數據
+                if (newValue.trim()) {
+                    spreadsheetData[cellKey] = newValue;
+                } else {
+                    delete spreadsheetData[cellKey];
+                }
+
+                // 恢復顯示模式
+                cell.innerHTML = '';
+                const newCellContent = document.createElement('div');
+                newCellContent.className = 'cell-content';
+                newCellContent.textContent = newValue;
+                cell.appendChild(newCellContent);
+
+                // 重新選擇儲存格
+                selectCell(cell);
+
+                document.getElementById('status').textContent = 
+                    `已更新儲存格 ${cellKey}: ${newValue || '(已清除)'}`;
+            }
+
+            // 事件監聽
+            input.addEventListener('blur', finishEdit);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    finishEdit();
+                }
+                if (e.key === 'Escape') {
+                    // 取消編輯
+                    cell.innerHTML = '';
+                    const cellContent = document.createElement('div');
+                    cellContent.className = 'cell-content';
+                    cellContent.textContent = currentValue;
+                    cell.appendChild(cellContent);
+                    selectCell(cell);
+                }
+            });
+        }
+
+        // 儲存數據（顯示已儲存的數據）
+        function saveData() {
+            const dataCount = Object.keys(spreadsheetData).length;
+            alert(`數據已儲存！\n共有 ${dataCount} 個儲存格包含數據。\n\n數據將在此會話期間保持可用。`);
+            document.getElementById('status').textContent = `已儲存 ${dataCount} 個儲存格的數據`;
+        }
+
+        // 清除全部數據
+        function clearAll() {
+            if (confirm('確定要清除所有數據嗎？此操作無法復原。')) {
+                spreadsheetData = {};
+                generateSpreadsheet();
+                document.getElementById('status').textContent = '所有數據已清除';
+            }
+        }
+
+        // 新增列
+        function addRow() {
+            rows += 5;
+            generateSpreadsheet();
+            document.getElementById('status').textContent = `已新增 5 列，目前共 ${rows} 列`;
+        }
+
+        // 新增欄
+        function addColumn() {
+            cols += 3;
+            generateSpreadsheet();
+            document.getElementById('status').textContent = `已新增 3 欄，目前共 ${cols} 欄`;
+        }
+
+        // 鍵盤快捷鍵
+        document.addEventListener('keydown', (e) => {
+            if (!currentSelectedCell) return;
+
+            const row = parseInt(currentSelectedCell.dataset.row);
+            const col = parseInt(currentSelectedCell.dataset.col);
+
+            let newRow = row;
+            let newCol = col;
+
+            switch(e.key) {
+                case 'ArrowUp':
+                    newRow = Math.max(0, row - 1);
+                    e.preventDefault();
+                    break;
+                case 'ArrowDown':
+                    newRow = Math.min(rows - 1, row + 1);
+                    e.preventDefault();
+                    break;
+                case 'ArrowLeft':
+                    newCol = Math.max(0, col - 1);
+                    e.preventDefault();
+                    break;
+                case 'ArrowRight':
+                    newCol = Math.min(cols - 1, col + 1);
+                    e.preventDefault();
+                    break;
+                case 'Delete':
+                    editCell(currentSelectedCell);
+                    // 清空輸入框
+                    setTimeout(() => {
+                        const input = currentSelectedCell.querySelector('.cell-input');
+                        if (input) {
+                            input.value = '';
+                        }
+                    }, 10);
+                    e.preventDefault();
+                    break;
+                case 'F2':
+                case 'Enter':
+                    editCell(currentSelectedCell);
+                    e.preventDefault();
+                    break;
+            }
+
+            // 移動到新的儲存格
+            if (newRow !== row || newCol !== col) {
+                const newCell = document.querySelector(`[data-row="${newRow}"][data-col="${newCol}"]`);
+                if (newCell) {
+                    selectCell(newCell);
+                }
+            }
+        });
+
+        // 初始化工作表
+        generateSpreadsheet();
+        
+        // 默認選擇 A1
+        const firstCell = document.querySelector('[data-row="0"][data-col="0"]');
+        if (firstCell) {
+            selectCell(firstCell);
+        }
+    </script>
+</body>
+</html>
