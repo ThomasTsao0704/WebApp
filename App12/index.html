@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>線上預約系統</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', '微軟正黑體', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .booking-form {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .time-slots {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .time-slot {
+            padding: 10px;
+            text-align: center;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .time-slot:hover {
+            border-color: #667eea;
+            background: #f5f7ff;
+        }
+
+        .time-slot.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #764ba2;
+        }
+
+        .time-slot.disabled {
+            background: #f5f5f5;
+            color: #999;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .bookings-list {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .booking-item {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s;
+        }
+
+        .booking-item:hover {
+            background: #f5f7ff;
+        }
+
+        .booking-item:last-child {
+            border-bottom: none;
+        }
+
+        .booking-info h3 {
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .booking-info p {
+            color: #666;
+            margin: 3px 0;
+        }
+
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-confirmed {
+            background: #4caf50;
+            color: white;
+        }
+
+        .status-pending {
+            background: #ff9800;
+            color: white;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .admin-panel {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .admin-login {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 15px 30px;
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗓️ 線上預約系統</h1>
+
+        <!-- 訊息提示 -->
+        <div id="messageBox"></div>
+
+        <!-- Tab 切換 -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('booking')">預約服務</button>
+            <button class="tab" onclick="switchTab('check')">查詢預約</button>
+            <button class="tab" onclick="switchTab('admin')">管理後台</button>
+        </div>
+
+        <!-- 預約表單 -->
+        <div id="bookingTab" class="tab-content active">
+            <div class="booking-form">
+                <h2>預約服務</h2>
+                <form id="bookingForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="name">姓名 *</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">電話 *</label>
+                            <input type="tel" id="phone" name="phone" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="email">Email *</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="service">服務項目 *</label>
+                            <select id="service" name="service" required>
+                                <option value="">請選擇服務</option>
+                                <option value="諮詢服務">諮詢服務</option>
+                                <option value="技術支援">技術支援</option>
+                                <option value="產品展示">產品展示</option>
+                                <option value="教育訓練">教育訓練</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="date">預約日期 *</label>
+                            <input type="date" id="date" name="date" required onchange="loadTimeSlots()">
+                        </div>
+                        <div class="form-group">
+                            <label for="time">選擇時段 *</label>
+                            <div id="timeSlots" class="time-slots">
+                                <p style="color: #999;">請先選擇日期</p>
+                            </div>
+                            <input type="hidden" id="selectedTime" name="time" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes">備註說明</label>
+                        <textarea id="notes" name="notes" rows="4" placeholder="請輸入其他需求或說明..."></textarea>
+                    </div>
+
+                    <button type="submit" id="submitBtn">確認預約</button>
+                </form>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>處理中...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 查詢預約 -->
+        <div id="checkTab" class="tab-content">
+            <div class="booking-form">
+                <h2>查詢預約</h2>
+                <div class="form-group">
+                    <label for="searchEmail">請輸入 Email 查詢</label>
+                    <input type="email" id="searchEmail" placeholder="example@email.com">
+                </div>
+                <button onclick="searchBookings()">查詢</button>
+                
+                <div id="searchResults" style="margin-top: 30px;"></div>
+            </div>
+        </div>
+
+        <!-- 管理後台 -->
+        <div id="adminTab" class="tab-content">
+            <div class="admin-panel">
+                <div id="adminLogin" class="admin-login">
+                    <h2>管理員登入</h2>
+                    <div class="form-group">
+                        <label for="adminPassword">密碼</label>
+                        <input type="password" id="adminPassword" placeholder="請輸入管理員密碼">
+                    </div>
+                    <button onclick="adminLogin()">登入</button>
+                </div>
+
+                <div id="adminContent" style="display: none;">
+                    <h2>所有預約</h2>
+                    <button onclick="loadAllBookings()" style="margin-bottom: 20px;">重新載入</button>
+                    <div id="allBookings"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Google Sheets API 設定
+        // 請替換成您的 Google Sheets API 金鑰和試算表 ID
+        const API_KEY = 'AIzaSyBROikm0z_6RpxJWeiNL4UtR-4P-3UF2i8'; // 替換成您的 API Key
+        const SPREADSHEET_ID = '1hnC729GOKtEEQ2Mvx3z9q77QldwYQ-NwCH0WlGb2z-s'; // 替換成您的試算表 ID
+        const SHEET_NAME = 'bookings'; // 工作表名稱
+
+        // 設定最小日期為今天
+        document.getElementById('date').min = new Date().toISOString().split('T')[0];
+
+        // 時段選項
+        const timeSlots = [
+            '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'
+        ];
+
+        // 切換 Tab
+        function switchTab(tabName) {
+            // 更新 tab 按鈕狀態
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // 顯示對應內容
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        // 載入可用時段
+        function loadTimeSlots() {
+            const selectedDate = document.getElementById('date').value;
+            if (!selectedDate) {
+                document.getElementById('timeSlots').innerHTML = '<p style="color: #999;">請先選擇日期</p>';
+                return;
+            }
+
+            // 這裡應該從 Google Sheets 載入已預約的時段
+            // 暫時顯示所有時段
+            let slotsHTML = '';
+            timeSlots.forEach(time => {
+                slotsHTML += `
+                    <div class="time-slot" onclick="selectTime('${time}')">
+                        ${time}
+                    </div>
+                `;
+            });
+            document.getElementById('timeSlots').innerHTML = slotsHTML;
+        }
+
+        // 選擇時段
+        function selectTime(time) {
+            // 移除其他選擇
+            document.querySelectorAll('.time-slot').forEach(slot => {
+                slot.classList.remove('selected');
+            });
+            
+            // 設定選擇
+            event.target.classList.add('selected');
+            document.getElementById('selectedTime').value = time;
+        }
+
+        // 顯示訊息
+        function showMessage(message, type = 'success') {
+            const messageBox = document.getElementById('messageBox');
+            messageBox.innerHTML = `
+                <div class="message ${type}">
+                    ${message}
+                </div>
+            `;
+            
+            // 3秒後自動消失
+            setTimeout(() => {
+                messageBox.innerHTML = '';
+            }, 3000);
+        }
+
+        // 提交預約表單
+        document.getElementById('bookingForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            
+            // 顯示載入中
+            submitBtn.disabled = true;
+            loading.classList.add('active');
+            
+            // 收集表單資料
+            const formData = {
+                name: document.getElementById('name').value,
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value,
+                service: document.getElementById('service').value,
+                date: document.getElementById('date').value,
+                time: document.getElementById('selectedTime').value,
+                notes: document.getElementById('notes').value,
+                timestamp: new Date().toISOString(),
+                status: 'pending'
+            };
+            
+            try {
+                // 這裡應該呼叫 Google Sheets API 來儲存資料
+                // 由於需要後端處理，這裡只是模擬
+                await saveToGoogleSheets(formData);
+                
+                showMessage('預約成功！我們會盡快與您聯繫確認。');
+                document.getElementById('bookingForm').reset();
+                document.getElementById('timeSlots').innerHTML = '<p style="color: #999;">請先選擇日期</p>';
+            } catch (error) {
+                showMessage('預約失敗，請稍後再試。', 'error');
+                console.error('Error:', error);
+            } finally {
+                submitBtn.disabled = false;
+                loading.classList.remove('active');
+            }
+        });
+
+        // 儲存到 Google Sheets (需要實作)
+        async function saveToGoogleSheets(data) {
+            // 注意：直接從前端寫入 Google Sheets 需要使用 OAuth 2.0
+            // 建議使用 Google Apps Script 作為中間層 API
+            
+            // 這是一個示例，實際需要您設定 Google Apps Script
+            const WEB_APP_URL = 'https://thomastsao0704.github.io/WebApp/App12/index.html'; // 替換成您的 Web App URL
+            
+            /* 範例 Google Apps Script 程式碼：
+            
+            function doPost(e) {
+                const sheet = SpreadsheetApp.openById('YOUR_SPREADSHEET_ID').getSheetByName('bookings');
+                const data = JSON.parse(e.postData.contents);
+                
+                sheet.appendRow([
+                    data.timestamp,
+                    data.name,
+                    data.phone,
+                    data.email,
+                    data.service,
+                    data.date,
+                    data.time,
+                    data.notes,
+                    data.status
+                ]);
+                
+                return ContentService.createTextOutput(JSON.stringify({success: true}))
+                    .setMimeType(ContentService.MimeType.JSON);
+            }
+            
+            */
+            
+            // 模擬 API 呼叫
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    console.log('Booking data:', data);
+                    resolve();
+                }, 1000);
+            });
+        }
+
+        // 查詢預約
+        async function searchBookings() {
+            const email = document.getElementById('searchEmail').value;
+            if (!email) {
+                showMessage('請輸入 Email', 'error');
+                return;
+            }
+            
+            // 這裡應該從 Google Sheets 查詢資料
+            // 暫時顯示模擬資料
+            const resultsHTML = `
+                <div class="bookings-list">
+                    <h3>查詢結果</h3>
+                    <div class="booking-item">
+                        <div class="booking-info">
+                            <h3>諮詢服務</h3>
+                            <p>日期：2024-01-15</p>
+                            <p>時間：14:00</p>
+                        </div>
+                        <span class="status-badge status-confirmed">已確認</span>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('searchResults').innerHTML = resultsHTML;
+        }
+
+        // 管理員登入
+        function adminLogin() {
+            const password = document.getElementById('adminPassword').value;
+            
+            // 注意：這只是示範，實際應該要有更安全的驗證方式
+            if (password === 'admin123') {
+                document.getElementById('adminLogin').style.display = 'none';
+                document.getElementById('adminContent').style.display = 'block';
+                loadAllBookings();
+            } else {
+                showMessage('密碼錯誤', 'error');
+            }
+        }
+
+        // 載入所有預約
+        async function loadAllBookings() {
+            // 這裡應該從 Google Sheets 載入所有資料
+            // 暫時顯示模擬資料
+            const bookingsHTML = `
+                <div class="bookings-list">
+                    <div class="booking-item">
+                        <div class="booking-info">
+                            <h3>王小明 - 諮詢服務</h3>
+                            <p>📧 wang@example.com | 📱 0912-345-678</p>
+                            <p>📅 2024-01-15 14:00</p>
+                            <p>備註：第一次諮詢</p>
+                        </div>
+                        <span class="status-badge status-confirmed">已確認</span>
+                    </div>
+                    <div class="booking-item">
+                        <div class="booking-info">
+                            <h3>李小華 - 技術支援</h3>
+                            <p>📧 lee@example.com | 📱 0923-456-789</p>
+                            <p>📅 2024-01-16 10:00</p>
+                            <p>備註：系統安裝問題</p>
+                        </div>
+                        <span class="status-badge status-pending">待確認</span>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('allBookings').innerHTML = bookingsHTML;
+        }
+    </script>
+
+    <!-- Google Sheets API 設定說明 -->
+    <div style="background: white; border-radius: 20px; padding: 30px; margin-top: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.1);">
+        <h2>📋 設定指南</h2>
+        <h3>步驟 1：建立 Google Sheets</h3>
+        <ol>
+            <li>建立新的 Google 試算表</li>
+            <li>將第一個工作表命名為 "bookings"</li>
+            <li>在第一列加入欄位標題：timestamp, name, phone, email, service, date, time, notes, status</li>
+        </ol>
+
+        <h3>步驟 2：建立 Google Apps Script Web App</h3>
+        <ol>
+            <li>在 Google Sheets 中，點選「擴充功能」→「Apps Script」</li>
+            <li>貼上提供的 Apps Script 程式碼</li>
+            <li>部署為 Web App，設定存取權限為「任何人」</li>
+            <li>複製 Web App URL</li>
+        </ol>
+
+        <h3>步驟 3：取得 Google Sheets API Key</h3>
+        <ol>
+            <li>前往 <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
+            <li>建立新專案或選擇現有專案</li>
+            <li>啟用 Google Sheets API</li>
+            <li>建立 API 金鑰</li>
+            <li>設定 API 金鑰限制（建議限制來源網域）</li>
+        </ol>
+
+        <h3>步驟 4：更新程式碼</h3>
+        <ol>
+            <li>將 YOUR_API_KEY 替換為您的 API 金鑰</li>
+            <li>將 YOUR_SPREADSHEET_ID 替換為試算表 ID</li>
+            <li>將 YOUR_GOOGLE_APPS_SCRIPT_URL 替換為 Web App URL</li>
+        </ol>
+
+        <h3>步驟 5：部署到 GitHub Pages</h3>
+        <ol>
+            <li>將此 HTML 檔案上傳到 GitHub repository</li>
+            <li>在 Settings → Pages 中啟用 GitHub Pages</li>
+            <li>選擇來源分支和資料夾</li>
+            <li>等待部署完成，即可使用您的預約系統</li>
+        </ol>
+    </div>
+</body>
+</html>
