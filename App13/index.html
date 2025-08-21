@@ -258,7 +258,7 @@
         }
 
         // 轉為陣列並排序，取前5名
-        TOP5_DATA = Array.from(codeMap.values())
+        TOP10_DATA = Array.from(codeMap.values())
           .map(item => ({
             ...item,
             avgFee: item.fees.length > 0 ? item.fees.reduce((a,b) => a+b, 0) / item.fees.length : null,
@@ -312,13 +312,13 @@
 
     // 匯出 CSV
     function exportCSV() {
-      if (TOP5_DATA.length === 0) {
+      if (TOP10_DATA.length === 0) {
         showAlert('沒有可匯出的資料', 'error');
         return;
       }
 
       const header = ['排名', '證券代號', '證券名稱', '借券股數', '平均費率(%)', '來源'];
-      const rows = TOP5_DATA.map((item, index) => [
+      const rows = TOP10_DATA.map((item, index) => [
         index + 1,
         item.code,
         item.name || '',
