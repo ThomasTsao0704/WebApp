@@ -265,7 +265,7 @@
             sourcesText: Array.from(item.sources).join(', ')
           }))
           .sort((a, b) => b.totalQty - a.totalQty)
-          .slice(0, 5);
+          .slice(0, 10);
 
         // 顯示結果
         renderTable(latestDate);
@@ -285,9 +285,9 @@
       const tbody = document.getElementById('tbody');
       const dateInfo = document.getElementById('dateInfo');
       
-      dateInfo.textContent = `資料日期：${TOP5_DATA[0]?.date || latestDate} (共 ${TOP5_DATA.length} 名)`;
+      dateInfo.textContent = `資料日期：${TOP10_DATA[0]?.date || latestDate} (共 ${TOP10_DATA.length} 名)`;
       
-      tbody.innerHTML = TOP5_DATA.map((item, index) => {
+      tbody.innerHTML = TOP10_DATA.map((item, index) => {
         const rank = index + 1;
         const rankClass = rank <= 3 ? 'rank top3' : 'rank';
         const feeText = item.avgFee !== null ? `${item.avgFee.toFixed(2)}%` : '-';
@@ -341,7 +341,7 @@
       const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `當沖券差Top5_${new Date().toISOString().slice(0,10)}.csv`;
+      a.download = `當沖券差Top10_${new Date().toISOString().slice(0,10)}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();
