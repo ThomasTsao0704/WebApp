@@ -15,7 +15,12 @@
     .update-time { display: inline-block; margin-top: 10px; padding: 6px 14px; border-radius: 20px;
                    background: rgba(255,255,255,.2); backdrop-filter: blur(10px); font-size: 13px; }
     .controls { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 15px; 
-                box-shadow: 0 8px 24px rgba(0,0,0,.08); text-align: center; }
+                box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+    .date-selector { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px; }
+    .date-selector label { font-weight: 600; color: #333; }
+    .date-selector select { padding: 8px 12px; border: 2px solid #dee2e6; border-radius: 8px; 
+                           font-size: 14px; background: #fff; min-width: 120px; }
+    .button-group { text-align: center; }
     button { padding: 12px 20px; font-size: 14px; border-radius: 8px; cursor: pointer; 
              border: none; background: #667eea; color: #fff; font-weight: 600; 
              transition: all 0.2s; margin: 0 5px; }
@@ -47,14 +52,22 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>🏆 當沖券差借券股數 Top 5</h1>
-      <p>最新日期借券股數加總最多的前5名</p>
+      <h1>🏆 當沖券差借券股數 Top 10</h1>
+      <p>指定日期借券股數加總最多的前10名</p>
       <div class="update-time" id="lastUpdate">準備載入資料...</div>
     </div>
 
     <div class="controls">
-      <button id="btnRefresh">🔄 更新資料</button>
-      <button id="btnExport">📥 匯出 CSV</button>
+      <div class="date-selector">
+        <label for="dateSelect">📅 選擇日期：</label>
+        <select id="dateSelect">
+          <option value="">請先載入資料</option>
+        </select>
+      </div>
+      <div class="button-group">
+        <button id="btnRefresh">🔄 更新資料</button>
+        <button id="btnExport">📥 匯出 CSV</button>
+      </div>
     </div>
 
     <div id="alertMsg" class="alert"></div>
@@ -189,7 +202,9 @@
       return rows;
     }
 
-    let TOP5_DATA = [];
+    let ALL_ROWS = [];
+    let TOP10_DATA = [];
+    let AVAILABLE_DATES = [];
 
     // 載入並處理資料
     async function loadData() {
