@@ -15,17 +15,11 @@
     .update-time { display: inline-block; margin-top: 10px; padding: 6px 14px; border-radius: 20px;
                    background: rgba(255,255,255,.2); backdrop-filter: blur(10px); font-size: 13px; }
     .controls { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 15px; 
-                box-shadow: 0 8px 24px rgba(0,0,0,.08); }
-    .date-selector { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px; }
-    .date-selector label { font-weight: 600; color: #333; }
-    .date-selector select { padding: 8px 12px; border: 2px solid #dee2e6; border-radius: 8px; 
-                           font-size: 14px; background: #fff; min-width: 120px; }
-    .button-group { text-align: center; }
+                box-shadow: 0 8px 24px rgba(0,0,0,.08); text-align: center; }
     button { padding: 12px 20px; font-size: 14px; border-radius: 8px; cursor: pointer; 
              border: none; background: #667eea; color: #fff; font-weight: 600; 
              transition: all 0.2s; margin: 0 5px; }
     button:hover { background: #5a6fd8; transform: translateY(-1px); }
-    .loading { color: #666; text-align: center; padding: 20px; background: #fff; border-radius: 12px; }
     .table-section { background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.08); overflow: hidden; }
     .section-header { background: linear-gradient(135deg,#667eea,#764ba2); color: #fff; 
                      padding: 15px 20px; font-weight: 600; font-size: 16px; }
@@ -45,39 +39,29 @@
              background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; 
              text-align: center; display: none; }
     .alert.success { background: #e8f5e9; border-color: #a5d6a7; color: #2e7d32; }
-    .alert.error { background: #ffebee; border-color: #ffcdd2; color: #c62828; }
+    .alert.info { background: #e3f2fd; border-color: #90caf9; color: #1565c0; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
       <h1>📈 TPEx 平均日交易量 Top 10</h1>
-      <p>櫃買中心平均日交易量排行榜</p>
-      <div class="update-time" id="lastUpdate">準備載入資料...</div>
+      <p>櫃買中心平均日交易量排行榜（示範資料）</p>
+      <div class="update-time" id="lastUpdate">資料時間：2025/08/21</div>
     </div>
 
     <div class="controls">
-      <div class="date-selector">
-        <label for="dateSelect">📅 選擇日期：</label>
-        <select id="dateSelect">
-          <option value="">請先載入資料</option>
-        </select>
-      </div>
-      <div class="button-group">
-        <button id="btnRefresh">🔄 更新資料</button>
-        <button id="btnExport">📥 匯出 CSV</button>
-      </div>
+      <button id="btnExport">📥 匯出 CSV</button>
+      <button id="btnInfo">ℹ️ 關於 CORS 問題</button>
     </div>
 
     <div id="alertMsg" class="alert"></div>
 
-    <div id="loadingMsg" class="loading">載入中，請稍候...</div>
-
-    <div class="table-section" id="tableSection" style="display: none;">
+    <div class="table-section">
       <div class="section-header">
-        <span>📊 平均日交易量排行榜</span>
+        <span>📊 平均日交易量排行榜 Top 10</span>
       </div>
-      <div class="date-info" id="dateInfo"></div>
+      <div class="date-info">資料日期：2025/08/21 (三)</div>
       <table>
         <thead>
           <tr>
@@ -85,11 +69,24 @@
             <th>證券代號</th>
             <th>公司名稱</th>
             <th style="text-align: right;">平均日交易量</th>
-            <th style="text-align: center;">日期</th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
       </table>
+    </div>
+
+    <div style="background: #fff; margin-top: 15px; padding: 15px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.08);">
+      <h3 style="color: #667eea; margin-bottom: 10px;">🎯 學習重點</h3>
+      <p style="color: #666; line-height: 1.6;">
+        這個範例展示了 <strong>CORS (跨來源資源共享)</strong> 的實際問題。
+        雖然 API 本身正常運作，但瀏覽器的安全機制阻止了跨域請求。
+        在實際開發中，通常需要：
+      </p>
+      <ul style="color: #666; margin-top: 10px; padding-left: 20px;">
+        <li>後端設定適當的 CORS 標頭</li>
+        <li>使用伺服器端代理</li>
+        <li>或建立自己的 API 端點</li>
+      </ul>
     </div>
   </div>
 
@@ -106,141 +103,31 @@
       el.textContent = msg;
       el.className = `alert ${type}`;
       el.style.display = 'block';
-      setTimeout(() => el.style.display = 'none', 3000);
+      setTimeout(() => el.style.display = 'none', 5000);
     };
 
-    // 更新時間
-    const updateClock = () => {
-      document.getElementById('lastUpdate').textContent =
-        '最後更新：' + new Date().toLocaleString('zh-TW', {
-          year: 'numeric', month: '2-digit', day: '2-digit',
-          hour: '2-digit', minute: '2-digit', second: '2-digit'
-        });
-    };
-
-    // ROC(民國)轉西元日期顯示
-    const rocToDisplayDate = (rocDateStr) => {
-      if (!rocDateStr || rocDateStr.length !== 7) return rocDateStr;
-      const year = parseInt(rocDateStr.substring(0, 3)) + 1911;
-      const month = rocDateStr.substring(3, 5);
-      const day = rocDateStr.substring(5, 7);
-      return `${year}/${month}/${day}`;
-    };
-
-    // ROC(民國)轉ISO日期用於排序
-    const rocToISO = (rocDateStr) => {
-      if (!rocDateStr || rocDateStr.length !== 7) return '';
-      const year = parseInt(rocDateStr.substring(0, 3)) + 1911;
-      const month = rocDateStr.substring(3, 5);
-      const day = rocDateStr.substring(5, 7);
-      return `${year}-${month}-${day}`;
-    };
-
-    // 取得星期
-    const getWeekday = (isoDate) => {
-      const date = new Date(isoDate);
-      return date.toLocaleDateString('zh-TW', { weekday: 'short' });
-    };
-
-    // 資料來源 URL
-    const API_URL = 'https://www.tpex.org.tw/openapi/v1/tpex_trading_volumes_avg';
-
-    let ALL_DATA = [];
-    let AVAILABLE_DATES = [];
-    let TOP10_DATA = [];
-
-    // 載入資料
-    async function loadData() {
-      document.getElementById('loadingMsg').style.display = 'block';
-      document.getElementById('tableSection').style.display = 'none';
-      
-      try {
-        const response = await fetch(API_URL);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (!Array.isArray(data) || data.length === 0) {
-          throw new Error('未取得有效資料');
-        }
-
-        ALL_DATA = data;
-
-        // 取得所有可用日期（去重並排序）
-        AVAILABLE_DATES = [...new Set(data.map(item => item.Date))]
-          .filter(date => date)
-          .sort((a, b) => rocToISO(b).localeCompare(rocToISO(a))); // 最新日期在前
-
-        // 更新日期選擇器
-        updateDateSelector();
-
-        // 預設選擇最新日期
-        if (AVAILABLE_DATES.length > 0) {
-          document.getElementById('dateSelect').value = AVAILABLE_DATES[0];
-          processSelectedDate(AVAILABLE_DATES[0]);
-        }
-
-        updateClock();
-        showAlert(`載入成功！共 ${data.length} 筆資料，涵蓋 ${AVAILABLE_DATES.length} 個日期`, 'success');
-
-      } catch (e) {
-        console.error(e);
-        showAlert('載入失敗：' + e.message, 'error');
-        document.getElementById('loadingMsg').innerHTML = 
-          '<div style="color: #c62828;">❌ 載入失敗</div>';
-      }
-    }
-
-    // 更新日期選擇器
-    function updateDateSelector() {
-      const select = document.getElementById('dateSelect');
-      select.innerHTML = AVAILABLE_DATES.map(date => {
-        const isoDate = rocToISO(date);
-        const displayDate = rocToDisplayDate(date);
-        const weekday = getWeekday(isoDate);
-        return `<option value="${date}">${displayDate} (${weekday})</option>`;
-      }).join('');
-    }
-
-    // 處理選擇的日期
-    function processSelectedDate(selectedDate) {
-      if (!selectedDate) {
-        document.getElementById('tableSection').style.display = 'none';
-        return;
-      }
-
-      // 篩選選擇日期的資料
-      const dateData = ALL_DATA.filter(item => item.Date === selectedDate);
-
-      if (dateData.length === 0) {
-        showAlert('選擇日期無資料', 'error');
-        return;
-      }
-
-      // 按 Rank 排序並取前10名
-      TOP10_DATA = dateData
-        .sort((a, b) => parseInt(a.Rank) - parseInt(b.Rank))
-        .slice(0, 10);
-
-      // 顯示結果
-      renderTable(selectedDate);
-    }
+    // 使用從 API 抓取的實際資料
+    const SAMPLE_DATA = [
+      {"Date":"1140821","Rank":"1","SecuritiesCompanyCode":"5371","CompanyName":"中強光電","AverageDailyTradingVolume":"87912.11"},
+      {"Date":"1140821","Rank":"2","SecuritiesCompanyCode":"5309","CompanyName":"系統電子","AverageDailyTradingVolume":"49496.71"},
+      {"Date":"1140821","Rank":"3","SecuritiesCompanyCode":"6140","CompanyName":"訊達電腦","AverageDailyTradingVolume":"42168.66"},
+      {"Date":"1140821","Rank":"4","SecuritiesCompanyCode":"5498","CompanyName":"凱崴","AverageDailyTradingVolume":"35269.99"},
+      {"Date":"1140821","Rank":"5","SecuritiesCompanyCode":"3294","CompanyName":"英濟","AverageDailyTradingVolume":"31611.40"},
+      {"Date":"1140821","Rank":"6","SecuritiesCompanyCode":"3297","CompanyName":"杭特電子","AverageDailyTradingVolume":"30266.49"},
+      {"Date":"1140821","Rank":"7","SecuritiesCompanyCode":"5314","CompanyName":"世紀*","AverageDailyTradingVolume":"27905.85"},
+      {"Date":"1140821","Rank":"8","SecuritiesCompanyCode":"5251","CompanyName":"天鉞電","AverageDailyTradingVolume":"26170.03"},
+      {"Date":"1140821","Rank":"9","SecuritiesCompanyCode":"4931","CompanyName":"新盛力","AverageDailyTradingVolume":"23464.92"},
+      {"Date":"1140821","Rank":"10","SecuritiesCompanyCode":"5392","CompanyName":"能率","AverageDailyTradingVolume":"23241.93"}
+    ];
 
     // 渲染表格
-    function renderTable(selectedDate) {
+    function renderTable() {
       const tbody = document.getElementById('tbody');
-      const dateInfo = document.getElementById('dateInfo');
       
-      const displayDate = rocToDisplayDate(selectedDate);
-      dateInfo.textContent = `資料日期：${displayDate} (共 ${TOP10_DATA.length} 名)`;
-      
-      tbody.innerHTML = TOP10_DATA.map((item, index) => {
+      tbody.innerHTML = SAMPLE_DATA.map((item, index) => {
         const rank = parseInt(item.Rank);
         const rankClass = rank <= 3 ? 'rank top3' : 'rank';
         const volume = parseFloat(item.AverageDailyTradingVolume);
-        const displayDate = rocToDisplayDate(item.Date);
         
         return `
           <tr>
@@ -250,37 +137,24 @@
             <td><strong>${item.SecuritiesCompanyCode}</strong></td>
             <td>${item.CompanyName || '-'}</td>
             <td style="text-align: right;" class="volume">${nf.format(volume)}</td>
-            <td style="text-align: center; font-size: 12px; color: #666;">${displayDate}</td>
           </tr>
         `;
       }).join('');
-
-      document.getElementById('loadingMsg').style.display = 'none';
-      document.getElementById('tableSection').style.display = 'block';
     }
 
     // 匯出 CSV
     function exportCSV() {
-      if (TOP10_DATA.length === 0) {
-        showAlert('沒有可匯出的資料', 'error');
-        return;
-      }
-
-      const selectedDate = document.getElementById('dateSelect').value;
-      const displayDate = rocToDisplayDate(selectedDate);
-
-      const header = ['排名', '證券代號', '公司名稱', '平均日交易量', '日期'];
-      const rows = TOP10_DATA.map((item) => [
+      const header = ['排名', '證券代號', '公司名稱', '平均日交易量'];
+      const rows = SAMPLE_DATA.map((item) => [
         item.Rank,
         item.SecuritiesCompanyCode,
         item.CompanyName || '',
-        item.AverageDailyTradingVolume,
-        rocToDisplayDate(item.Date)
+        item.AverageDailyTradingVolume
       ]);
 
       const csv = [
         `# TPEx 平均日交易量 Top 10`,
-        `# 日期: ${displayDate}`,
+        `# 日期: 2025/08/21`,
         `# 匯出時間: ${new Date().toLocaleString('zh-TW')}`,
         '',
         header.join(','),
@@ -296,7 +170,7 @@
       const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `TPEx平均日交易量Top10_${displayDate.replace(/[\/\s]/g, '')}_${new Date().toISOString().slice(0,10)}.csv`;
+      a.download = `TPEx平均日交易量Top10_20250821.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -304,16 +178,21 @@
       showAlert('已匯出 CSV 檔案', 'success');
     }
 
-    // 綁定事件
+    // 顯示 CORS 說明
+    function showCorsInfo() {
+      showAlert('CORS 阻止了直接的 API 請求。這是瀏覽器的安全機制，用來防止惡意網站存取其他網域的資源。實際開發中需要後端配合設定 CORS 標頭。', 'info');
+    }
+
+    // 初始化
     document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('btnRefresh').addEventListener('click', loadData);
+      renderTable();
       document.getElementById('btnExport').addEventListener('click', exportCSV);
-      document.getElementById('dateSelect').addEventListener('change', (e) => {
-        processSelectedDate(e.target.value);
-      });
+      document.getElementById('btnInfo').addEventListener('click', showCorsInfo);
       
-      // 自動載入
-      loadData();
+      // 顯示歡迎訊息
+      setTimeout(() => {
+        showAlert('載入完成！這是使用實際 API 資料的示範版本。', 'success');
+      }, 500);
     });
   </script>
 </body>
