@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TPEx 平均日交易量 Top 10</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", Arial, sans-serif;
+           background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); min-height: 100vh; color: #333; }
+    .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+    .header { text-align: center; color: #fff; margin-bottom: 20px; }
+    .header h1 { font-size: 1.8rem; text-shadow: 2px 2px 4px rgba(0,0,0,.3); margin-bottom: 8px; }
+    .header p { opacity: .9; font-size: 14px; }
+    .update-time { display: inline-block; margin-top: 10px; padding: 6px 14px; border-radius: 20px;
+                   background: rgba(255,255,255,.2); backdrop-filter: blur(10px); font-size: 13px; }
+    .controls { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 15px; 
+                box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+    .date-selector { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px; }
+    .date-selector label { font-weight: 600; color: #333; }
+    .date-selector select { padding: 8px 12px; border: 2px solid #dee2e6; border-radius: 8px; 
+                           font-size: 14px; background: #fff; min-width: 120px; }
+    .button-group { text-align: center; }
+    button { padding: 12px 20px; font-size: 14px; border-radius: 8px; cursor: pointer; 
+             border: none; background: #667eea; color: #fff; font-weight: 600; 
+             transition: all 0.2s; margin: 0 5px; }
+    button:hover { background: #5a6fd8; transform: translateY(-1px); }
+    .loading { color: #666; text-align: center; padding: 20px; background: #fff; border-radius: 12px; }
+    .table-section { background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.08); overflow: hidden; }
+    .section-header { background: linear-gradient(135deg,#667eea,#764ba2); color: #fff; 
+                     padding: 15px 20px; font-weight: 600; font-size: 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #f8f9fa; color: #666; font-size: 13px; font-weight: 600; 
+         text-align: left; padding: 12px 15px; border-bottom: 2px solid #dee2e6; }
+    td { padding: 12px 15px; border-bottom: 1px solid #eee; }
+    tr:hover { background: #f8f9ff; }
+    .rank { background: linear-gradient(135deg, #ffd700, #ffed4e); color: #333; 
+            font-weight: bold; text-align: center; border-radius: 50%; 
+            width: 25px; height: 25px; line-height: 25px; font-size: 12px; }
+    .rank.top3 { background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: #fff; }
+    .volume { font-weight: 600; color: #2d3436; }
+    .date-info { text-align: center; background: #e8f4f8; padding: 10px; 
+                 color: #2d3436; font-size: 14px; font-weight: 500; }
+    .alert { margin: 15px 0; padding: 12px 16px; border-radius: 8px; 
+             background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; 
+             text-align: center; display: none; }
+    .alert.success { background: #e8f5e9; border-color: #a5d6a7; color: #2e7d32; }
+    .alert.error { background: #ffebee; border-color: #ffcdd2; color: #c62828; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📈 TPEx 平均日交易量 Top 10</h1>
+      <p>櫃買中心平均日交易量排行榜</p>
+      <div class="update-time" id="lastUpdate">準備載入資料...</div>
+    </div>
+
+    <div class="controls">
+      <div class="date-selector">
+        <label for="dateSelect">📅 選擇日期：</label>
+        <select id="dateSelect">
+          <option value="">請先載入資料</option>
+        </select>
+      </div>
+      <div class="button-group">
+        <button id="btnRefresh">🔄 更新資料</button>
+        <button id="btnExport">📥 匯出 CSV</button>
+      </div>
+    </div>
+
+    <div id="alertMsg" class="alert"></div>
+
+    <div id="loadingMsg" class="loading">載入中，請稍候...</div>
+
+    <div class="table-section" id="tableSection" style="display: none;">
+      <div class="section-header">
+        <span>📊 平均日交易量排行榜</span>
+      </div>
+      <div class="date-info" id="dateInfo"></div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 60px; text-align: center;">排名</th>
+            <th>證券代號</th>
+            <th>公司名稱</th>
+            <th style="text-align: right;">平均日交易量</th>
+            <th style="text-align: center;">日期</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // 格式化數字
+    const nf = new Intl.NumberFormat('zh-TW', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    });
+    
+    // 顯示訊息
+    const showAlert = (msg, type='info') => {
+      const el = document.getElementById('alertMsg');
+      el.textContent = msg;
+      el.className = `alert ${type}`;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 3000);
+    };
+
+    // 更新時間
+    const updateClock = () => {
+      document.getElementById('lastUpdate').textContent =
+        '最後更新：' + new Date().toLocaleString('zh-TW', {
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+    };
+
+    // ROC(民國)轉西元日期顯示
+    const rocToDisplayDate = (rocDateStr) => {
+      if (!rocDateStr || rocDateStr.length !== 7) return rocDateStr;
+      const year = parseInt(rocDateStr.substring(0, 3)) + 1911;
+      const month = rocDateStr.substring(3, 5);
+      const day = rocDateStr.substring(5, 7);
+      return `${year}/${month}/${day}`;
+    };
+
+    // ROC(民國)轉ISO日期用於排序
+    const rocToISO = (rocDateStr) => {
+      if (!rocDateStr || rocDateStr.length !== 7) return '';
+      const year = parseInt(rocDateStr.substring(0, 3)) + 1911;
+      const month = rocDateStr.substring(3, 5);
+      const day = rocDateStr.substring(5, 7);
+      return `${year}-${month}-${day}`;
+    };
+
+    // 取得星期
+    const getWeekday = (isoDate) => {
+      const date = new Date(isoDate);
+      return date.toLocaleDateString('zh-TW', { weekday: 'short' });
+    };
+
+    // 資料來源 URL
+    const API_URL = 'https://www.tpex.org.tw/openapi/v1/tpex_trading_volumes_avg';
+
+    let ALL_DATA = [];
+    let AVAILABLE_DATES = [];
+    let TOP10_DATA = [];
+
+    // 載入資料
+    async function loadData() {
+      document.getElementById('loadingMsg').style.display = 'block';
+      document.getElementById('tableSection').style.display = 'none';
+      
+      try {
+        const response = await fetch(API_URL);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!Array.isArray(data) || data.length === 0) {
+          throw new Error('未取得有效資料');
+        }
+
+        ALL_DATA = data;
+
+        // 取得所有可用日期（去重並排序）
+        AVAILABLE_DATES = [...new Set(data.map(item => item.Date))]
+          .filter(date => date)
+          .sort((a, b) => rocToISO(b).localeCompare(rocToISO(a))); // 最新日期在前
+
+        // 更新日期選擇器
+        updateDateSelector();
+
+        // 預設選擇最新日期
+        if (AVAILABLE_DATES.length > 0) {
+          document.getElementById('dateSelect').value = AVAILABLE_DATES[0];
+          processSelectedDate(AVAILABLE_DATES[0]);
+        }
+
+        updateClock();
+        showAlert(`載入成功！共 ${data.length} 筆資料，涵蓋 ${AVAILABLE_DATES.length} 個日期`, 'success');
+
+      } catch (e) {
+        console.error(e);
+        showAlert('載入失敗：' + e.message, 'error');
+        document.getElementById('loadingMsg').innerHTML = 
+          '<div style="color: #c62828;">❌ 載入失敗</div>';
+      }
+    }
+
+    // 更新日期選擇器
+    function updateDateSelector() {
+      const select = document.getElementById('dateSelect');
+      select.innerHTML = AVAILABLE_DATES.map(date => {
+        const isoDate = rocToISO(date);
+        const displayDate = rocToDisplayDate(date);
+        const weekday = getWeekday(isoDate);
+        return `<option value="${date}">${displayDate} (${weekday})</option>`;
+      }).join('');
+    }
+
+    // 處理選擇的日期
+    function processSelectedDate(selectedDate) {
+      if (!selectedDate) {
+        document.getElementById('tableSection').style.display = 'none';
+        return;
+      }
+
+      // 篩選選擇日期的資料
+      const dateData = ALL_DATA.filter(item => item.Date === selectedDate);
+
+      if (dateData.length === 0) {
+        showAlert('選擇日期無資料', 'error');
+        return;
+      }
+
+      // 按 Rank 排序並取前10名
+      TOP10_DATA = dateData
+        .sort((a, b) => parseInt(a.Rank) - parseInt(b.Rank))
+        .slice(0, 10);
+
+      // 顯示結果
+      renderTable(selectedDate);
+    }
+
+    // 渲染表格
+    function renderTable(selectedDate) {
+      const tbody = document.getElementById('tbody');
+      const dateInfo = document.getElementById('dateInfo');
+      
+      const displayDate = rocToDisplayDate(selectedDate);
+      dateInfo.textContent = `資料日期：${displayDate} (共 ${TOP10_DATA.length} 名)`;
+      
+      tbody.innerHTML = TOP10_DATA.map((item, index) => {
+        const rank = parseInt(item.Rank);
+        const rankClass = rank <= 3 ? 'rank top3' : 'rank';
+        const volume = parseFloat(item.AverageDailyTradingVolume);
+        const displayDate = rocToDisplayDate(item.Date);
+        
+        return `
+          <tr>
+            <td style="text-align: center;">
+              <div class="${rankClass}">${rank}</div>
+            </td>
+            <td><strong>${item.SecuritiesCompanyCode}</strong></td>
+            <td>${item.CompanyName || '-'}</td>
+            <td style="text-align: right;" class="volume">${nf.format(volume)}</td>
+            <td style="text-align: center; font-size: 12px; color: #666;">${displayDate}</td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById('loadingMsg').style.display = 'none';
+      document.getElementById('tableSection').style.display = 'block';
+    }
+
+    // 匯出 CSV
+    function exportCSV() {
+      if (TOP10_DATA.length === 0) {
+        showAlert('沒有可匯出的資料', 'error');
+        return;
+      }
+
+      const selectedDate = document.getElementById('dateSelect').value;
+      const displayDate = rocToDisplayDate(selectedDate);
+
+      const header = ['排名', '證券代號', '公司名稱', '平均日交易量', '日期'];
+      const rows = TOP10_DATA.map((item) => [
+        item.Rank,
+        item.SecuritiesCompanyCode,
+        item.CompanyName || '',
+        item.AverageDailyTradingVolume,
+        rocToDisplayDate(item.Date)
+      ]);
+
+      const csv = [
+        `# TPEx 平均日交易量 Top 10`,
+        `# 日期: ${displayDate}`,
+        `# 匯出時間: ${new Date().toLocaleString('zh-TW')}`,
+        '',
+        header.join(','),
+        ...rows.map(row => 
+          row.map(cell => 
+            typeof cell === 'string' && cell.includes(',') 
+              ? `"${cell.replace(/"/g, '""')}"` 
+              : cell
+          ).join(',')
+        )
+      ].join('\n');
+
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `TPEx平均日交易量Top10_${displayDate.replace(/[\/\s]/g, '')}_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      
+      showAlert('已匯出 CSV 檔案', 'success');
+    }
+
+    // 綁定事件
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('btnRefresh').addEventListener('click', loadData);
+      document.getElementById('btnExport').addEventListener('click', exportCSV);
+      document.getElementById('dateSelect').addEventListener('change', (e) => {
+        processSelectedDate(e.target.value);
+      });
+      
+      // 自動載入
+      loadData();
+    });
+  </script>
+</body>
+</html>
