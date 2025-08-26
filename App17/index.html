@@ -5,48 +5,42 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>採購小幫手 · 購物車 WebApp</title>
-  <meta name="description" content="輸入數量自動計算總價、分店家小計，支援手機RWD與離線草稿（localStorage）。" />
   <style>
-    :root{
-      --radius: 14px; --gap: 10px; --muted: #6b7280; --border:#e5e7eb; --bg:#fafafa; --primary:#0a58ca;
-    }
+    :root{ --radius:14px; --gap:10px; --muted:#6b7280; --border:#e5e7eb; --bg:#fafafa; --primary:#0a58ca; }
     *{box-sizing:border-box}
-    html,body{height:100%}
-    body{font-family: system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans TC",Arial,sans-serif; margin:0; background:var(--bg); color:#111827}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans TC",Arial,sans-serif;margin:0;background:var(--bg);color:#111827}
     .container{max-width:1000px;margin:0 auto;padding:16px}
     header{display:flex;flex-wrap:wrap;gap:var(--gap);align-items:center;justify-content:space-between;margin-bottom:12px}
     h1{font-size:1.25rem;margin:0}
     .toolbar{display:flex;flex-wrap:wrap;gap:var(--gap)}
     .toolbar>*{border:1px solid var(--border);border-radius:var(--radius);background:#fff;padding:8px 10px}
     input[type="search"]{min-width:200px}
-    select,button{cursor:pointer}
+    button{cursor:pointer}
     button.primary{background:var(--primary);color:#fff;border-color:transparent}
-    button.ghost{background:#fff}.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:var(--radius);background:#fff}
-table{width:100%;border-collapse:separate;border-spacing:0;min-width:720px}
-thead th{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);text-align:left;padding:10px;white-space:nowrap}
-tbody td{border-bottom:1px solid #f1f5f9;padding:8px 10px;vertical-align:middle}
-tbody tr:hover{background:#fafafa}
-.num{font-variant-numeric:tabular-nums}
-.qty{display:flex;align-items:center;gap:6px}
-.qty input{width:78px;text-align:right;padding:6px 8px;border:1px solid var(--border);border-radius:10px}
-.qty button{width:28px;height:28px;border:1px solid var(--border);border-radius:8px;background:#fff;line-height:0}
+    button.ghost{background:#fff}
+    .table-wrap{overflow:auto;border:1px solid var(--border);border-radius:var(--radius);background:#fff}
+    table{width:100%;border-collapse:separate;border-spacing:0;min-width:720px}
+    thead th{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);text-align:left;padding:10px;white-space:nowrap}
+    tbody td{border-bottom:1px solid #f1f5f9;padding:8px 10px;vertical-align:middle}
+    tbody tr:hover{background:#fafafa}
+    .num{font-variant-numeric:tabular-nums}
+    .qty{display:flex;align-items:center;gap:6px}
+    .qty input{width:78px;text-align:right;padding:6px 8px;border:1px solid var(--border);border-radius:10px}
+    .qty button{width:28px;height:28px;border:1px solid var(--border);border-radius:8px;background:#fff;line-height:0}
+    .summary{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
+    .card{border:1px solid var(--border);border-radius:var(--radius);background:#fff;padding:12px}
+    .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .totals{display:flex;justify-content:space-between;align-items:center}
+    .totals .price{font-weight:700;font-size:1.25rem}
+    .muted{color:var(--muted)}.toast{position:fixed;right:16px;bottom:16px;background:#16a34a;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.15);opacity:0;transform:translateY(12px);pointer-events:none;transition:opacity .25s ease, transform .25s ease;font-size:.95rem}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.error{background:#dc2626}
 
-.summary{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
-.card{border:1px solid var(--border);border-radius:var(--radius);background:#fff;padding:12px}
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-
-.totals{display:flex;justify-content:space-between;align-items:center}
-.totals .price{font-weight:700;font-size:1.25rem}
-.muted{color:var(--muted)}
-
-@media (max-width: 640px){
-  header{gap:8px}
+@media (max-width:640px){
   input[type="search"]{min-width:unset;width:100%}
-  .toolbar{width:100%}
   .grid-3{grid-template-columns:1fr}
-  .grid-2{grid-template-columns:1fr}
   table{min-width:600px}
+  .toast{left:16px;right:16px}
 }
 
   </style>
@@ -56,26 +50,14 @@ tbody tr:hover{background:#fafafa}
     <header>
       <h1>採購小幫手 · 簡易購物車</h1>
       <div class="toolbar">
-        <input id="q" type="search" placeholder="搜尋品項 / 單位 / 店家… (例如：牛皮、清順)" />
-        <select id="shopFilter" title="店家過濾">
-          <option value="">全部店家</option>
-        </select>
-        <button id="resetBtn" class="ghost" title="清空數量">清空數量</button>
-        <button id="exportBtn" class="ghost" title="匯出選購清單 CSV">匯出 CSV</button>
+        <input id="q" type="search" placeholder="搜尋品項 / 單位 / 店家…" />
+        <select id="shopFilter"><option value="">全部店家</option></select>
+        <button id="resetBtn" class="ghost">清空數量</button>
+        <button id="exportBtn" class="ghost">匯出</button>
       </div>
-    </header><div class="table-wrap" aria-live="polite">
+    </header><div class="table-wrap">
   <table id="tbl">
-    <thead>
-      <tr>
-        <th style="width:32px">#</th>
-        <th>品項</th>
-        <th>單位</th>
-        <th class="num">單價</th>
-        <th>店家</th>
-        <th class="num">數量</th>
-        <th class="num">小計</th>
-      </tr>
-    </thead>
+    <thead><tr><th>#</th><th>品項</th><th>單位</th><th class="num">單價</th><th>店家</th><th class="num">數量</th><th class="num">小計</th></tr></thead>
     <tbody></tbody>
   </table>
 </div>
@@ -90,161 +72,107 @@ tbody tr:hover{background:#fafafa}
       <div id="grandTotal" class="price">$0</div>
     </div>
   </div>
-
   <div class="grid-3">
-    <div class="card">
-      <div class="muted">清順 小計</div>
-      <div id="sum-qingshun" class="price">$0</div>
-    </div>
-    <div class="card">
-      <div class="muted">寶成 小計</div>
-      <div id="sum-baocheng" class="price">$0</div>
-    </div>
-    <div class="card">
-      <div class="muted">已選擇品項數</div>
-      <div id="pickedCount" class="price">0</div>
-    </div>
+    <div class="card"><div class="muted">清順 小計</div><div id="sum-qingshun" class="price">$0</div></div>
+    <div class="card"><div class="muted">寶成 小計</div><div id="sum-baocheng" class="price">$0</div></div>
+    <div class="card"><div class="muted">已選擇品項數</div><div id="pickedCount" class="price">0</div></div>
   </div>
 </section>
 
-  </div>  <script>
-    // === 1) 資料 ===
-    const DATA = [
-      { id: 'A01', item: '吸管', unit: '50支/包', price: 284, shop: '清順' },
-      { id: 'A02', item: '冰砂吸管', unit: '50支/包', price: 1351, shop: '清順' },
-      { id: 'A03', item: '9x9 紙巾', unit: '20包/箱', price: 1637, shop: '清順' },
-      { id: 'A04', item: '抽取式 衛生紙', unit: '20包/箱', price: 1720, shop: '清順' },
-      { id: 'A05', item: '廚房紙巾', unit: '50支/包', price: 1896, shop: '清順' },
-      { id: 'B01', item: '牛皮紙 外帶盒(S)', unit: '50個/條', price: 1944, shop: '寶成' },
-      { id: 'B02', item: '牛皮紙 外帶盒(L)', unit: '50個/條', price: 1973, shop: '寶成' },
-      { id: 'B03', item: '外帶比薩盒', unit: '50個/條', price: 1994, shop: '寶成' },
+  </div>  <div id="toast" class="toast" role="status" aria-live="polite"></div>  <script>
+    const DATA=[
+      {id:'A01',item:'吸管',unit:'50支/包',price:284,shop:'清順'},
+      {id:'A02',item:'冰砂吸管',unit:'50支/包',price:1351,shop:'清順'},
+      {id:'A03',item:'9x9 紙巾',unit:'20包/箱',price:1637,shop:'清順'},
+      {id:'A04',item:'抽取式 衛生紙',unit:'20包/箱',price:1720,shop:'清順'},
+      {id:'A05',item:'廚房紙巾',unit:'50支/包',price:1896,shop:'清順'},
+      {id:'B01',item:'牛皮紙 外帶盒(S)',unit:'50個/條',price:1944,shop:'寶成'},
+      {id:'B02',item:'牛皮紙 外帶盒(L)',unit:'50個/條',price:1973,shop:'寶成'},
+      {id:'B03',item:'外帶比薩盒',unit:'50個/條',price:1994,shop:'寶成'},
     ];
+    const state={qty:Object.fromEntries(DATA.map(d=>[d.id,0]))};
+    const fmt=new Intl.NumberFormat('zh-Hant-TW',{minimumFractionDigits:0,maximumFractionDigits:0});
+    const $tbody=document.querySelector('#tbl tbody');
+    const $q=document.getElementById('q');
+    const $shopFilter=document.getElementById('shopFilter');
+    const $grandTotal=document.getElementById('grandTotal');
+    const $grandCount=document.getElementById('grandCount');
+    const $sumQingShun=document.getElementById('sum-qingshun');
+    const $sumBaoCheng=document.getElementById('sum-baocheng');
+    const $pickedCount=document.getElementById('pickedCount');
+    const $resetBtn=document.getElementById('resetBtn');
+    const $exportBtn=document.getElementById('exportBtn');
 
-    // === 2) 狀態（含 localStorage 保存草稿） ===
-    const LS_KEY = 'cart-qty-v1';
-    const state = {
-      qty: Object.fromEntries(DATA.map(d => [d.id, 0]))
-    };
-    // 載入保存的數量
-    try{ const saved = JSON.parse(localStorage.getItem(LS_KEY)||'{}'); for(const k in saved){ if(k in state.qty) state.qty[k] = Number(saved[k])||0; } }catch{}
-    const fmt = new Intl.NumberFormat('zh-Hant-TW', { style:'currency', currency:'TWD', maximumFractionDigits:0 });
-
-    // === 3) DOM 快取 ===
-    const $tbody = document.querySelector('#tbl tbody');
-    const $q = document.getElementById('q');
-    const $shopFilter = document.getElementById('shopFilter');
-    const $grandTotal = document.getElementById('grandTotal');
-    const $grandCount = document.getElementById('grandCount');
-    const $sumQingShun = document.getElementById('sum-qingshun');
-    const $sumBaoCheng = document.getElementById('sum-baocheng');
-    const $pickedCount = document.getElementById('pickedCount');
-    const $resetBtn = document.getElementById('resetBtn');
-    const $exportBtn = document.getElementById('exportBtn');
-
-    // === 4) 初始化篩選下拉 ===
-    const shops = [...new Set(DATA.map(d => d.shop))];
-    for(const s of shops){
-      const opt = document.createElement('option');
-      opt.value = s; opt.textContent = s; $shopFilter.appendChild(opt);
+    let toastTimer=null;
+    function showToast(text,{error=false,duration=1800}={}){
+      const t=document.getElementById('toast');
+      t.textContent=text; t.classList.remove('error');
+      if(error) t.classList.add('error');
+      t.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer=setTimeout(()=>t.classList.remove('show'), duration);
     }
 
-    // === 5) 渲染表格 ===
-    function render(){
-      const kw = ($q.value||'').trim().toLowerCase();
-      const shop = $shopFilter.value;
-      const rows = DATA.filter(d => {
-        const text = `${d.item} ${d.unit} ${d.shop}`.toLowerCase();
-        const okKw = !kw || text.includes(kw);
-        const okShop = !shop || d.shop === shop;
-        return okKw && okShop;
-      });
+    const shops=[...new Set(DATA.map(d=>d.shop))];
+    for(const s of shops){const opt=document.createElement('option');opt.value=s;opt.textContent=s;$shopFilter.appendChild(opt);}
 
+    function render(){
+      const kw=($q.value||'').trim().toLowerCase();
+      const shop=$shopFilter.value;
+      const rows=DATA.filter(d=>{const text=`${d.item} ${d.unit} ${d.shop}`.toLowerCase();return(!kw||text.includes(kw))&&(!shop||d.shop===shop)});
       $tbody.innerHTML='';
-      rows.forEach((d, idx) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="num">${idx+1}</td>
-          <td>${d.item}</td>
-          <td>${d.unit}</td>
-          <td class="num">${fmt.format(d.price)}</td>
-          <td>${d.shop}</td>
-          <td class="num">
-            <div class="qty">
-              <button aria-label="減少" data-act="dec" data-id="${d.id}">−</button>
-              <input inputmode="numeric" pattern="[0-9]*" type="number" min="0" step="1" data-id="${d.id}" value="${state.qty[d.id]||0}" />
-              <button aria-label="增加" data-act="inc" data-id="${d.id}">＋</button>
-            </div>
-          </td>
-          <td class="num" data-sub="${d.id}">${fmt.format((state.qty[d.id]||0) * d.price)}</td>`;
+      rows.forEach((d,idx)=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td class="num">${idx+1}</td><td>${d.item}</td><td>${d.unit}</td><td class="num">$${fmt.format(d.price)}</td><td>${d.shop}</td><td class="num"><div class="qty"><button data-act="dec" data-id="${d.id}">−</button><input type="number" min="0" step="1" data-id="${d.id}" value="${state.qty[d.id]||0}" /><button data-act="inc" data-id="${d.id}">＋</button></div></td><td class="num" data-sub="${d.id}">$${fmt.format((state.qty[d.id]||0)*d.price)}</td>`;
         $tbody.appendChild(tr);
       });
-
       bindRowEvents();
       recalcTotals();
     }
 
     function bindRowEvents(){
-      $tbody.querySelectorAll('button[data-id]').forEach(btn => btn.addEventListener('click', e => {
-        const id = btn.dataset.id; const act = btn.dataset.act; const cur = Number(state.qty[id]||0);
-        const next = Math.max(0, cur + (act==='inc'?1:-1));
-        state.qty[id] = next; saveLS();
-        const input = $tbody.querySelector(`input[data-id="${id}"]`); if(input){ input.value = next; }
-        const d = DATA.find(x=>x.id===id); const sub = (d?d.price:0)*next;
-        const td = $tbody.querySelector(`[data-sub="${id}"]`); if(td){ td.textContent = fmt.format(sub); }
+      $tbody.querySelectorAll('button[data-id]').forEach(btn=>btn.addEventListener('click',()=>{
+        const id=btn.dataset.id;const act=btn.dataset.act;const cur=Number(state.qty[id]||0);const next=Math.max(0,cur+(act==='inc'?1:-1));state.qty[id]=next;
+        const input=$tbody.querySelector(`input[data-id="${id}"]`);if(input)input.value=next;
+        const d=DATA.find(x=>x.id===id);const td=$tbody.querySelector(`[data-sub="${id}"]`);if(td)td.textContent=`$${fmt.format(next*d.price)}`;
         recalcTotals();
       }));
-
-      $tbody.querySelectorAll('input[data-id]').forEach(inp => inp.addEventListener('input', e => {
-        const id = inp.dataset.id; let v = Number(inp.value||0); if(isNaN(v)||v<0) v = 0; inp.value = v;
-        state.qty[id] = v; saveLS();
-        const d = DATA.find(x=>x.id===id); const sub = (d?d.price:0)*v;
-        const td = $tbody.querySelector(`[data-sub="${id}"]`); if(td){ td.textContent = fmt.format(sub); }
+      $tbody.querySelectorAll('input[data-id]').forEach(inp=>inp.addEventListener('input',()=>{
+        const id=inp.dataset.id;let v=Number(inp.value||0);if(isNaN(v)||v<0)v=0;inp.value=v;state.qty[id]=v;
+        const d=DATA.find(x=>x.id===id);const td=$tbody.querySelector(`[data-sub="${id}"]`);if(td)td.textContent=`$${fmt.format(v*d.price)}`;
         recalcTotals();
       }));
     }
 
-    // === 6) 小計與總計 ===
     function recalcTotals(){
-      let grand = 0; let picked = 0; let sumQS = 0; let sumBC = 0; let countUnits = 0;
-      for(const d of DATA){
-        const q = Number(state.qty[d.id]||0); if(q>0){ picked++; countUnits += q; }
-        const sub = q * d.price; grand += sub;
-        if(d.shop==='清順') sumQS += sub; else if(d.shop==='寶成') sumBC += sub;
-      }
-      $grandTotal.textContent = fmt.format(grand);
-      $grandCount.textContent = `共 ${countUnits} 單位（${picked} 個品項有填數量）`;
-      $sumQingShun.textContent = fmt.format(sumQS);
-      $sumBaoCheng.textContent = fmt.format(sumBC);
-      $pickedCount.textContent = picked;
+      let grand=0,picked=0,countUnits=0,sumQS=0,sumBC=0;
+      for(const d of DATA){const q=Number(state.qty[d.id]||0);if(q>0){picked++;countUnits+=q;}const sub=q*d.price;grand+=sub;if(d.shop==='清順')sumQS+=sub;else if(d.shop==='寶成')sumBC+=sub;}
+      $grandTotal.textContent=`$${fmt.format(grand)}`;
+      $grandCount.textContent=`共 ${countUnits} 單位（${picked} 個品項）`;
+      $sumQingShun.textContent=`$${fmt.format(sumQS)}`;
+      $sumBaoCheng.textContent=`$${fmt.format(sumBC)}`;
+      $pickedCount.textContent=picked;
     }
 
-    function saveLS(){ localStorage.setItem(LS_KEY, JSON.stringify(state.qty)); }
+    $q.addEventListener('input',render);
+    $shopFilter.addEventListener('change',render);
+    $resetBtn.addEventListener('click',()=>{if(!confirm('確定要清空所有數量嗎？'))return;for(const k in state.qty)state.qty[k]=0;render();});
 
-    // === 7) 事件：搜尋 / 篩選 / 重置 / 匯出 ===
-    $q.addEventListener('input', render);
-    $shopFilter.addEventListener('change', render);
-
-    $resetBtn.addEventListener('click', () => {
-      if(!confirm('確定要清空所有數量嗎？')) return;
-      for(const k in state.qty) state.qty[k] = 0; saveLS(); render();
-    });
-
-    $exportBtn.addEventListener('click', () => {
-      // 匯出目前「有數量」的品項
-      const rows = [['id','item','unit','price','shop','qty','subtotal']];
-      for(const d of DATA){
-        const q = Number(state.qty[d.id]||0); if(q<=0) continue;
-        rows.push([d.id, d.item, d.unit, d.price, d.shop, q, q*d.price]);
+    $exportBtn.addEventListener('click',async()=>{
+      let msg='';let total=0;
+      for(const d of DATA){const q=Number(state.qty[d.id]||0);if(q>0){const sub=q*d.price;msg+=`${d.item} x ${q} = $${fmt.format(sub)}\n`;total+=sub;}}
+      if(!msg){alert('尚未選購任何品項。');return;}
+      msg+=`\n合計：$${fmt.format(total)}`;
+      alert(msg);
+      try{
+        await navigator.clipboard.writeText(msg);
+        showToast('已複製到剪貼簿，可直接貼到 LINE');
+      }catch(err){
+        console.warn('Clipboard failed:', err);
+        showToast('無法自動複製，請改為手動複製', {error:true, duration:2600});
       }
-      if(rows.length===1){ alert('尚未選購任何品項。'); return; }
-      const csv = rows.map(r => r.map(v=>String(v).includes(',')?`"${String(v).replaceAll('"','""')}"`:v).join(',')).join('\n');
-      const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-      a.download = `purchase_${new Date().toISOString().slice(0,10)}.csv`;
-      a.click(); URL.revokeObjectURL(a.href);
     });
 
-    // 初次渲染
     render();
   </script></body>
 </html>
