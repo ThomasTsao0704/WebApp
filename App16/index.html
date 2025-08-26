@@ -1,3 +1,64 @@
+跳至內容
+聊天歷程紀錄
+
+你說：
+api-list.json
+檔案
+index.html
+檔案
+轉化表格顯示的效果有點亂,而且沒有內建滾動式捲軸
+ChatGPT 說：
+我檢查了你的 index.html（API Dropdown Demo）後，發現表格顯示亂掉、而且沒有「內建滾動捲軸」的問題，主要是因為目前 .output-container 和 .table-view 都是直接撐開 <table>，沒有限制寬度/高度與 overflow 控制
+。
+
+✅ 解決方案
+在 CSS 加上固定高度與滾動設定，讓表格超過時會自動出現滾動捲軸：
+
+.table-view {
+    background: white;
+    color: #333;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: auto;   /* ← 啟用捲軸 */
+    max-height: 70vh; /* ← 限制表格高度 */
+    max-width: 100%;  /* ← 限制表格寬度 */
+}
+
+.table-view table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    table-layout: auto; /* 自動分配欄寬 */
+}
+
+.table-view th, .table-view td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+    white-space: nowrap;   /* 不要自動換行 */
+}
+
+.table-view .url-cell {
+    word-break: break-all;
+    max-width: 400px;
+    white-space: normal;  /* URL 太長才允許換行 */
+}
+🔧 你會得到的效果
+垂直捲軸：表格超過 70vh 就會出現上下滾動。
+
+水平捲軸：若欄位太多或 URL 太長，會自動產生左右滾動。
+
+更清晰的欄位排版：用 white-space: nowrap 控制欄位不亂斷行，但對 URL 類欄位開放 normal 以避免過度爆表。
+
+要不要我幫你直接改好 index.html 的 CSS 區塊，並附上修改後的完整檔案版本（你直接覆蓋就能看到捲軸效果）？
+
+
+資料來源
+你說：
+直接改好 index.html 的 CSS 區塊，並附上修改後的完整檔案版本（你直接覆蓋就能看到捲軸效果）？\
+ChatGPT 說：
+好的，小湯姆。已把你的 index.html 直接改好（只調整 CSS 與極少量 JS 回傳 HTML 結構，其他邏輯不動），加上「內建垂直／水平捲軸」與「表頭置頂」，並讓長網址與多欄位時不會撐爆版面。把下面整份覆蓋你的檔案即可看到改善效果（我以你先前提供的原始版本為基礎修改）。
+
 <!doctype html>
 <html lang="zh-Hant">
 
@@ -359,3 +420,463 @@
 </body>
 
 </html>
+這版做了什麼（重點）
+固定容器高度 + 滾動捲軸：max-height: 70vh; overflow: auto;（JSON 與表格都生效）。
+
+表頭置頂：thead th { position: sticky; top: 0; } 長列表瀏覽更省力。
+
+長網址/多欄位友善：一般欄位預設不換行＋省略號；URL 欄允許斷行、保留等寬字體。
+
+水平捲動：欄太多時自動可橫向捲動，避免擠爆。
+
+微調 listUrl：預設抓同資料夾的 ./api-list.json，比較直覺。
+
+要不要我再幫你加一個「導出目前表格為 CSV」的小按鈕，讓你把任一 API 的結果一鍵存檔？這對你當沖/回測資料整理會很實用。
+
+
+資料來源
+你說：
+我想要適合手機查閱的RWD效果
+ChatGPT 說：
+
+已思考 14s
+太懂你了—手機上一滑到底卻看不到重點最煩。下面我把你的 index.html 直接升級成「行動裝置優先」的 RWD 版：
+
+窄螢幕自動變「卡片堆疊視圖」（每列一張卡，欄名→標籤）
+
+橫向很多欄時維持可左右滑動表格
+
+表頭置頂、觸控順暢、字級/密度可調、長網址不爆版
+
+保留你的 JSON/表格切換與篩選功能（程式邏輯不變）
+
+把下方整份直接覆蓋你的檔案即可。
+
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>API Dropdown Demo · RWD</title>
+  <style>
+    /* ===== 基本設定：行動裝置優先 ===== */
+    :root{
+      --radius: 12px;
+      --border: #e5e7eb;
+      --muted: #6b7280;
+      --primary: #0a58ca;
+      --bg-dark: #111;
+      --txt-green: #0f0;
+      --mono: ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans TC', Arial, sans-serif;
+      margin: 0; padding: 16px;
+      background: #fafafa;
+      color: #111827;
+    }
+
+    h1 { font-size: clamp(18px, 4vw, 22px); margin: 0 0 8px; }
+    .muted { color: var(--muted); font-size: 12px; }
+
+    /* ===== 控制列（RWD、黏在上方） ===== */
+    .toolbar {
+      position: sticky; top: 0; z-index: 10;
+      background: #fff;
+      padding: 8px; margin: 12px -8px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: grid; gap: 8px;
+      grid-template-columns: 1fr;
+    }
+    .row {
+      display: grid; gap: 8px;
+      grid-template-columns: 1fr;
+    }
+    .row > * {
+      width: 100%;
+    }
+    input[type=text], select, button {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      background: #fff;
+    }
+    .btn {
+      background: #fff; cursor: pointer;
+      transition: background .15s ease, color .15s ease, border-color .15s ease;
+    }
+    .btn.primary { background: var(--primary); color:#fff; border-color: var(--primary); }
+    .controls-inline {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    }
+    .chip {
+      display:inline-flex; align-items:center; gap:6px;
+      border:1px solid var(--border); border-radius:999px;
+      padding:6px 10px; background:#fff; font-size:12px;
+    }
+    .toggle-group button {
+      padding:6px 12px; border-radius:999px; border:1px solid var(--border);
+      background:#fff; font-size:12px; cursor:pointer;
+    }
+    .toggle-group .active { background:#111827; color:#fff; border-color:#111827; }
+
+    /* ===== 輸出容器（JSON/表格共用） ===== */
+    .output-container {
+      background: var(--bg-dark); color: var(--txt-green);
+      border-radius: var(--radius); padding: 12px; margin-top: 8px;
+      max-height: 70vh; overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      border: 1px solid #000;
+    }
+    .json-display {
+      font-family: var(--mono);
+      font-size: 13px; line-height: 1.5; white-space: pre;
+      overflow-wrap: anywhere;
+    }
+
+    /* ===== 表格視圖（桌面 & 平板） ===== */
+    .table-view {
+      background:#fff; color:#111827;
+      border:1px solid var(--border); border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .table-scroller {
+      overflow:auto; max-height: 70vh; -webkit-overflow-scrolling: touch;
+    }
+    table {
+      width: max(100%, 960px);
+      border-collapse: collapse; font-size: 13px; table-layout: auto;
+    }
+    th, td {
+      padding: 10px 12px; border-bottom: 1px solid #f1f5f9;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      vertical-align: top;
+    }
+    thead th {
+      position: sticky; top: 0; z-index: 1;
+      background: #f8fafc; color:#334155; font-weight:600;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    tbody tr:hover { background: #f9fafb; }
+    .url-cell { font-family: var(--mono); font-size: 11px; color:#0a58ca; white-space: normal; word-break: break-all; max-width: 560px; }
+    .name-cell { font-weight: 500; }
+    .id-cell { font-family: var(--mono); color:#6b7280; font-size:11px; }
+
+    /* ===== 密度（字級/間距）切換 ===== */
+    .dense th, .dense td { padding: 6px 8px; font-size: 12px; }
+    .dense .url-cell { font-size: 10.5px; }
+
+    /* ===== 極窄螢幕：自動「卡片堆疊視圖」 =====
+       將表格轉為每列一張卡片（欄名→左側標籤）
+    */
+    @media (max-width: 520px) {
+      .output-container { padding: 0; background: transparent; border: none; }
+      .table-view { border: none; background: transparent; }
+      .table-scroller { max-height: none; overflow: visible; }
+      table, thead { display: none; }  /* 隱藏傳統表格 */
+      .cards {
+        display: grid; gap: 10px; margin-top: 8px;
+      }
+      .card {
+        background:#fff; border:1px solid var(--border); border-radius: var(--radius);
+        padding: 12px;
+      }
+      .kv { display:grid; grid-template-columns: 36% 1fr; gap:6px 10px; }
+      .k { color:#475569; font-size:12px; }
+      .v { font-size:13px; overflow-wrap:anywhere; }
+      .v.mono { font-family: var(--mono); font-size:12px; color:#0a58ca; }
+      .card + .card { margin-top: 0; }
+      .toolbar { margin: 8px -8px 0; border-left: none; border-right: none; border-radius: 0; }
+    }
+
+    /* 平板以上讓工具列更寬鬆 */
+    @media (min-width: 640px) {
+      .toolbar { grid-template-columns: 1fr auto; align-items: center; }
+      .row { grid-template-columns: 1fr 1fr auto; }
+    }
+    @media (min-width: 1024px) {
+      body { padding: 24px; }
+      .row { grid-template-columns: 1fr 1fr 120px; }
+    }
+  </style>
+</head>
+
+<body>
+  <h1>API Dropdown Demo</h1>
+  <p class="muted">Worker：<code>https://cors-proxy.s01yg3642.workers.dev/</code> ｜ 資料：<code>api-list.json</code></p>
+
+  <!-- 工具列：關鍵字、下拉、Fetch；視圖/密度/換行 -->
+  <div class="toolbar">
+    <div class="row">
+      <input id="q" type="text" placeholder="輸入關鍵字篩選（名稱或網址）" />
+      <select id="sel"></select>
+      <button id="go" class="btn primary">Fetch</button>
+    </div>
+    <div class="controls-inline">
+      <div class="toggle-group" role="tablist" aria-label="View Toggle">
+        <button id="jsonView" class="active" aria-selected="true">JSON 檢視</button>
+        <button id="tableView" aria-selected="false">表格檢視</button>
+      </div>
+
+      <label class="chip">
+        <input type="checkbox" id="wrapToggle" />
+        多行換行
+      </label>
+
+      <label class="chip">
+        密度
+        <select id="density">
+          <option value="normal">一般</option>
+          <option value="dense">緊湊</option>
+        </select>
+      </label>
+
+      <span class="muted" id="tableStats"></span>
+    </div>
+  </div>
+
+  <!-- 篩選（僅表格視圖顯示） -->
+  <div class="controls-inline" id="filterControls" style="display:none; margin: 8px 0;">
+    <input id="tableFilter" type="text" placeholder="篩選表格內容..." />
+  </div>
+
+  <!-- 輸出容器 -->
+  <div class="output-container">
+    <div id="out" class="json-display">// 等待請求中…</div>
+  </div>
+
+  <script type="module">
+    const WORKER = "https://cors-proxy.s01yg3642.workers.dev/";
+    const listUrl = "./api-list.json"; /* 若你的檔案在別處，改這裡即可 */
+
+    const toProxy = (u) => WORKER + "?url=" + encodeURIComponent(u);
+
+    const out = document.getElementById('out');
+    const sel = document.getElementById('sel');
+    const q = document.getElementById('q');
+    const jsonViewBtn = document.getElementById('jsonView');
+    const tableViewBtn = document.getElementById('tableView');
+    const filterControls = document.getElementById('filterControls');
+    const tableFilter = document.getElementById('tableFilter');
+    const tableStats = document.getElementById('tableStats');
+    const density = document.getElementById('density');
+    const wrapToggle = document.getElementById('wrapToggle');
+
+    let items = [];
+    let currentData = null;
+    let currentView = 'json';
+    let denseMode = false;
+    let wrapMode = false;
+
+    function fill(list) {
+      sel.innerHTML = "";
+      for (const it of list) {
+        const o = document.createElement('option');
+        o.value = it.url;
+        o.textContent = (it.category ? `[${it.category}] ` : "") + it.name;
+        sel.appendChild(o);
+      }
+    }
+
+    async function load() {
+      const res = await fetch(listUrl);
+      const data = await res.json();
+      items = data.items || [];
+      fill(items);
+      if (items.length) await run(items[0].url);
+    }
+
+    q.addEventListener('input', () => {
+      const s = q.value.trim().toLowerCase();
+      if (!s) return fill(items);
+      const f = items.filter(it =>
+        (it.name || "").toLowerCase().includes(s) ||
+        (it.url || "").toLowerCase().includes(s)
+      );
+      fill(f);
+    });
+
+    const isArrayOfObjects = (data) =>
+      Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && data[0] !== null;
+
+    function renderCards(data){
+      // 極窄螢幕的卡片堆疊視圖
+      const headers = Object.keys(data[0] ?? {});
+      const cards = data.map(row => {
+        const kvs = headers.map(h => {
+          const raw = row[h] ?? '';
+          const val = String(raw);
+          const isUrl = /url|link/i.test(h);
+          const isId  = /(^id$|_id$)/i.test(h);
+          const mono = isUrl || isId ? ' mono' : '';
+          return `<div class="kv">
+            <div class="k">${escapeHtml(h)}</div>
+            <div class="v${mono}">${escapeHtml(val)}</div>
+          </div>`;
+        }).join('');
+        return `<div class="card" role="article" aria-label="資料列">${kvs}</div>`;
+      }).join('');
+      return `<div class="cards">${cards}</div>`;
+    }
+
+    function renderTable(data) {
+      if (!isArrayOfObjects(data)) {
+        return '<div class="json-display">' + escapeHtml(JSON.stringify(data, null, 2)) + '</div>';
+      }
+      const headers = Object.keys(data[0]);
+
+      const tableHtml = `
+        <div class="table-view ${denseMode ? 'dense' : ''}" role="region" aria-label="資料表">
+          <div class="table-scroller">
+            <table>
+              <thead><tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>
+              <tbody>
+                ${data.map(row => `
+                  <tr>
+                    ${headers.map(header => {
+                      const raw = row[header] ?? '';
+                      const value = String(raw);
+                      const hLower = header.toLowerCase();
+                      let cellClass = '';
+                      if (hLower.includes('url') || hLower.includes('link')) cellClass = 'url-cell';
+                      else if (hLower.includes('name') || hLower.includes('title')) cellClass = 'name-cell';
+                      else if (hLower === 'id' || hLower.endsWith('_id')) cellClass = 'id-cell';
+
+                      const displayValue = wrapMode ? value : (value.length > 180 ? value.slice(0, 180) + '…' : value);
+                      return `<td class="${cellClass}" title="${escapeHtml(value)}" data-label="${escapeHtml(header)}">${escapeHtml(displayValue)}</td>`;
+                    }).join('')}
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      // 另外輸出行動卡片版（只在 CSS 極窄時顯示）
+      const cardsHtml = renderCards(data);
+      return tableHtml + cardsHtml;
+    }
+
+    function updateDisplay() {
+      if (currentData == null) return;
+
+      if (currentView === 'table' && isArrayOfObjects(currentData)) {
+        document.querySelector('.output-container').classList.add('table-host');
+        out.className = ''; // 解除 JSON 字型
+        out.innerHTML = renderTable(currentData);
+        filterControls.style.display = 'flex';
+        updateTableStats(currentData);
+      } else {
+        document.querySelector('.output-container').classList.remove('table-host');
+        filterControls.style.display = 'none';
+        out.className = 'json-display';
+        const displayText = typeof currentData === 'string'
+          ? currentData
+          : JSON.stringify(currentData, null, 2);
+        out.textContent = displayText;
+      }
+    }
+
+    function updateTableStats(data) {
+      if (isArrayOfObjects(data)) {
+        tableStats.textContent = `共 ${data.length} 筆，${Object.keys(data[0]).length} 欄`;
+      } else {
+        tableStats.textContent = '';
+      }
+    }
+
+    function filterTable() {
+      if (!currentData || !isArrayOfObjects(currentData)) return;
+      const filterText = tableFilter.value.toLowerCase();
+      if (!filterText) { updateDisplay(); return; }
+
+      const filteredData = currentData.filter(row =>
+        Object.values(row).some(value => String(value).toLowerCase().includes(filterText))
+      );
+
+      out.innerHTML = renderTable(filteredData);
+      tableStats.textContent = `顯示 ${filteredData.length} / ${currentData.length} 筆`;
+    }
+
+    async function run(url) {
+      out.textContent = "// Fetching...\n" + url;
+      try {
+        const res = await fetch(toProxy(url));
+        const ct = res.headers.get('content-type') || "";
+        if (ct.includes("application/json")) currentData = await res.json();
+        else currentData = await res.text();
+        updateDisplay();
+      } catch (e) {
+        currentData = "Error: " + e.message;
+        updateDisplay();
+      }
+    }
+
+    // 視圖切換
+    jsonViewBtn.addEventListener('click', () => {
+      currentView = 'json';
+      jsonViewBtn.classList.add('active');
+      jsonViewBtn.setAttribute('aria-selected','true');
+      tableViewBtn.classList.remove('active');
+      tableViewBtn.setAttribute('aria-selected','false');
+      updateDisplay();
+    });
+    tableViewBtn.addEventListener('click', () => {
+      currentView = 'table';
+      tableViewBtn.classList.add('active');
+      tableViewBtn.setAttribute('aria-selected','true');
+      jsonViewBtn.classList.remove('active');
+      jsonViewBtn.setAttribute('aria-selected','false');
+      updateDisplay();
+    });
+
+    // 密度 / 換行
+    density.addEventListener('change', () => {
+      denseMode = density.value === 'dense';
+      updateDisplay();
+    });
+    wrapToggle.addEventListener('change', () => {
+      wrapMode = wrapToggle.checked;
+      updateDisplay();
+    });
+
+    // 表格篩選
+    tableFilter.addEventListener('input', filterTable);
+
+    // 送出請求
+    document.getElementById('go').addEventListener('click', () => run(sel.value));
+
+    // HTML escape
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'","&#39;");
+    }
+
+    load();
+  </script>
+</body>
+</html>
+補充（如果你要更多）
+想在手機上一鍵匯出 CSV或複製目前 API 的 URL？我可以幫你在工具列再加兩顆按鈕。
+
+若有特定欄位（例如 id、url）想在超小螢幕隱藏，也可加上欄位可見性切換；或 480px 以下自動只顯示「名稱、URL」兩欄，其餘收進展開區塊。
+
+有多種 RWD 做法；上面這版同時保留「可水平捲動的表格」與「極窄螢幕的卡片堆疊」——就使用體驗而言，這通常是最穩妥的組合（也是我給你的「最佳解」）。如果你偏好只用其中一種視圖，我也能幫你簡化。
+
+
+資料來源
+
+
+
+未選擇任何檔案未選擇任何檔案
+ChatGPT 可能會出錯。請查核重要資訊。
