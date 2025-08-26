@@ -2,89 +2,360 @@
 <html lang="zh-Hant">
 
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cloudflare CORS Proxy Demo</title>
-  <style>
-    body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans TC', Arial, sans-serif;
-      padding: 24px;
-    }
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>API Dropdown Demo</title>
+    <style>
+        /* ====== 基本排版 ====== */
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans TC', Arial, sans-serif;
+            padding: 24px;
+        }
+        .row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        select, input[type=text] {
+            padding: 8px 10px;
+        }
+        .muted { color: #666; }
+        .view-toggle {
+            margin-top: 8px;
+            display: flex;
+            gap: 8px;
+        }
+        .view-toggle button {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .view-toggle button.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .filter-controls {
+            margin-bottom: 12px;
+        }
+        .filter-controls input {
+            padding: 6px 10px;
+            width: 200px;
+            font-size: 12px;
+        }
+        .stats {
+            margin-left: 8px;
+            font-size: 12px;
+            color: #666;
+        }
 
-    .row {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 16px;
-    }
+        /* ====== 輸出容器（JSON/表格共用）====== */
+        .output-container {
+            /* 讓內容在視窗內可滾動（JSON & 表格） */
+            background: #111;
+            color: #0f0;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 12px;
 
-    input[type=text] {
-      width: min(720px, 100%);
-      padding: 8px 10px;
-    }
+            /* 關鍵：限制高度 + 啟用捲軸 */
+            max-height: 70vh;
+            overflow: auto;
 
-    button {
-      padding: 8px 12px;
-      cursor: pointer;
-    }
+            /* 讓手機也好用 */
+            -webkit-overflow-scrolling: touch;
+        }
+        .json-display {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre;           /* 保留等寬格式 */
+        }
 
-    pre {
-      background: #111;
-      color: #0f0;
-      padding: 12px;
-      overflow: auto;
-      max-height: 60vh;
-    }
+        /* ====== 表格視圖外觀 ====== */
+        .table-view {
+            background: #fff;
+            color: #333;
+            border: 1px solid #ddd;
+            border-radius: 6px;
 
-    small {
-      color: #666;
-    }
-  </style>
+            /* 讓外層也可捲（保險） */
+            overflow: auto;
+        }
+
+        /* 內層再包一層，專責水平/垂直滾動，避免 sticky 失效 */
+        .table-scroller {
+            overflow: auto;        /* 關鍵：水平 + 垂直捲軸 */
+            max-height: 70vh;      /* 與外層一致 */
+            min-height: 240px;     /* 太少列時保持視覺穩定 */
+        }
+
+        .table-view table {
+            width: max(100%, 960px);  /* 避免欄多時擠爆；必要時橫向捲動 */
+            border-collapse: collapse;
+            font-size: 13px;
+            table-layout: auto;       /* 自動分配欄寬 */
+        }
+        .table-view th,
+        .table-view td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+
+            /* 預設：不換行 + 省略號，避免表格猛跳行 */
+            white-space: nowrap;
+            max-width: 360px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .table-view th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+            position: sticky;  /* 表頭置頂 */
+            top: 0;
+            z-index: 1;
+        }
+        .table-view tr:hover {
+            background: #f5f5f5;
+        }
+
+        /* 欄位語意化調整 */
+        .table-view .url-cell {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+            font-size: 11px;
+            color: #0a58ca;
+            /* URL 太長時允許斷行；同時支援水平捲軸 */
+            white-space: normal;
+            word-break: break-all;
+            max-width: 560px;
+        }
+        .table-view .name-cell { font-weight: 500; }
+        .table-view .id-cell {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+            color: #666;
+            font-size: 11px;
+        }
+    </style>
 </head>
 
 <body>
-  <h1>Cloudflare CORS Proxy Demo</h1>
-  <p>Worker：<code id="wk"></code></p>
+    <h1>API Dropdown Demo</h1>
+    <p class="muted">Worker：<code>https://cors-proxy.s01yg3642.workers.dev/</code> ｜ 資料：<code>api-list.json</code></p>
 
-  <div class="row">
-    <input id="api" type="text" placeholder="輸入任意 API URL（需在白名單）"
-      value="https://openapi.twse.com.tw/v1/exchangeReport/MI_INDEX" />
-    <button id="go">Fetch</button>
-    <button id="twse">TWSE：MI_INDEX</button>
-    <button id="tpex">TPEx：簡單測試</button>
-  </div>
+    <div class="row">
+        <input id="q" type="text" placeholder="輸入關鍵字篩選（名稱或網址）" />
+        <select id="sel"></select>
+        <button id="go">Fetch</button>
+    </div>
 
-  <small>這個頁面透過 <code>apiClient.js</code> 走你的 Worker 代理並處理 CORS。</small>
+    <div class="view-toggle">
+        <button id="jsonView" class="active">JSON 檢視</button>
+        <button id="tableView">表格檢視</button>
+    </div>
 
-  <h3>Response</h3>
-  <pre id="out">// 等待請求中…</pre>
+    <div class="filter-controls" id="filterControls" style="display: none;">
+        <input id="tableFilter" type="text" placeholder="篩選表格內容..." />
+        <span class="stats" id="tableStats"></span>
+    </div>
 
-  <script type="module">
-    // 使用封裝好的客戶端，不再手動組 ?url=
-    import { get } from './apiClient.js';
+    <div class="output-container">
+        <div id="out" class="json-display">// 等待請求中…</div>
+    </div>
 
-    // 僅用於頁面顯示；實際請求端點以 apiClient.js 內的設定為準
-    const WORKER = "https://cors-proxy.s01yg3642.workers.dev/";
-    document.getElementById('wk').textContent = WORKER;
+    <script type="module">
+        const WORKER = "https://cors-proxy.s01yg3642.workers.dev/";
+        /* 若你的 api-list.json 與 index.html 同資料夾，建議用相對路徑： */
+        const listUrl = "./api-list.json"; // 原本是 "./.VSCODE/api-list.json"
 
-    async function run(keyOrUrl) {
-      const out = document.getElementById('out');
-      out.textContent = "// Fetching...\n" + keyOrUrl;
-      try {
-        const data = await get(keyOrUrl); // 自動經由 Worker 代理
-        out.textContent = JSON.stringify(data, null, 2);
-      } catch (e) {
-        out.textContent = "Error: " + e.message;
-      }
-    }
+        const toProxy = (u) => WORKER + "?url=" + encodeURIComponent(u);
 
-    document.getElementById('go').onclick = () => run(document.getElementById('api').value.trim());
-    document.getElementById('twse').onclick = () => run('https://openapi.twse.com.tw/v1/exchangeReport/MI_INDEX');
-    document.getElementById('tpex').onclick = () => run('https://www.tpex.org.tw/openapi/v1/tpex_mainboard_peratio');
+        const out = document.getElementById('out');
+        const sel = document.getElementById('sel');
+        const q = document.getElementById('q');
+        const jsonViewBtn = document.getElementById('jsonView');
+        const tableViewBtn = document.getElementById('tableView');
+        const filterControls = document.getElementById('filterControls');
+        const tableFilter = document.getElementById('tableFilter');
+        const tableStats = document.getElementById('tableStats');
 
-    // 預設自動跑一次
-    run(document.getElementById('api').value);
-  </script>
+        let items = [];
+        let currentData = null;
+        let currentView = 'json';
+
+        function fill(list) {
+            sel.innerHTML = "";
+            for (const it of list) {
+                const o = document.createElement('option');
+                o.value = it.url;
+                o.textContent = (it.category ? `[${it.category}] ` : "") + it.name;
+                sel.appendChild(o);
+            }
+        }
+
+        async function load() {
+            const res = await fetch(listUrl);
+            const data = await res.json();
+            items = data.items || [];
+            fill(items);
+            if (items.length) await run(items[0].url);
+        }
+
+        q.addEventListener('input', () => {
+            const s = q.value.trim().toLowerCase();
+            if (!s) return fill(items);
+            const f = items.filter(it =>
+                (it.name || "").toLowerCase().includes(s) ||
+                (it.url || "").toLowerCase().includes(s)
+            );
+            fill(f);
+        });
+
+        function isArrayOfObjects(data) {
+            return Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && data[0] !== null;
+        }
+
+        function renderAsTable(data) {
+            if (!isArrayOfObjects(data)) {
+                return '<div class="json-display">' + escapeHtml(JSON.stringify(data, null, 2)) + '</div>';
+            }
+            const headers = Object.keys(data[0]);
+
+            // 包一層 .table-scroller 以保證捲軸 & sticky header 穩定
+            const tableHtml = `
+                <div class="table-scroller">
+                    <table>
+                        <thead>
+                            <tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr>
+                        </thead>
+                        <tbody>
+                            ${data.map(row => `
+                                <tr>
+                                    ${headers.map(header => {
+                                        const raw = row[header] ?? '';
+                                        const value = String(raw);
+                                        let cellClass = '';
+                                        const hLower = header.toLowerCase();
+                                        if (hLower.includes('url') || hLower.includes('link')) {
+                                            cellClass = 'url-cell';
+                                        } else if (hLower.includes('name') || hLower.includes('title')) {
+                                            cellClass = 'name-cell';
+                                        } else if (hLower === 'id' || hLower.endsWith('_id')) {
+                                            cellClass = 'id-cell';
+                                        }
+                                        return `<td class="${cellClass}" title="${escapeHtml(value)}">${escapeHtml(value)}</td>`;
+                                    }).join('')}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            return tableHtml;
+        }
+
+        function updateDisplay() {
+            if (!currentData) return;
+
+            const container = out.parentElement;
+
+            if (currentView === 'table' && isArrayOfObjects(currentData)) {
+                container.className = 'output-container table-view';
+                out.innerHTML = renderAsTable(currentData);
+                out.className = ''; // 清掉 json 的字型樣式
+                filterControls.style.display = 'block';
+                updateTableStats(currentData);
+            } else {
+                container.className = 'output-container';
+                out.className = 'json-display';
+                const displayText = typeof currentData === 'string'
+                    ? currentData
+                    : JSON.stringify(currentData, null, 2);
+                out.textContent = displayText;
+                filterControls.style.display = 'none';
+            }
+        }
+
+        function updateTableStats(data) {
+            if (isArrayOfObjects(data)) {
+                tableStats.textContent = `共 ${data.length} 筆記錄，${Object.keys(data[0]).length} 個欄位`;
+            }
+        }
+
+        function filterTable() {
+            if (!currentData || !isArrayOfObjects(currentData)) return;
+
+            const filterText = tableFilter.value.toLowerCase();
+            if (!filterText) {
+                updateDisplay();
+                return;
+            }
+
+            const filteredData = currentData.filter(row =>
+                Object.values(row).some(value =>
+                    String(value).toLowerCase().includes(filterText)
+                )
+            );
+
+            const container = out.parentElement;
+            container.className = 'output-container table-view';
+            out.innerHTML = renderAsTable(filteredData);
+            tableStats.textContent = `顯示 ${filteredData.length} / ${currentData.length} 筆記錄`;
+        }
+
+        async function run(url) {
+            out.textContent = "// Fetching...\n" + url;
+            try {
+                const res = await fetch(toProxy(url));
+                const ct = res.headers.get('content-type') || "";
+                if (ct.includes("application/json")) {
+                    currentData = await res.json();
+                } else {
+                    currentData = await res.text();
+                }
+                updateDisplay();
+            } catch (e) {
+                currentData = "Error: " + e.message;
+                updateDisplay();
+            }
+        }
+
+        // 視圖切換
+        jsonViewBtn.addEventListener('click', () => {
+            currentView = 'json';
+            jsonViewBtn.classList.add('active');
+            tableViewBtn.classList.remove('active');
+            updateDisplay();
+        });
+        tableViewBtn.addEventListener('click', () => {
+            currentView = 'table';
+            tableViewBtn.classList.add('active');
+            jsonViewBtn.classList.remove('active');
+            updateDisplay();
+        });
+
+        // 表格篩選
+        tableFilter.addEventListener('input', filterTable);
+
+        // 事件：送出請求
+        document.getElementById('go').addEventListener('click', () => run(sel.value));
+
+        // 安全的 HTML escape（避免少數 API 回傳含 HTML 字元時影響渲染）
+        function escapeHtml(str) {
+            return String(str)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        load();
+    </script>
 </body>
 
 </html>
