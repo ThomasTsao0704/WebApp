@@ -270,6 +270,87 @@ iosTipClose?.addEventListener('click', ()=>{
   try{ localStorage.setItem('installTipDismissed','1'); }catch{}
 });
 
+/* ===== 登入流程（健壯版：含 dialog 後備方案 + trim + Enter 鍵） ===== */
+function openLoginDialogFallback() {
+  // 後備：若瀏覽器不支援 <dialog>，用 prompt() 取得 PIN
+  const pin = (window.prompt('請輸入管理者 PIN（預設 0000）') || '').trim();
+  if (!pin) return;
+  if (pin === getPin()) {
+    setAdmin(true);
+    applyModeUI();
+    showTab('admin');
+  } else {
+    alert('PIN 不正確');
+  }
+}
+
+loginBtn.onclick = () => {
+  // 若支援 <dialog> 的 showModal() 就用 dialog，否則走後備 prompt() 流程
+  const canDialog = !!(window.HTMLDialogElement && typeof dlgLogin.showModal === 'function');
+  if (!canDialog) return openLoginDialogFallback();
+
+  pinInput.value = '';
+  dlgLogin.showModal();
+  // 某些瀏覽器需要下一輪事件迴圈才可 focus
+  setTimeout(() => { try { pinInput.focus(); } catch(e){} }, 50);
+};
+
+cancelLogin.onclick = () => dlgLogin.close();
+
+confirmLogin.onclick = () => {
+  const input = (pinInput.value || '').trim(); // 自動去空白
+  const ok = input === getPin();
+  if (!ok) { alert('PIN 不正確'); return; }
+  setAdmin(true);
+  dlgLogin.close();
+  applyModeUI();
+  showTab('admin');
+};
+
+// 讓 Enter 直接送出
+pinInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') confirmLogin.click();
+});
+
+// 登出
+logoutBtn.onclick = () => {
+  setAdmin(false);
+  applyModeUI();
+  showTab('data');
+};
+
+// 設定/更新 PIN
+setPinBtn.onclick = () => {
+  const canDialog = !!(window.HTMLDialogElement && typeof dlgSetPin.showModal === 'function');
+  if (!canDialog) {
+    // 後備流程：連續兩次 prompt
+    const p1 = (window.prompt('新的 PIN（4~12位）') || '').trim();
+    if (!p1) return;
+    if (p1.length < 4 || p1.length > 12) { alert('PIN 長度需 4~12 位'); return; }
+    const p2 = (window.prompt('再輸入一次') || '').trim();
+    if (p1 !== p2) { alert('兩次輸入不一致'); return; }
+    localStorage.setItem(PIN_KEY, p1);
+    alert('PIN 已更新');
+    return;
+  }
+
+  newPin1.value=''; newPin2.value='';
+  dlgSetPin.showModal();
+  setTimeout(()=>{ try{ newPin1.focus(); }catch(e){} }, 50);
+};
+
+cancelSetPin.onclick = () => dlgSetPin.close();
+
+confirmSetPin.onclick = () => {
+  const p1 = (newPin1.value || '').trim();
+  const p2 = (newPin2.value || '').trim();
+  if (p1.length < 4 || p1.length > 12){ alert('PIN 長度需 4~12 位'); return; }
+  if (p1 !== p2){ alert('兩次輸入不一致'); return; }
+  localStorage.setItem(PIN_KEY, p1);
+  dlgSetPin.close();
+  alert('PIN 已更新');
+};
+  
 /* ===== 資料層 ===== */
 const KEY = 'procure-db-v1';
 const PIN_KEY = 'procure-admin-pin';
