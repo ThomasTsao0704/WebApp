@@ -318,6 +318,8 @@ logoutBtn.onclick = () => {
   applyModeUI();
   showTab('data');
 };
+  function isAdmin(){ return localStorage.getItem('admin') === '1'; }
+function setAdmin(on){ on ? localStorage.setItem('admin','1') : localStorage.removeItem('admin'); }
 
 // 設定/更新 PIN
 setPinBtn.onclick = () => {
