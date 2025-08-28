@@ -1,9 +1,10 @@
 <!doctype html>
+
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>採購資料庫 · PWA（管理分頁版）</title>
+  <title>採購資料庫 · PWA（管理分頁版 + 採購車）</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#111111">
   <link rel="icon" href="icons/icon-192.png" sizes="192x192">
@@ -11,10 +12,10 @@
     :root{--radius:12px;--border:#e5e7eb;--muted:#6b7280;--bg:#fafafa;--primary:#111}
     *{box-sizing:border-box}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans TC',Arial,sans-serif;margin:0;background:var(--bg);color:#111}
-    .wrap{max-width:980px;margin:0 auto;padding:20px}
+    .wrap{max-width:1080px;margin:0 auto;padding:20px}
     h1{font-size:1.25rem;margin:8px 0 6px}
     .sub{color:var(--muted);margin:0 0 12px}
-    .tabs{display:flex;gap:8px;border-bottom:1px solid var(--border);margin-bottom:12px}
+    .tabs{display:flex;gap:8px;border-bottom:1px solid var(--border);margin-bottom:12px;align-items:center}
     .tab{padding:10px 14px;border:1px solid var(--border);border-bottom:none;border-radius:10px 10px 0 0;background:#fff;cursor:pointer}
     .tab.active{background:#111;color:#fff;border-color:#111}
     .card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
@@ -43,59 +44,103 @@
     .dlg .row{margin-top:8px}
     .dlg footer{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
     .overlay::backdrop{background:rgba(0,0,0,.4)}
+    /* 採購分頁：左右欄 */
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media (min-width:900px){ .grid{grid-template-columns:1.3fr .9fr} }
+    .num{width:96px;text-align:right}
+    .qty{width:84px;text-align:right}
+    .tot{font-weight:600}
+    .no-wrap{white-space:nowrap}
   </style>
 </head>
 <body>
 <div class="wrap">
   <h1>採購資料庫</h1>
-  <p class="sub">PWA 單機可安裝版。未登入＝唯讀；登入後可編輯與使用管理分頁。預設 PIN：<span class="tag">0000</span>。</p>
-
-  <div class="tabs">
+  <p class="sub">PWA 單機可安裝版。未登入＝唯讀；登入後可編輯與使用管理分頁。預設 PIN：<span class="tag">0000</span>。</p>  <div class="tabs">
     <button class="tab" data-tab="data">📄 資料</button>
+    <button class="tab" data-tab="cart">🧺 採購</button>
     <button class="tab hidden" data-tab="admin" id="adminTab">🛠 管理</button>
     <span class="right"></span>
     <span id="modeBadge" class="badge readonly">🔒 唯讀模式</span>
     <button id="loginBtn" class="secondary">管理者登入</button>
     <button id="logoutBtn" class="secondary hidden">登出</button>
-  </div>
-
-  <!-- 資料分頁 -->
-  <section id="page-data">
+  </div>  <!-- 資料分頁 -->  <section id="page-data">
     <div class="card">
       <div class="toolbar">
         <input id="q" type="search" placeholder="搜尋：編號 / 品項 / 廠商…"/>
         <button id="exportBtn">匯出 CSV</button>
       </div>
       <p class="muted" style="margin-top:8px">資料儲存在本機瀏覽器（離線可用）。如需多人共用，後續可做雲端版。</p>
-    </div>
+    </div><div class="card">
+  <div class="row" style="margin-bottom:8px">
+    <input id="id" placeholder="編號（如 PR-20250828-001）" />
+    <input id="item" placeholder="品項（型號/規格）" />
+    <input id="unit" placeholder="單位（個/包/箱…）" />
+    <input id="price" placeholder="價錢（數字）" inputmode="decimal"/>
+    <input id="vendor" placeholder="廠商" />
+  </div>
+  <div class="row">
+    <button id="addBtn" disabled>新增 / 更新</button>
+    <span class="muted">提示：相同「編號」會視為更新同一筆。</span>
+  </div>
+</div>
 
-    <div class="card">
-      <div class="row" style="margin-bottom:8px">
-        <input id="id" placeholder="編號（如 PR-20250828-001）" />
-        <input id="item" placeholder="品項（型號/規格）" />
-        <input id="unit" placeholder="單位（個/包/箱…）" />
-        <input id="price" placeholder="價錢（數字）" inputmode="decimal"/>
-        <input id="vendor" placeholder="廠商" />
-      </div>
-      <div class="row">
-        <button id="addBtn" disabled>新增 / 更新</button>
-        <span class="muted">提示：相同「編號」會視為更新同一筆。</span>
-      </div>
-    </div>
+<div class="card">
+  <table id="tbl">
+    <thead>
+      <tr><th>編號</th><th>品項</th><th>單位</th><th>價錢</th><th>廠商</th><th>動作</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <div id="count" class="muted" style="margin-top:8px"></div>
+</div>
 
+  </section>  <!-- 採購分頁（購物車） -->  <section id="page-cart" class="hidden">
+    <div class="grid">
+      <!-- 左：可挑選清單 -->
+      <div>
+        <div class="card">
+          <div class="toolbar">
+            <input id="cartSearch" type="search" placeholder="搜尋可加入的品項（編號 / 品項 / 廠商）"/>
+            <span class="muted">從資料庫加入至右側購物車</span>
+          </div>
+        </div>
+        <div class="card">
+          <table id="pickTbl">
+            <thead>
+              <tr><th>編號</th><th>品項</th><th class="no-wrap">單價</th><th>廠商</th><th>加入</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div id="pickCount" class="muted" style="margin-top:8px"></div>
+        </div>
+      </div><!-- 右：購物車 -->
+  <div>
     <div class="card">
-      <table id="tbl">
+      <div class="toolbar">
+        <strong>🧺 購物車</strong>
+        <span id="cartBadge" class="badge">0 項</span>
+        <span class="right"></span>
+        <button class="secondary" id="cartClearBtn">清空</button>
+        <button id="copyBtn">複製清單</button>
+      </div>
+      <p class="muted" style="margin-top:8px">清單格式：品項 × 數量 ＝ 小計；最後顯示合計，已自動加入千分位。</p>
+    </div>
+    <div class="card">
+      <table id="cartTbl">
         <thead>
-          <tr><th>編號</th><th>品項</th><th>單位</th><th>價錢</th><th>廠商</th><th>動作</th></tr>
+          <tr><th>品項</th><th class="no-wrap">單價</th><th class="no-wrap">數量</th><th class="no-wrap">小計</th><th>動作</th></tr>
         </thead>
         <tbody></tbody>
       </table>
-      <div id="count" class="muted" style="margin-top:8px"></div>
+      <div class="row" style="justify-content:flex-end;margin-top:8px">
+        <div class="tag" id="totalTag">合計：0</div>
+      </div>
     </div>
-  </section>
+  </div>
+</div>
 
-  <!-- 管理分頁（未登入完全隱藏） -->
-  <section id="page-admin" class="hidden">
+  </section>  <!-- 管理分頁（未登入完全隱藏） -->  <section id="page-admin" class="hidden">
     <div class="card">
       <h3>🛡 管理功能</h3>
       <div class="toolbar" style="margin-top:8px">
@@ -108,10 +153,7 @@
       <p class="muted" style="margin-top:8px">管理分頁只在管理者模式中顯示；未登入看不到此分頁。</p>
     </div>
   </section>
-</div>
-
-<!-- 登入對話框 -->
-<dialog id="dlgLogin" class="overlay">
+</div><!-- 登入對話框 --><dialog id="dlgLogin" class="overlay">
   <div class="dlg">
     <h3>管理者登入</h3>
     <p class="muted">本機輕量保護；請勿使用其他服務相同密碼。</p>
@@ -123,10 +165,7 @@
       <button id="confirmLogin">登入</button>
     </footer>
   </div>
-</dialog>
-
-<!-- 設定 PIN 對話框 -->
-<dialog id="dlgSetPin" class="overlay">
+</dialog><!-- 設定 PIN 對話框 --><dialog id="dlgSetPin" class="overlay">
   <div class="dlg">
     <h3>設定管理者 PIN</h3>
     <p class="muted">僅本機儲存；請記好你的 PIN。</p>
@@ -139,9 +178,7 @@
       <button id="confirmSetPin">設定</button>
     </footer>
   </div>
-</dialog>
-
-<script>
+</dialog><script>
 // ---- PWA: register SW ----
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -153,20 +190,30 @@ if ('serviceWorker' in navigator) {
 const KEY = 'procure-db-v1';
 const PIN_KEY = 'procure-admin-pin';
 const DEFAULT_PIN = '0000';
+const CART_KEY = 'procure-cart-v1';
 
 const $ = sel => document.querySelector(sel);
 const q = $('#q'), id = $('#id'), item = $('#item'), unit = $('#unit'), price = $('#price'), vendor = $('#vendor');
 const tbody = $('#tbl tbody'), count = $('#count');
+
+const cartSearch = $('#cartSearch');
+const pickTbody = $('#pickTbl tbody'), pickCount = $('#pickCount');
+const cartTbody = $('#cartTbl tbody');
+const totalTag = $('#totalTag');
+const cartBadge = $('#cartBadge');
 
 const loginBtn = $('#loginBtn'), logoutBtn = $('#logoutBtn'), setPinBtn = $('#setPinBtn');
 const importBtn = $('#importBtn'), exportBtn = $('#exportBtn'), clearBtn = $('#clearBtn'), addBtn = $('#addBtn'), csvFile = $('#csvFile');
 const modeBadge = $('#modeBadge');
 const adminTabBtn = document.querySelector('.tab[data-tab="admin"]');
 const tabs = document.querySelectorAll('.tab');
-const pageData = $('#page-data'), pageAdmin = $('#page-admin');
+const pageData = $('#page-data'), pageAdmin = $('#page-admin'), pageCart = $('#page-cart');
 
 const dlgLogin = $('#dlgLogin'), pinInput = $('#pinInput'), cancelLogin = $('#cancelLogin'), confirmLogin = $('#confirmLogin');
 const dlgSetPin = $('#dlgSetPin'), newPin1 = $('#newPin1'), newPin2 = $('#newPin2'), cancelSetPin = $('#cancelSetPin'), confirmSetPin = $('#confirmSetPin');
+
+const cartClearBtn = $('#cartClearBtn');
+const copyBtn = $('#copyBtn');
 
 const fmtMoney = n => {
   if (n === '' || n === null || n === undefined || isNaN(n)) return '';
@@ -179,16 +226,20 @@ function getPin(){ return localStorage.getItem(PIN_KEY) || DEFAULT_PIN; }
 function isAdmin(){ return sessionStorage.getItem('admin') === '1'; }
 function setAdmin(on){ on ? sessionStorage.setItem('admin','1') : sessionStorage.removeItem('admin'); }
 
+// Cart 存取（使用 sessionStorage，關閉頁籤即清空；如要保留可改 localStorage）
+function loadCart(){ try { return JSON.parse(sessionStorage.getItem(CART_KEY) || '[]'); } catch { return []; } }
+function saveCart(rows){ sessionStorage.setItem(CART_KEY, JSON.stringify(rows)); }
+
 /* ===== CRUD ===== */
 function upsertRow(r){
   const rows = load();
   const i = rows.findIndex(x => x.編號 === r.編號);
   if (i>=0) rows[i] = r; else rows.push(r);
-  save(rows); render();
+  save(rows); render(); renderPick(); // 資料更新時，同步左側可挑選清單
 }
 function delRow(編號){
   const rows = load().filter(x => x.編號 !== 編號);
-  save(rows); render();
+  save(rows); render(); renderPick();
 }
 function fillForm(r){
   id.value = r.編號; item.value = r.品項; unit.value = r.單位; price.value = r.價錢; vendor.value = r.廠商;
@@ -200,6 +251,7 @@ function showTab(name){
   tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   pageData.classList.toggle('hidden', name !== 'data');
   pageAdmin.classList.toggle('hidden', name !== 'admin');
+  pageCart.classList.toggle('hidden', name !== 'cart');
   if(name === 'admin' && !isAdmin()){
     location.hash = '#data';
     showTab('data');
@@ -209,7 +261,8 @@ function showTab(name){
 }
 function initFromHash(){
   const h = (location.hash || '#data').replace('#','');
-  showTab(h === 'admin' && isAdmin() ? 'admin' : 'data');
+  const target = (h === 'admin' && !isAdmin()) ? 'data' : (['data','admin','cart'].includes(h) ? h : 'data');
+  showTab(target);
 }
 
 /* ===== UI & 權限 ===== */
@@ -230,6 +283,8 @@ function applyModeUI(){
   adminTabBtn.classList.toggle('hidden', !admin);
   if(!admin && location.hash === '#admin'){ showTab('data'); }
   render();
+  renderPick();
+  renderCart();
 }
 
 function render(){
@@ -258,7 +313,84 @@ function render(){
   count.textContent = `共 ${filtered.length} / ${rows.length} 筆`;
 }
 
+// 採購分頁：左側可挑選清單
+function renderPick(){
+  const query = (cartSearch.value || '').trim().toLowerCase();
+  const rows = load().sort((a,b)=> a.編號.localeCompare(b.編號));
+  const filtered = rows.filter(r => `${r.編號} ${r.品項} ${r.廠商}`.toLowerCase().includes(query));
+  pickTbody.innerHTML = filtered.map(r => `
+    <tr>
+      <td>${r.編號}</td>
+      <td>${r.品項}</td>
+      <td class="no-wrap">${fmtMoney(r.價錢)}</td>
+      <td>${r.廠商}</td>
+      <td><button data-act="addcart" data-id="${r.編號.replace(/"/g,'&quot;')}">加入</button></td>
+    </tr>
+  `).join('');
+  pickCount.textContent = `可挑選：${filtered.length} / ${rows.length} 筆`;
+}
+
+// Cart 操作
+function addToCart(row){
+  const cart = loadCart();
+  const i = cart.findIndex(x => x.編號 === row.編號);
+  if(i>=0){ cart[i].數量 += 1; }
+  else{
+    cart.push({ 編號: row.編號, 品項: row.品項, 單價: Number(row.價錢)||0, 廠商: row.廠商, 數量: 1 });
+  }
+  saveCart(cart); renderCart();
+}
+function setQty(id, qty){
+  const cart = loadCart();
+  const i = cart.findIndex(x => x.編號 === id);
+  if(i>=0){ cart[i].數量 = Math.max(0, Math.floor(qty||0)); }
+  const cleaned = cart.filter(x => x.數量>0);
+  saveCart(cleaned); renderCart();
+}
+function removeFromCart(id){
+  const cart = loadCart().filter(x => x.編號 !== id);
+  saveCart(cart); renderCart();
+}
+function clearCart(){ saveCart([]); renderCart(); }
+
+function renderCart(){
+  const cart = loadCart();
+  cartBadge.textContent = `${cart.length} 項`;
+  cartTbody.innerHTML = cart.map(r => {
+    const sub = r.單價 * r.數量;
+    return `
+      <tr>
+        <td>${r.品項}</td>
+        <td class="no-wrap">${fmtMoney(r.單價)}</td>
+        <td class="no-wrap">
+          <input class="qty" type="number" min="0" step="1" value="${r.數量}" data-cart-qty="${r.編號.replace(/"/g,'&quot;')}">
+        </td>
+        <td class="no-wrap tot">${fmtMoney(sub)}</td>
+        <td><button class="secondary" data-act="rmcart" data-id="${r.編號.replace(/"/g,'&quot;')}">移除</button></td>
+      </tr>`;
+  }).join('');
+  const total = cart.reduce((s,r)=> s + r.單價*r.數量, 0);
+  totalTag.textContent = `合計：${fmtMoney(total)}`;
+}
+
+function copySummary(){
+  const cart = loadCart();
+  if(cart.length===0){ alert('購物車目前是空的'); return; }
+  const lines = cart.map(r => `${r.品項} × ${r.數量} ＝ ${fmtMoney(r.單價*r.數量)}`);
+  const total = cart.reduce((s,r)=> s + r.單價*r.數量, 0);
+  const txt = lines.join('\n') + `\n——\n合計：${fmtMoney(total)}`;
+  navigator.clipboard.writeText(txt).then(()=>{
+    alert('已複製到剪貼簿，可直接貼到 LINE');
+  }).catch(()=>{
+    // 部分瀏覽器需以選取方式複製
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); alert('已複製到剪貼簿，可直接貼到 LINE'); } finally { document.body.removeChild(ta); }
+  });
+}
+
 /* ===== 事件 ===== */
+// 通用 click 代理
 document.addEventListener('click', (ev)=>{
   const t = ev.target;
   if(t.dataset.act === 'edit'){
@@ -270,11 +402,31 @@ document.addEventListener('click', (ev)=>{
     const id = t.dataset.id;
     if(confirm(`刪除「${id}」？`)) delRow(id);
   }
+  if(t.dataset.act === 'addcart'){
+    const id = t.dataset.id;
+    const row = load().find(x=>x.編號===id);
+    if(row) addToCart(row);
+  }
+  if(t.dataset.act === 'rmcart'){
+    removeFromCart(t.dataset.id);
+  }
 });
 
-tabs.forEach(t => t.addEventListener('click', ()=> showTab(t.dataset.tab)));
-q.oninput = render;
+// 購物車數量變更（input 事件代理）
+document.addEventListener('input', (ev)=>{
+  const el = ev.target;
+  if(el.matches('input[data-cart-qty]')){
+    const id = el.getAttribute('data-cart-qty');
+    setQty(id, Number(el.value));
+  }
+});
 
+// Tabs
+Array.from(tabs).forEach(t => t.addEventListener('click', ()=> showTab(t.dataset.tab)));
+q.oninput = render;
+cartSearch.oninput = renderPick;
+
+// 匯出 CSV（資料分頁）
 exportBtn.onclick = () => {
   const rows = load();
   const headers = ['編號','品項','單位','價錢','廠商'];
@@ -292,6 +444,7 @@ exportBtn.onclick = () => {
   a.click();
 };
 
+// 新增 / 更新（資料分頁）
 addBtn.onclick = () => {
   if(!isAdmin()){ alert('請先以管理者登入'); return; }
   const r = {
@@ -308,9 +461,10 @@ addBtn.onclick = () => {
   item.value = unit.value = price.value = vendor.value = '';
 };
 
+// 管理分頁：清空、匯入
 clearBtn.onclick = () => {
   if(!isAdmin()){ alert('請先以管理者登入'); return; }
-  if (confirm('確定要清空本機資料嗎？此動作無法復原！')) { localStorage.setItem(KEY,'[]'); render(); }
+  if (confirm('確定要清空本機資料嗎？此動作無法復原！')) { localStorage.setItem(KEY,'[]'); render(); renderPick(); }
 };
 
 importBtn.onclick = async () => {
@@ -348,7 +502,7 @@ importBtn.onclick = async () => {
   const map = new Map(existing.map(r=>[r.編號,r]));
   for(const r of rows) map.set(r.編號,r);
   localStorage.setItem(KEY, JSON.stringify(Array.from(map.values())));
-  render();
+  render(); renderPick();
   alert(`匯入完成：${rows.length} 筆（同編號覆蓋）。`);
 };
 
@@ -389,8 +543,9 @@ function init(){
   applyModeUI();
   initFromHash();
   window.addEventListener('hashchange', initFromHash);
+  copyBtn.addEventListener('click', copySummary);
+  cartClearBtn.addEventListener('click', clearCart);
 }
 init();
-</script>
-</body>
+</script></body>
 </html>
