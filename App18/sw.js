@@ -1,42 +1,37 @@
-const CACHE_NAME = 'purchase-helper-v1';
-const CORE_ASSETS = [
-'./',
-'./index.html',
-'./manifest.webmanifest'
+const CACHE = 'procure-pwa-v2'; // 改版號即可刷新快取
+const ASSETS = [
+    './',
+    './index.html',
+    './manifest.json',
+    './icons/icon-192.png',
+    './icons/icon-512.png'
 ];
 
-
-self.addEventListener('install', (event) => {
-event.waitUntil(
-caches.open(CACHE_NAME).then(cache => cache.addAll(CORE_ASSETS))
-);
-self.skipWaiting();
+self.addEventListener('install', (e) => {
+    e.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
+    self.skipWaiting();
 });
 
-
-self.addEventListener('activate', (event) => {
-event.waitUntil(
-caches.keys().then(keys => Promise.all(keys.map(k => k===CACHE_NAME?null:caches.delete(k))))
-);
-self.clients.claim();
+self.addEventListener('activate', (e) => {
+    e.waitUntil(
+        caches.keys().then(keys => Promise.all(keys.map(k => k !== CACHE && caches.delete(k))))
+    );
+    self.clients.claim();
 });
 
-
-self.addEventListener('fetch', (event) => {
-const req = event.request;
-// 只處理 GET
-if(req.method !== 'GET') return;
-event.respondWith(
-caches.match(req).then(cached => {
-const fetchPromise = fetch(req).then(networkRes => {
-// 動態快取同源資源
-if (networkRes && networkRes.status === 200 && new URL(req.url).origin === location.origin) {
-const resClone = networkRes.clone();
-caches.open(CACHE_NAME).then(cache => cache.put(req, resClone));
-}
-return networkRes;
-}).catch(() => cached || caches.match('./index.html'));
-return cached || fetchPromise;
-})
-);
+self.addEventListener('fetch', (e) => {
+    const req = e.request;
+    if (req.method !== 'GET') return;
+    e.respondWith(
+        caches.match(req).then(cached => {
+            const fetcher = fetch(req).then(res => {
+                if (res && res.status === 200 && new URL(req.url).origin === location.origin) {
+                    const clone = res.clone();
+                    caches.open(CACHE).then(c => c.put(req, clone));
+                }
+                return res;
+            }).catch(() => cached || caches.match('./index.html'));
+            return cached || fetcher;
+        })
+    );
 });

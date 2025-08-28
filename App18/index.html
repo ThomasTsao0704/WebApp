@@ -1,282 +1,838 @@
 <!doctype html>
 <html lang="zh-Hant">
+
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>採購小幫手 · 購物車 + 資料庫 WebApp</title>
-  <style>
-    :root{ --radius:14px; --gap:10px; --muted:#6b7280; --border:#e5e7eb; --bg:#fafafa; --primary:#0a58ca; }
-    *{box-sizing:border-box}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans TC",Arial,sans-serif;margin:0;background:var(--bg);color:#111827}
-    .container{max-width:1100px;margin:0 auto;padding:16px}
-
-    header{display:flex;flex-wrap:wrap;gap:var(--gap);align-items:center;justify-content:space-between;margin-bottom:12px}
-    h1{font-size:1.25rem;margin:0}
-
-    /* Tabs */
-    .tabs{display:flex;gap:6px;margin:6px 0 12px}
-    .tab{border:1px solid var(--border);background:#fff;padding:8px 12px;border-radius:12px;cursor:pointer}
-    .tab.active{background:var(--primary);border-color:transparent;color:#fff}
-
-    .toolbar{display:flex;flex-wrap:wrap;gap:var(--gap)}
-    .toolbar>*{border:1px solid var(--border);border-radius:var(--radius);background:#fff;padding:8px 10px}
-    input[type="search"]{min-width:200px}
-    button{cursor:pointer}
-    button.primary{background:var(--primary);color:#fff;border-color:transparent}
-    button.ghost{background:#fff}
-
-    .table-wrap{overflow:auto;border:1px solid var(--border);border-radius:var(--radius);background:#fff}
-    table{width:100%;border-collapse:separate;border-spacing:0;min-width:760px}
-    thead th{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);text-align:left;padding:10px;white-space:nowrap}
-    tbody td{border-bottom:1px solid #f1f5f9;padding:8px 10px;vertical-align:middle}
-    tbody tr:hover{background:#fafafa}
-    .num{font-variant-numeric:tabular-nums}
-    .qty{display:flex;align-items:center;gap:6px}
-    .qty input{width:78px;text-align:right;padding:6px 8px;border:1px solid var(--border);border-radius:10px}
-    .qty button{width:28px;height:28px;border:1px solid var(--border);border-radius:8px;background:#fff;line-height:0}
-
-    .summary{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
-    .card{border:1px solid var(--border);border-radius:var(--radius);background:#fff;padding:12px}
-    .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-    .totals{display:flex;justify-content:space-between;align-items:center}
-    .totals .price{font-weight:700;font-size:1.25rem}
-    .muted{color:var(--muted)}
-
-    /* Toast */
-    .toast{position:fixed;right:16px;bottom:16px;background:#16a34a;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.15);opacity:0;transform:translateY(12px);pointer-events:none;transition:opacity .25s ease, transform .25s ease;font-size:.95rem}
-    .toast.show{opacity:1;transform:translateY(0)}
-    .toast.error{background:#dc2626}
-
-    /* DB 管理區 */
-    .db-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
-    .db-toolbar > *{border:1px solid var(--border);background:#fff;padding:8px 10px;border-radius:12px}
-    .chip{font-size:.9rem;color:#111;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:999px;padding:4px 10px}
-    .hidden{display:none}
-
-    @media (max-width:640px){
-      input[type="search"]{min-width:unset;width:100%}
-      .grid-3{grid-template-columns:1fr}
-      table{min-width:600px}
-      .toast{left:16px;right:16px}
-    }
-  </style>
-  <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="theme-color" content="#0a58ca" />
-</head>
-<body>
-  <div class="container">
-    <header>
-      <h1>採購小幫手 · 購物車 + 資料庫</h1>
-      <div class="tabs" role="tablist">
-        <button id="tab-cart" class="tab active" role="tab" aria-selected="true">🛒 採購</button>
-        <button id="tab-db" class="tab" role="tab" aria-selected="false">📚 資料庫</button>
-        <button id="installBtn" class="tab hidden" title="安裝離線 App">📲 安裝 App</button>
-      </div>
-    </header>
-
-    <!-- 🛒 採購頁 -->
-    <section id="view-cart" role="tabpanel" aria-labelledby="tab-cart">
-      <div class="toolbar" style="margin-bottom:10px">
-        <input id="q" type="search" placeholder="搜尋品項 / 單位 / 店家…" />
-        <select id="shopFilter"><option value="">全部店家</option></select>
-        <button id="resetBtn" class="ghost">清空數量</button>
-        <button id="exportBtn" class="ghost">匯出</button>
-      </div>
-
-      <div class="table-wrap">
-        <table id="tbl">
-          <thead><tr><th>#</th><th>品項</th><th>單位</th><th class="num">單價</th><th>店家</th><th class="num">數量</th><th class="num">小計</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-
-      <section class="summary">
-        <div class="card">
-          <div class="totals">
-            <div>
-              <div class="muted">未稅合計（所有品項）</div>
-              <div id="grandCount" class="muted" style="font-size:.9rem"></div>
-            </div>
-            <div id="grandTotal" class="price">$0</div>
-          </div>
-        </div>
-        <div class="grid-3">
-          <div class="card"><div class="muted">清順 小計</div><div id="sum-qingshun" class="price">$0</div></div>
-          <div class="card"><div class="muted">寶成 小計</div><div id="sum-baocheng" class="price">$0</div></div>
-          <div class="card"><div class="muted">已選擇品項數</div><div id="pickedCount" class="price">0</div></div>
-        </div>
-      </section>
-    </section>
-
-    <!-- 📚 資料庫頁 -->
-    <section id="view-db" class="hidden" role="tabpanel" aria-labelledby="tab-db">
-      <div class="db-toolbar">
-        <button id="dbImport">匯入 CSV</button>
-        <input id="dbFile" type="file" accept=".csv,text/csv" class="hidden" />
-        <button id="dbExport">匯出 CSV</button>
-        <button id="dbAdd" class="ghost">新增品項</button>
-        <button id="dbSave" class="primary">儲存變更</button>
-        <button id="dbReset" class="ghost">恢復到「預設資料」</button>
-        <button id="dbSetDefault" class="ghost">將目前資料設為新的預設</button>
-        <button id="dbTemplate" class="ghost">下載 CSV 模板</button>
-        <span id="dbInfo" class="chip">目前 0 筆 · 未儲存</span>
-      </div>
-
-      <div class="table-wrap">
-        <table id="dbTable">
-          <thead>
-            <tr>
-              <th style="width:64px">操作</th>
-              <th>ID</th>
-              <th>品項</th>
-              <th>單位</th>
-              <th class="num">單價</th>
-              <th>店家</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <p class="muted" style="margin-top:8px">提示：支援欄位 <code>id,item,unit,price,shop</code>；未提供 <code>id</code> 會自動產生。價格請填整數（新台幣），匯入時會自動忽略 <code>$</code> 與千分位。</p>
-    </section>
-  </div>
-
-  <!-- Toast -->
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
-  <script>
-    // ======== 常數與工具 ========
-    const LS_QTY = 'cart-qty-v1';
-    const LS_DB  = 'cart-db-v1';
-    const LS_FACTORY = 'cart-db-factory-v1'; // ✅ 允許使用者覆蓋「預設」
-
-    const BUILTIN_DEFAULT = [
-      {id:'A01',item:'吸管',unit:'50支/包',price:284,shop:'清順'},
-      {id:'A02',item:'冰砂吸管',unit:'50支/包',price:1351,shop:'清順'},
-      {id:'A03',item:'9x9 紙巾',unit:'20包/箱',price:1637,shop:'清順'},
-      {id:'A04',item:'抽取式 衛生紙',unit:'20包/箱',price:1720,shop:'清順'},
-      {id:'A05',item:'廚房紙巾',unit:'50支/包',price:1896,shop:'清順'},
-      {id:'B01',item:'牛皮紙 外帶盒(S)',unit:'50個/條',price:1944,shop:'寶成'},
-      {id:'B02',item:'牛皮紙 外帶盒(L)',unit:'50個/條',price:1973,shop:'寶成'},
-      {id:'B03',item:'外帶比薩盒',unit:'50個/條',price:1994,shop:'寶成'},
-    ];
-
-    // 讀取「工廠預設」
-    function loadFactory(){
-      try { const x = JSON.parse(localStorage.getItem(LS_FACTORY)||'null'); if(Array.isArray(x) && x.length) return x; } catch{}
-      return BUILTIN_DEFAULT.slice();
-    }
-
-    // 千分位格式（純數字，外層自行加 $）
-    const intFmt = new Intl.NumberFormat('zh-Hant-TW',{minimumFractionDigits:0,maximumFractionDigits:0});
-
-    function showToast(text,{error=false,duration=1800}={}){
-      const t=document.getElementById('toast');
-      t.textContent=text; t.classList.remove('error');
-      if(error) t.classList.add('error');
-      t.classList.add('show');
-      clearTimeout(showToast._timer);
-      showToast._timer=setTimeout(()=>t.classList.remove('show'), duration);
-    }
-
-    const uid = (()=>{ let n=1; return (prefix='X')=>`${prefix}${(Date.now()%1e7).toString(36)}${n++}`; })();
-
-    function toInt(v){ if(v==null) return 0; return Number(String(v).replace(/[$,\s]/g,'').trim())||0; }
-
-    // 簡易 CSV 解析（支援引號與跳脫）
-    function parseCSV(text){
-      const rows=[]; let cur=[]; let val=''; let inQ=false; let i=0; text=text.replace(/\r\n?|\n/g,'\n');
-      while(i<text.length){ const c=text[i++];
-        if(inQ){ if(c==='"'){ if(text[i]==='"'){ val+='"'; i++; } else { inQ=false; } } else { val+=c; } }
-        else { if(c==='"'){ inQ=true; }
-          else if(c===','){ cur.push(val); val=''; }
-          else if(c==='\n'){ cur.push(val); rows.push(cur); cur=[]; val=''; }
-          else { val+=c; }
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>採購資料庫 · 採購 / 資料 / 管理 · PWA</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#111111">
+    <link rel="icon" href="icons/icon-192.png" sizes="192x192">
+    <style>
+        :root {
+            --radius: 12px;
+            --border: #e5e7eb;
+            --muted: #6b7280;
+            --bg: #fafafa;
+            --primary: #111;
         }
-      }
-      if(val.length>0||cur.length>0) { cur.push(val); rows.push(cur); }
-      if(rows.length===0) return [];
-      const headers = rows[0].map(h=>String(h||'').trim());
-      const out = [];
-      for(let r=1;r<rows.length;r++){
-        if(rows[r].every(x=>String(x).trim()==='')) continue;
-        const obj={};
-        for(let c=0;c<headers.length;c++) obj[headers[c]] = rows[r][c]??'';
-        out.push(obj);
-      }
-      return out;
-    }
 
-    function toCSV(rows){
-      if(!rows||!rows.length) return '';
-      const headers = Object.keys(rows[0]);
-      const esc = v => {
-        const s = String(v??'');
-        return /[",\n]/.test(s) ? '"'+s.replaceAll('"','""')+'"' : s;
-      };
-      return [headers.join(','), ...rows.map(r=>headers.map(h=>esc(r[h])).join(','))].join('\n');
-    }
+        * {
+            box-sizing: border-box
+        }
 
-    function normalizeRecord(r){
-      const map = {}; for(const k in r){ map[k.trim().toLowerCase()] = r[k]; }
-      let id = (map['id']||'').toString().trim();
-      const item = (map['item']||map['品項']||'').toString().trim();
-      const unit = (map['unit']||map['單位']||'').toString().trim();
-      const shop = (map['shop']||map['商家']||map['店家']||'').toString().trim();
-      const price = toInt(map['price']||map['價格']);
-      if(!id) id = uid('I');
-      return { id, item, unit, price, shop };
-    }
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans TC", Arial, sans-serif;
+            margin: 0;
+            background: var(--bg);
+            color: #111
+        }
 
-    // ======== 狀態 ========
-    const state = { data: [], qty: {}, dirty: false };
+        .wrap {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 18px
+        }
 
-    // 優先載入使用者儲存的資料庫；否則用「工廠預設」
-    (function initDB(){
-      try {
-        const savedDB = JSON.parse(localStorage.getItem(LS_DB)||'null');
-        if(Array.isArray(savedDB) && savedDB.length){ state.data = savedDB; }
-        else { state.data = loadFactory(); }
-      } catch { state.data = loadFactory(); }
-    })();
+        h1 {
+            font-size: 1.25rem;
+            margin: 8px 0 6px
+        }
 
-    // 載入/初始化購物車數量
-    try { const savedQty = JSON.parse(localStorage.getItem(LS_QTY)||'{}'); state.qty = savedQty && typeof savedQty==='object' ? savedQty : {}; }
-    catch { state.qty = {}; }
-    for(const d of state.data){ if(!(d.id in state.qty)) state.qty[d.id]=0; }
+        .sub {
+            color: var(--muted);
+            margin: 0 0 12px
+        }
 
-    // ======== 採購視圖 ========
-    const $tbody = document.querySelector('#tbl tbody');
-    const $q = document.getElementById('q');
-    const $shopFilter = document.getElementById('shopFilter');
-    const $grandTotal = document.getElementById('grandTotal');
-    const $grandCount = document.getElementById('grandCount');
-    const $sumQingShun = document.getElementById('sum-qingshun');
-    const $sumBaoCheng = document.getElementById('sum-baocheng');
-    const $pickedCount = document.getElementById('pickedCount');
-    const $resetBtn = document.getElementById('resetBtn');
-    const $exportBtn = document.getElementById('exportBtn');
+        .tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 12px;
+            align-items: center
+        }
 
-    function populateShopFilter(){
-      $shopFilter.innerHTML = '<option value="">全部店家</option>';
-      const shops = [...new Set(state.data.map(d=>d.shop))];
-      for(const s of shops){ const opt=document.createElement('option'); opt.value=s; opt.textContent=s; $shopFilter.appendChild(opt); }
-    }
+        .tab {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-bottom: none;
+            border-radius: 10px 10px 0 0;
+            background: #fff;
+            cursor: pointer
+        }
 
-    function renderCart(){
-      populateShopFilter();
-      const kw = ($q.value||'').trim().toLowerCase();
-      const shop = $shopFilter.value;
-      const rows = state.data.filter(d => {
-        const text = `${d.item} ${d.unit} ${d.shop}`.toLowerCase();
-        return (!kw || text.includes(kw)) && (!shop || d.shop === shop);
-      });
-      $tbody.innerHTML = '';
-      rows.forEach((d, idx) => {
-        const q = Number(state.qty[d.id]||0);
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="num">${idx+1}</td>
+        .tab.active {
+            background: #111;
+            color: #fff;
+            border-color: #111
+        }
+
+        .right {
+            margin-left: auto
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 2px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            font-size: .85rem;
+            background: #fff
+        }
+
+        .badge.readonly {
+            background: #fff
+        }
+
+        .badge.admin {
+            background: #eefbf1;
+            border-color: #b7ebc6
+        }
+
+        .hidden {
+            display: none !important
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, .03)
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap
+        }
+
+        input,
+        button,
+        select {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 10px
+        }
+
+        input,
+        select {
+            flex: 1;
+            min-width: 120px
+        }
+
+        button {
+            cursor: pointer;
+            background: var(--primary);
+            color: #fff
+        }
+
+        button.secondary {
+            background: #fff;
+            color: #111
+        }
+
+        button[disabled] {
+            opacity: .5;
+            cursor: not-allowed
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: .92rem
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            font-size: .85rem;
+            color: #333;
+            background: #fafafa
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        th,
+        td {
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+            vertical-align: top
+        }
+
+        tr:hover {
+            background: #f7f7f7
+        }
+
+        .num {
+            font-variant-numeric: tabular-nums
+        }
+
+        .table-wrap {
+            overflow: auto
+        }
+
+        .actions button {
+            padding: 6px 10px;
+            font-size: .9rem
+        }
+
+        /* Qty control */
+        .qty {
+            display: flex;
+            align-items: center;
+            gap: 6px
+        }
+
+        .qty input {
+            width: 78px;
+            text-align: right;
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            border-radius: 10px
+        }
+
+        .qty button {
+            width: 28px;
+            height: 28px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #fff;
+            line-height: 0
+        }
+
+        /* Grid cards */
+        .summary {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 12px
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px
+        }
+
+        /* Dialog */
+        dialog {
+            border: none;
+            border-radius: 16px;
+            padding: 0;
+            width: min(90vw, 420px)
+        }
+
+        .dlg {
+            padding: 18px
+        }
+
+        .dlg h3 {
+            margin: 0 0 10px
+        }
+
+        .dlg .row {
+            margin-top: 8px
+        }
+
+        .dlg footer {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 12px
+        }
+
+        .overlay::backdrop {
+            background: rgba(0, 0, 0, .4)
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            background: #16a34a;
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, .15);
+            opacity: 0;
+            transform: translateY(12px);
+            pointer-events: none;
+            transition: opacity .25s ease, transform .25s ease;
+            font-size: .95rem
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0)
+        }
+
+        .toast.error {
+            background: #dc2626
+        }
+
+        @media (max-width:700px) {
+            .grid-3 {
+                grid-template-columns: 1fr
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <h1>採購資料庫 · PWA</h1>
+        <p class="sub">分頁：🛒採購（購物車）／📄資料（表格）／🛠管理（登入後可見）。預設 PIN：<span class="tag">0000</span>。</p>
+
+        <div class="tabs">
+            <button class="tab" data-tab="cart">🛒 採購</button>
+            <button class="tab" data-tab="data">📄 資料</button>
+            <button class="tab hidden" data-tab="admin" id="adminTab">🛠 管理</button>
+            <span class="right"></span>
+            <span id="modeBadge" class="badge readonly">🔒 唯讀模式</span>
+            <button id="loginBtn" class="secondary">管理者登入</button>
+            <button id="installBtn" class="secondary hidden" title="安裝離線 App">📲 安裝 App</button>
+            <button id="logoutBtn" class="secondary hidden">登出</button>
+        </div>
+
+        <!-- 🛒 採購 -->
+        <section id="page-cart">
+            <div class="card">
+                <div class="row">
+                    <input id="cartQ" type="search" placeholder="搜尋編號 / 品項 / 單位 / 廠商…" />
+                    <select id="shopFilter">
+                        <option value="">全部廠商</option>
+                    </select>
+                    <button id="resetQty" class="secondary">清空數量</button>
+                    <button id="cartExport" class="secondary">匯出（彙總＋複製）</button>
+                </div>
+                <p class="muted" style="margin-top:8px">僅影響本機購物車數量；不會修改資料庫內容。</p>
+            </div>
+
+            <div class="card table-wrap">
+                <table id="cartTbl">
+                    <thead>
+                        <tr>
+                            <th>編號</th>
+                            <th>品項</th>
+                            <th>單位</th>
+                            <th class="num">單價</th>
+                            <th>廠商</th>
+                            <th class="num">數量</th>
+                            <th class="num">小計</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <section class="summary">
+                <div class="card">
+                    <div class="row" style="align-items:center;justify-content:space-between">
+                        <div>
+                            <div class="muted">未稅合計（所有品項）</div>
+                            <div id="grandCount" class="muted" style="font-size:.9rem"></div>
+                        </div>
+                        <div id="grandTotal" class="num" style="font-weight:700;font-size:1.25rem">$0</div>
+                    </div>
+                </div>
+                <div class="grid-3">
+                    <div class="card">
+                        <div class="muted">清順 小計</div>
+                        <div id="sum-qingshun" class="num" style="font-weight:700">$0</div>
+                    </div>
+                    <div class="card">
+                        <div class="muted">寶成 小計</div>
+                        <div id="sum-baocheng" class="num" style="font-weight:700">$0</div>
+                    </div>
+                    <div class="card">
+                        <div class="muted">已選擇品項數</div>
+                        <div id="pickedCount" class="num" style="font-weight:700">0</div>
+                    </div>
+                </div>
+            </section>
+        </section>
+
+        <!-- 📄 資料 -->
+        <section id="page-data" class="hidden">
+            <div class="card">
+                <div class="row" style="margin-bottom:8px">
+                    <input id="id" placeholder="編號（= id，如 PR-20250828-001 或 A01）" />
+                    <input id="item" placeholder="品項（型號/規格）" />
+                    <input id="unit" placeholder="單位（個/包/箱…）" />
+                    <input id="price" placeholder="價錢（數字）" inputmode="decimal" />
+                    <input id="vendor" placeholder="廠商（= shop）" />
+                </div>
+                <div class="row">
+                    <button id="addBtn" disabled>新增 / 更新</button>
+                    <span class="muted">提示：相同「編號(id)」會視為更新同一筆（需登入）。</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="row">
+                    <input id="q" type="search" placeholder="搜尋：編號 / 品項 / 廠商…" />
+                    <button id="exportBtn" class="secondary">匯出 CSV（資料庫）</button>
+                </div>
+            </div>
+
+            <div class="card table-wrap">
+                <table id="tbl">
+                    <thead>
+                        <tr>
+                            <th>編號</th>
+                            <th>品項</th>
+                            <th>單位</th>
+                            <th class="num">價錢</th>
+                            <th>廠商</th>
+                            <th>動作</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div id="count" class="muted" style="margin-top:8px"></div>
+            </div>
+        </section>
+
+        <!-- 🛠 管理 -->
+        <section id="page-admin" class="hidden">
+            <div class="card">
+                <h3>🛡 管理功能</h3>
+                <div class="row" style="margin-top:8px">
+                    <input id="csvFile" type="file" accept=".csv" />
+                    <button class="secondary" id="importBtn" disabled>從 CSV 匯入</button>
+                    <button class="secondary" id="clearBtn" title="清空本機資料（請謹慎）" disabled>清空資料</button>
+                    <button class="secondary" id="setPinBtn" disabled>設定管理者 PIN</button>
+                    <span class="right"></span>
+                    <span id="dbInfo" class="badge">資料 0 筆</span>
+                </div>
+                <p class="muted" style="margin-top:8px">
+                    資料庫欄位：<code>{id,item,unit,price,shop}</code>。可匯入中文標頭檔案，系統會自動對應並轉換。</p>
+            </div>
+
+            <div class="card table-wrap">
+                <table id="dbTable">
+                    <thead>
+                        <tr>
+                            <th style="width:64px">操作</th>
+                            <th>id</th>
+                            <th>item</th>
+                            <th>unit</th>
+                            <th class="num">price</th>
+                            <th>shop</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div class="row" style="margin-top:10px">
+                    <button id="dbAdd" class="secondary">新增品項</button>
+                    <button id="dbSave">儲存變更</button>
+                    <button id="dbExport" class="secondary">匯出 CSV</button>
+                    <button id="dbTemplate" class="secondary">下載 CSV 模板</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 登入對話框 -->
+    <dialog id="dlgLogin" class="overlay">
+        <div class="dlg">
+            <h3>管理者登入</h3>
+            <p class="muted">本機輕量保護；請勿使用與其他服務相同密碼。預設 PIN：0000</p>
+            <div class="row"><input id="pinInput" type="password" placeholder="輸入 PIN" autofocus /></div>
+            <footer>
+                <button class="secondary" id="cancelLogin">取消</button>
+                <button id="confirmLogin">登入</button>
+            </footer>
+        </div>
+    </dialog>
+
+    <!-- 設定 PIN 對話框 -->
+    <dialog id="dlgSetPin" class="overlay">
+        <div class="dlg">
+            <h3>設定管理者 PIN</h3>
+            <p class="muted">僅本機儲存；請記好你的 PIN。</p>
+            <div class="row">
+                <input id="newPin1" type="password" placeholder="新的 PIN（4~12位）" />
+                <input id="newPin2" type="password" placeholder="再輸入一次" />
+            </div>
+            <footer>
+                <button class="secondary" id="cancelSetPin">取消</button>
+                <button id="confirmSetPin">設定</button>
+            </footer>
+        </div>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script>
+        /* ========= PWA ========= */
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(console.error));
+        }
+
+        /* ========= Keys / helpers ========= */
+        const LS_DB = 'cart-db-v1';
+        const LS_QTY = 'cart-qty-v1';
+        const LS_FACTORY = 'cart-db-factory-v1';
+        const OLD_KEY = 'procure-db-v1';
+        const PIN_KEY = 'procure-admin-pin';
+        const DEFAULT_PIN = '0000';
+
+        const $ = sel => document.querySelector(sel);
+        const intFmt = new Intl.NumberFormat('zh-Hant-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        const escCSV = s => /[",\n]/.test(s) ? '"' + String(s).replaceAll('"', '""') + '"' : String(s);
+        const uid = (() => { let n = 1; return (p = 'I') => `${p}${(Date.now() % 1e7).toString(36)}${n++}`; })();
+        const toInt = v => Number(String(v ?? '').replace(/[$,\s]/g, '').trim()) || 0;
+        const toast = (text, { error = false, duration = 1800 } = {}) => {
+            const t = $('#toast'); t.textContent = text; t.classList.toggle('error', !!error);
+            t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), duration);
+        };
+
+        /* ========= State ========= */
+        const state = { data: [], qty: {}, dirty: false };
+
+        /* ========= Migrate old schema ========= */
+        (function migrate() {
+            try {
+                const old = JSON.parse(localStorage.getItem(OLD_KEY) || 'null');
+                if (Array.isArray(old) && old.length) {
+                    const mapped = old.map(r => ({
+                        id: String(r['編號'] || '').trim() || uid('M'),
+                        item: String(r['品項'] || '').trim(),
+                        unit: String(r['單位'] || '').trim(),
+                        price: Number(r['價錢']) || 0,
+                        shop: String(r['廠商'] || '').trim()
+                    }));
+                    localStorage.setItem(LS_DB, JSON.stringify(mapped));
+                    localStorage.removeItem(OLD_KEY);
+                }
+            } catch { }
+        })();
+
+        /* ========= Factory defaults ========= */
+        const BUILTIN_DEFAULT = [
+            { id: 'A01', item: '吸管', unit: '50支/包', price: 284, shop: '清順' },
+            { id: 'A02', item: '冰砂吸管', unit: '50支/包', price: 1351, shop: '清順' },
+            { id: 'A03', item: '9x9 紙巾', unit: '20包/箱', price: 1637, shop: '清順' },
+            { id: 'A04', item: '抽取式 衛生紙', unit: '20包/箱', price: 1720, shop: '清順' },
+            { id: 'A05', item: '廚房紙巾', unit: '50支/包', price: 1896, shop: '清順' },
+            { id: 'B01', item: '牛皮紙 外帶盒(S)', unit: '50個/條', price: 1944, shop: '寶成' },
+            { id: 'B02', item: '牛皮紙 外帶盒(L)', unit: '50個/條', price: 1973, shop: '寶成' },
+            { id: 'B03', item: '外帶比薩盒', unit: '50個/條', price: 1994, shop: '寶成' }
+        ];
+        const loadFactory = () => {
+            try { const x = JSON.parse(localStorage.getItem(LS_FACTORY) || 'null'); if (Array.isArray(x) && x.length) return x; }
+            catch { }
+            return BUILTIN_DEFAULT.slice();
+        };
+
+        /* ========= Load DB & qty ========= */
+        (function initDB() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(LS_DB) || 'null');
+                if (Array.isArray(saved) && saved.length) { state.data = saved; }
+                else { state.data = loadFactory(); }
+            } catch { state.data = loadFactory(); }
+        })();
+        try { const q = JSON.parse(localStorage.getItem(LS_QTY) || '{}'); state.qty = (q && typeof q === 'object') ? q : {}; } catch { state.qty = {}; }
+        for (const d of state.data) { if (!(d.id in state.qty)) state.qty[d.id] = 0; }
+
+        /* ========= Admin (login/pin) ========= */
+        const modeBadge = $('#modeBadge'), loginBtn = $('#loginBtn'), logoutBtn = $('#logoutBtn'), adminTabBtn = $('#adminTab');
+        const dlgLogin = $('#dlgLogin'), pinInput = $('#pinInput'), cancelLogin = $('#cancelLogin'), confirmLogin = $('#confirmLogin');
+        const dlgSetPin = $('#dlgSetPin'), newPin1 = $('#newPin1'), newPin2 = $('#newPin2');
+
+        const getPin = () => localStorage.getItem(PIN_KEY) || DEFAULT_PIN;
+        const isAdmin = () => sessionStorage.getItem('admin') === '1';
+        const setAdmin = on => on ? sessionStorage.setItem('admin', '1') : sessionStorage.removeItem('admin');
+
+        function applyModeUI() {
+            const admin = isAdmin();
+            modeBadge.textContent = admin ? '✅ 管理者模式' : '🔒 唯讀模式';
+            modeBadge.classList.toggle('admin', admin);
+            modeBadge.classList.toggle('readonly', !admin);
+            loginBtn.classList.toggle('hidden', admin);
+            logoutBtn.classList.toggle('hidden', !admin);
+            adminTabBtn.classList.toggle('hidden', !admin);
+            // 控制可寫按鈕
+            $('#addBtn').disabled = !admin;
+            $('#importBtn').disabled = !admin;
+            $('#clearBtn').disabled = !admin;
+            $('#setPinBtn').disabled = !admin;
+            renderData(); renderDB();
+        }
+
+        /* ========= Tabs & Hash ========= */
+        const tabs = document.querySelectorAll('.tab');
+        const pageCart = $('#page-cart'), pageData = $('#page-data'), pageAdmin = $('#page-admin');
+
+        function showTab(name) {
+            tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+            pageCart.classList.toggle('hidden', name !== 'cart');
+            pageData.classList.toggle('hidden', name !== 'data');
+            pageAdmin.classList.toggle('hidden', name !== 'admin');
+            if (name === 'admin' && !isAdmin()) { location.hash = '#data'; return showTab('data'); }
+            location.hash = '#' + name;
+        }
+        function initFromHash() {
+            const h = (location.hash || '#cart').slice(1);
+            showTab(h === 'admin' && isAdmin() ? 'admin' : (h === 'data' ? 'data' : 'cart'));
+        }
+        tabs.forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
+        window.addEventListener('hashchange', initFromHash);
+
+        /* ========= 資料頁 ========= */
+        const qInp = $('#q'), id = $('#id'), item = $('#item'), unit = $('#unit'), price = $('#price'), vendor = $('#vendor');
+        const tbody = $('#tbl tbody'), count = $('#count');
+        const exportBtn = $('#exportBtn'), addBtn = $('#addBtn');
+
+        function renderData() {
+            const kw = (qInp.value || '').trim().toLowerCase();
+            const rows = state.data.slice().sort((a, b) => String(a.id).localeCompare(String(b.id)));
+            const filtered = rows.filter(r => (`${r.id} ${r.item} ${r.shop}`.toLowerCase().includes(kw)));
+            const admin = isAdmin();
+            tbody.innerHTML = filtered.map(r => `
+        <tr>
+          <td>${r.id}</td>
+          <td>${r.item}</td>
+          <td>${r.unit}</td>
+          <td class="num">${intFmt.format(r.price)}</td>
+          <td>${r.shop}</td>
+          <td class="actions">
+            ${admin ? `
+              <button class="secondary" data-act="edit" data-row='${encodeURIComponent(JSON.stringify(r))}'>編輯</button>
+              <button data-act="del" data-id="${r.id.replace(/"/g, '&quot;')}">刪除</button>
+            ` : `<span class="muted">唯讀</span>`}
+          </td>
+        </tr>`).join('');
+            count.textContent = `共 ${filtered.length} / ${rows.length} 筆`;
+        }
+        document.addEventListener('click', (ev) => {
+            const t = ev.target;
+            if (t.dataset.act === 'edit') {
+                if (!isAdmin()) return alert('請先以管理者登入');
+                const r = JSON.parse(decodeURIComponent(t.dataset.row));
+                id.value = r.id; item.value = r.item; unit.value = r.unit; price.value = r.price; vendor.value = r.shop;
+                id.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            if (t.dataset.act === 'del') {
+                if (!isAdmin()) return alert('請先以管理者登入');
+                const rid = t.dataset.id; const i = state.data.findIndex(x => x.id === rid);
+                if (i >= 0 && confirm(`刪除「${rid}」？`)) {
+                    state.data.splice(i, 1); delete state.qty[rid]; saveDB(); renderData(); renderCart();
+                    toast('已刪除一筆（含購物車數量）');
+                }
+            }
+        });
+        qInp.oninput = renderData;
+
+        // 新增/更新（含覆寫確認、清空欄位）
+        addBtn.onclick = () => {
+            if (!isAdmin()) return alert('請先以管理者登入');
+            const rec = {
+                id: (id.value || '').trim(),
+                item: (item.value || '').trim(),
+                unit: (unit.value || '').trim(),
+                price: toInt(price.value || 0),
+                shop: (vendor.value || '').trim()
+            };
+            if (!rec.item || !rec.unit || !rec.shop) {
+                return alert('請完整填寫：品項、單位、廠商');
+            }
+            let i = -1;
+            if (!rec.id) {
+                rec.id = uid('N');
+            } else {
+                i = state.data.findIndex(x => x.id === rec.id);
+                if (i >= 0) {
+                    const ok = confirm(`編號「${rec.id}」已存在，要覆寫這筆資料嗎？`);
+                    if (!ok) return;
+                }
+            }
+            if (i >= 0) state.data[i] = rec; else state.data.push(rec);
+            if (!(rec.id in state.qty)) state.qty[rec.id] = 0;
+            saveDB(); renderData(); renderCart();
+            toast(i >= 0 ? '已更新一筆資料' : '已新增一筆資料');
+            id.value = item.value = unit.value = price.value = vendor.value = '';
+        };
+
+        exportBtn.onclick = () => {
+            const headers = ['id', 'item', 'unit', 'price', 'shop'];
+            const csv = [headers.join(',')].concat(
+                state.data.map(r => headers.map(h => escCSV(r[h] ?? '')).join(','))
+            ).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = 'items.csv'; a.click();
+        };
+
+        /* ========= 管理頁 ========= */
+        const dbTbody = $('#dbTable tbody');
+        const dbInfo = $('#dbInfo');
+        const dbAdd = $('#dbAdd'), dbSave = $('#dbSave'), dbExport = $('#dbExport'), dbTemplate = $('#dbTemplate');
+        const csvFile = $('#csvFile'), importBtn = $('#importBtn'), clearBtn = $('#clearBtn'), setPinBtn = $('#setPinBtn');
+
+        function markDirty(flag = true) { state.dirty = flag; dbInfo.textContent = `資料 ${state.data.length} 筆 · ${flag ? '未儲存' : '已儲存'}`; }
+        function renderDB() {
+            if ($('#page-admin').classList.contains('hidden')) return;
+            dbTbody.innerHTML = '';
+            for (const d of state.data) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+          <td><button data-act="del" data-id="${d.id}">刪除</button> <button class="secondary" data-act="dup" data-id="${d.id}">複製</button></td>
+          <td><input data-f="id" value="${d.id}"></td>
+          <td><input data-f="item" value="${d.item}"></td>
+          <td><input data-f="unit" value="${d.unit}"></td>
+          <td><input data-f="price" class="num" value="${d.price}"></td>
+          <td><input data-f="shop" value="${d.shop}"></td>`;
+                dbTbody.appendChild(tr);
+            }
+            dbTbody.querySelectorAll('button[data-act="del"]').forEach(b => b.addEventListener('click', () => {
+                const id = b.dataset.id; const i = state.data.findIndex(x => x.id === id);
+                if (i >= 0) { state.data.splice(i, 1); delete state.qty[id]; markDirty(); renderDB(); renderData(); renderCart(); toast('已刪除（含購物車數量）'); }
+            }));
+            dbTbody.querySelectorAll('button[data-act="dup"]').forEach(b => b.addEventListener('click', () => {
+                const id = b.dataset.id; const d = state.data.find(x => x.id === id); if (!d) return;
+                const c = { ...d, id: uid('D') }; state.data.push(c); state.qty[c.id] = 0; markDirty(); renderDB(); renderData(); renderCart(); toast('已複製');
+            }));
+            dbTbody.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => markDirty(true)));
+            markDirty(false);
+        }
+        function collectDB() {
+            const rows = [...dbTbody.querySelectorAll('tr')].map(tr => {
+                const m = Object.fromEntries([...tr.querySelectorAll('input')].map(i => [i.dataset.f, i.value]));
+                return { id: (m.id || '').trim() || uid('I'), item: (m.item || '').trim(), unit: (m.unit || '').trim(), price: toInt(m.price || 0), shop: (m.shop || '').trim() };
+            });
+            // 去重 id
+            const seen = new Set(); for (const r of rows) { if (seen.has(r.id)) r.id = uid('I'); seen.add(r.id); }
+            state.data = rows; for (const d of state.data) { if (!(d.id in state.qty)) state.qty[d.id] = 0; }
+        }
+
+        // saveDB：清理 qty 孤兒
+        function saveDB() {
+            const valid = new Set(state.data.map(d => d.id));
+            for (const k of Object.keys(state.qty)) { if (!valid.has(k)) delete state.qty[k]; }
+            localStorage.setItem(LS_DB, JSON.stringify(state.data));
+            localStorage.setItem(LS_QTY, JSON.stringify(state.qty));
+            markDirty(false);
+        }
+
+        dbAdd.onclick = () => { state.data.push({ id: uid('N'), item: '', unit: '', price: 0, shop: '' }); markDirty(); renderDB(); };
+        dbSave.onclick = () => { collectDB(); saveDB(); renderData(); renderCart(); toast('資料庫已儲存'); };
+        dbExport.onclick = () => {
+            const headers = ['id', 'item', 'unit', 'price', 'shop'];
+            const csv = [headers.join(',')].concat(state.data.map(r => headers.map(h => escCSV(r[h] ?? '')).join(','))).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }); const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob); a.download = 'items.csv'; a.click();
+        };
+        dbTemplate.onclick = () => {
+            const csv = 'id,item,unit,price,shop\n,吸管,50支/包,284,清順';
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+            a.download = 'template_items.csv'; a.click();
+        };
+        // 匯入 CSV（支援英/中標頭）
+        const parseCSV = (text) => {
+            const rows = []; let cur = []; let val = ''; let inQ = false; text = text.replace(/\r\n?|\n/g, '\n');
+            for (let i = 0; i < text.length; i++) {
+                const c = text[i];
+                if (inQ) { if (c == '"') { if (text[i + 1] == '"') { val += '"'; i++; } else inQ = false; } else val += c; }
+                else {
+                    if (c == '"') inQ = true; else if (c == ',') { cur.push(val); val = ''; }
+                    else if (c == '\n') { cur.push(val); rows.push(cur); cur = []; val = ''; } else val += c;
+                }
+            } if (val.length > 0 || cur.length > 0) { cur.push(val); rows.push(cur); }
+            return rows;
+        };
+        importBtn.onclick = () => { if (!isAdmin()) return alert('請先以管理者登入'); csvFile.click(); };
+        csvFile.onchange = ev => {
+            const f = ev.target.files?.[0]; if (!f) return;
+            const r = new FileReader();
+            r.onload = () => {
+                try {
+                    const lines = parseCSV(String(r.result || ''));
+                    if (!lines.length) throw new Error('空檔案');
+                    const header = lines.shift().map(s => String(s || '').trim().toLowerCase());
+                    const idx = (...cand) => { for (const c of cand) { const k = header.indexOf(c); if (k !== -1) return k; } return -1; };
+                    const ix = { id: idx('id', '編號'), item: idx('item', '品項'), unit: idx('unit', '單位'), price: idx('price', '價錢', '價格'), shop: idx('shop', '廠商', '店家', '商家') };
+                    if (ix.item < 0 || ix.unit < 0 || ix.price < 0 || ix.shop < 0) throw new Error('缺少必要欄位');
+                    const next = [];
+                    for (const row of lines) {
+                        if (row.every(x => String(x).trim() === '')) continue;
+                        const rec = {
+                            id: (row[ix.id] || '').trim() || uid('I'),
+                            item: (row[ix.item] || '').trim(),
+                            unit: (row[ix.unit] || '').trim(),
+                            price: toInt(row[ix.price] || 0),
+                            shop: (row[ix.shop] || '').trim()
+                        };
+                        next.push(rec);
+                    }
+                    state.data = next; const q = {}; for (const d of state.data) { q[d.id] = state.qty[d.id] || 0; } state.qty = q;
+                    saveDB(); renderDB(); renderData(); renderCart(); toast(`匯入成功：${state.data.length} 筆`);
+                } catch (e) { console.error(e); toast('匯入失敗：欄位不完整或格式錯誤', { error: true, duration: 2600 }); }
+                ev.target.value = '';
+            };
+            r.readAsText(f, 'utf-8');
+        };
+        clearBtn.onclick = () => {
+            if (!isAdmin()) return alert('請先以管理者登入');
+            if (confirm('確定要清空本機資料庫與購物車數量？此動作無法復原！')) {
+                localStorage.setItem(LS_DB, JSON.stringify([]));
+                localStorage.setItem(LS_QTY, JSON.stringify({}));
+                state.data = []; state.qty = {}; renderDB(); renderData(); renderCart(); toast('已清空');
+            }
+        };
+        $('#setPinBtn').onclick = () => { $('#newPin1').value = ''; $('#newPin2').value = ''; dlgSetPin.showModal(); setTimeout(() => $('#newPin1').focus(), 50); };
+        $('#cancelSetPin').onclick = () => dlgSetPin.close();
+        $('#confirmSetPin').onclick = () => {
+            const p1 = $('#newPin1').value.trim(), p2 = $('#newPin2').value.trim();
+            if (p1.length < 4 || p1.length > 12) return alert('PIN 長度需 4~12 位');
+            if (p1 !== p2) return alert('兩次輸入不一致');
+            localStorage.setItem(PIN_KEY, p1); dlgSetPin.close(); toast('PIN 已更新');
+        };
+
+        /* ========= 採購頁（購物車） ========= */
+        const cartQ = $('#cartQ'), shopFilter = $('#shopFilter'), cartTbody = $('#cartTbl tbody');
+        const grandTotal = $('#grandTotal'), grandCount = $('#grandCount'), sumQS = $('#sum-qingshun'), sumBC = $('#sum-baocheng'), pickedCount = $('#pickedCount');
+
+        function saveQty() { localStorage.setItem(LS_QTY, JSON.stringify(state.qty)); }
+
+        // 保留選擇的廠商，不要每次 render 被洗掉
+        function populateShopFilter() {
+            const prev = shopFilter.value;
+            shopFilter.innerHTML = '<option value="">全部廠商</option>';
+            const shops = [...new Set(state.data.map(d => d.shop).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+            for (const s of shops) {
+                const opt = document.createElement('option'); opt.value = s; opt.textContent = s;
+                shopFilter.appendChild(opt);
+            }
+            if ([...shopFilter.options].some(o => o.value === prev)) shopFilter.value = prev;
+        }
+
+        function renderCart() {
+            populateShopFilter();
+            const kw = (cartQ.value || '').trim().toLowerCase();
+            const shop = shopFilter.value;
+            const rows = state.data.filter(d => {
+                const text = `${d.id} ${d.item} ${d.unit} ${d.shop}`.toLowerCase();
+                return (!kw || text.includes(kw)) && (!shop || d.shop === shop);
+            });
+            cartTbody.innerHTML = '';
+            rows.forEach((d) => {
+                const q = Number(state.qty[d.id] || 0), sub = q * d.price;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+          <td>${d.id}</td>
           <td>${d.item}</td>
           <td>${d.unit}</td>
           <td class="num">$${intFmt.format(d.price)}</td>
@@ -288,217 +844,89 @@
               <button aria-label="增加" data-act="inc" data-id="${d.id}">＋</button>
             </div>
           </td>
-          <td class="num" data-sub="${d.id}">$${intFmt.format(q * d.price)}</td>`;
-        $tbody.appendChild(tr);
-      });
-      bindRowEvents();
-      recalcTotals();
-    }
+          <td class="num" data-sub="${d.id}">$${intFmt.format(sub)}</td>`;
+                cartTbody.appendChild(tr);
+            });
+            // 綁定數量控件
+            cartTbody.querySelectorAll('button[data-id]').forEach(b => b.addEventListener('click', () => {
+                const id = b.dataset.id; const cur = Number(state.qty[id] || 0); const next = Math.max(0, cur + (b.dataset.act === 'inc' ? 1 : -1));
+                state.qty[id] = next; saveQty();
+                const inp = cartTbody.querySelector(`input[data-id="${id}"]`); if (inp) inp.value = next;
+                const d = state.data.find(x => x.id === id); const td = cartTbody.querySelector(`[data-sub="${id}"]`);
+                if (d && td) td.textContent = `$${intFmt.format(next * d.price)}`;
+                recalcTotals();
+            }));
+            cartTbody.querySelectorAll('input[data-id]').forEach(inp => inp.addEventListener('input', () => {
+                const id = inp.dataset.id; let v = Number(inp.value || 0); if (isNaN(v) || v < 0) v = 0; inp.value = v; state.qty[id] = v; saveQty();
+                const d = state.data.find(x => x.id === id); const td = cartTbody.querySelector(`[data-sub="${id}"]`);
+                if (d && td) td.textContent = `$${intFmt.format(v * d.price)}`;
+                recalcTotals();
+            }));
+            recalcTotals();
+        }
+        function recalcTotals() {
+            let grand = 0, picked = 0, sumQ = 0, sumB = 0, units = 0;
+            for (const d of state.data) {
+                const q = Number(state.qty[d.id] || 0); if (q > 0) { picked++; units += q; }
+                const sub = q * d.price; grand += sub; if (d.shop === '清順') sumQ += sub; else if (d.shop === '寶成') sumB += sub;
+            }
+            grandTotal.textContent = `$${intFmt.format(grand)}`;
+            grandCount.textContent = `共 ${units} 單位（${picked} 個品項）`;
+            sumQS.textContent = `$${intFmt.format(sumQ)}`;
+            sumBC.textContent = `$${intFmt.format(sumB)}`;
+            pickedCount.textContent = picked;
+        }
+        $('#resetQty').onclick = () => { if (confirm('清空所有品項的數量？')) { for (const k in state.qty) state.qty[k] = 0; saveQty(); renderCart(); } };
+        $('#cartExport').onclick = async () => {
+            let msg = ''; let total = 0;
+            for (const d of state.data) { const q = Number(state.qty[d.id] || 0); if (q > 0) { const sub = q * d.price; msg += `${d.item} x ${q} = $${intFmt.format(sub)}\n`; total += sub; } }
+            if (!msg) return alert('尚未選購任何品項。');
+            msg += `\n合計：$${intFmt.format(total)}`;
+            alert(msg);
+            try { await navigator.clipboard.writeText(msg); toast('已複製到剪貼簿，可直接貼到 LINE'); }
+            catch { toast('無法自動複製，請手動複製', { error: true, duration: 2600 }); }
+        };
+        cartQ.oninput = renderCart; shopFilter.onchange = renderCart;
 
-    function bindRowEvents(){
-      $tbody.querySelectorAll('button[data-id]').forEach(btn=>btn.addEventListener('click',()=>{
-        const id=btn.dataset.id; const act=btn.dataset.act; const cur=Number(state.qty[id]||0);
-        const next=Math.max(0, cur + (act==='inc'?1:-1)); state.qty[id]=next; saveQty();
-        const input=$tbody.querySelector(`input[data-id="${id}"]`); if(input) input.value=next;
-        const d=state.data.find(x=>x.id===id); const td=$tbody.querySelector(`[data-sub="${id}"]`);
-        if(td && d) td.textContent=`$${intFmt.format(next*d.price)}`;
-        recalcTotals();
-      }));
-      $tbody.querySelectorAll('input[data-id]').forEach(inp=>inp.addEventListener('input',()=>{
-        const id=inp.dataset.id; let v=Number(inp.value||0); if(isNaN(v)||v<0) v=0; inp.value=v; state.qty[id]=v; saveQty();
-        const d=state.data.find(x=>x.id===id); const td=$tbody.querySelector(`[data-sub="${id}"]`);
-        if(td && d) td.textContent=`$${intFmt.format(v*d.price)}`;
-        recalcTotals();
-      }));
-    }
+        /* ========= Login flow ========= */
+        loginBtn.onclick = () => { pinInput.value = ''; dlgLogin.showModal(); setTimeout(() => pinInput.focus(), 50); };
+        cancelLogin.onclick = () => dlgLogin.close();
+        confirmLogin.onclick = () => {
+            if (pinInput.value !== (localStorage.getItem(PIN_KEY) || DEFAULT_PIN)) return alert('PIN 不正確');
+            setAdmin(true); dlgLogin.close(); applyModeUI(); showTab('admin');
+        };
+        logoutBtn.onclick = () => { setAdmin(false); applyModeUI(); showTab('cart'); };
 
-    function recalcTotals(){
-      let grand=0, picked=0, sumQS=0, sumBC=0, countUnits=0;
-      for(const d of state.data){
-        const q = Number(state.qty[d.id]||0);
-        if(q>0){ picked++; countUnits += q; }
-        const sub = q * d.price; grand += sub;
-        if(d.shop==='清順') sumQS += sub; else if(d.shop==='寶成') sumBC += sub;
-      }
-      $grandTotal.textContent = `$${intFmt.format(grand)}`;
-      $grandCount.textContent = `共 ${countUnits} 單位（${picked} 個品項）`;
-      $sumQingShun.textContent = `$${intFmt.format(sumQS)}`;
-      $sumBaoCheng.textContent = `$${intFmt.format(sumBC)}`;
-      $pickedCount.textContent = picked;
-    }
+        /* ========= Init ========= */
+        function initialRender() { applyModeUI(); initFromHash(); renderCart(); renderData(); }
+        initialRender();
 
-    function saveQty(){ localStorage.setItem(LS_QTY, JSON.stringify(state.qty)); }
+        // ======== PWA：安裝提示與 Service Worker ========
+        let deferredPrompt = null;
+        const $installBtn = document.getElementById('installBtn');
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            $installBtn.classList.remove('hidden');
+        });
+        $installBtn.addEventListener('click', async () => {
+            if (!deferredPrompt) { showToast('此裝置暫不支援安裝', { error: true }); return; }
+            $installBtn.disabled = true;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') showToast('已開始安裝 App');
+            else showToast('已取消安裝', { error: true });
+            deferredPrompt = null; $installBtn.classList.add('hidden'); $installBtn.disabled = false;
+        });
 
-    $q.addEventListener('input', renderCart);
-    $shopFilter.addEventListener('change', renderCart);
-    document.getElementById('resetBtn').addEventListener('click', () => {
-      if(!confirm('確定要清空所有數量嗎？')) return;
-      for(const k in state.qty) state.qty[k] = 0; saveQty(); renderCart();
-    });
-
-    $exportBtn.addEventListener('click', async () => {
-      let msg=''; let total=0;
-      for(const d of state.data){ const q = Number(state.qty[d.id]||0); if(q>0){ const sub=q*d.price; msg += `${d.item} x ${q} = $${intFmt.format(sub)}\n`; total += sub; } }
-      if(!msg){ alert('尚未選購任何品項。'); return; }
-      msg += `\n合計：$${intFmt.format(total)}`;
-      alert(msg);
-      try { await navigator.clipboard.writeText(msg); showToast('已複製到剪貼簿，可直接貼到 LINE'); }
-      catch { showToast('無法自動複製，請手動複製', {error:true, duration:2600}); }
-    });
-
-    // ======== 資料庫視圖 ========
-    const $dbTable = document.querySelector('#dbTable tbody');
-    const $dbInfo  = document.getElementById('dbInfo');
-
-    function markDirty(flag=true){ state.dirty = flag; updateDBInfo(); }
-    function updateDBInfo(){ const rows = state.data.length; $dbInfo.textContent = `目前 ${rows} 筆 · ${state.dirty? '未儲存':'已儲存'}`; }
-
-    function renderDB(){
-      $dbTable.innerHTML='';
-      for(const d of state.data){
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>
-            <button data-act="del" data-id="${d.id}">刪除</button>
-            <button data-act="dup" data-id="${d.id}" class="ghost">複製</button>
-          </td>
-          <td><input data-f="id"   value="${d.id}"></td>
-          <td><input data-f="item" value="${d.item}"></td>
-          <td><input data-f="unit" value="${d.unit}"></td>
-          <td><input data-f="price" class="num" value="${d.price}"></td>
-          <td><input data-f="shop" value="${d.shop}"></td>`;
-        $dbTable.appendChild(tr);
-      }
-
-      $dbTable.querySelectorAll('button[data-act="del"]').forEach(btn=>btn.addEventListener('click',()=>{
-        const id=btn.dataset.id; const i=state.data.findIndex(x=>x.id===id); if(i>=0){ state.data.splice(i,1); delete state.qty[id]; markDirty(); renderDB(); showToast('已刪除一筆'); }
-      }));
-      $dbTable.querySelectorAll('button[data-act="dup"]').forEach(btn=>btn.addEventListener('click',()=>{
-        const id=btn.dataset.id; const d=state.data.find(x=>x.id===id); if(!d) return; const c={...d, id: uid('D')}; state.data.push(c); state.qty[c.id]=0; markDirty(); renderDB(); showToast('已複製一筆');
-      }));
-      $dbTable.querySelectorAll('input').forEach(inp=>{ inp.addEventListener('input',()=>{ markDirty(); }); });
-      updateDBInfo();
-    }
-
-    function collectDBEdits(){
-      const rows = Array.from($dbTable.querySelectorAll('tr'));
-      const next=[]; const seen=new Set();
-      for(const tr of rows){
-        const cells = Object.fromEntries(Array.from(tr.querySelectorAll('input')).map(el=>[el.dataset.f, el.value]));
-        const rec = { id: (cells.id||'').trim() || uid('I'), item: (cells.item||'').trim(), unit: (cells.unit||'').trim(), price: toInt(cells.price||0), shop: (cells.shop||'').trim() };
-        if(seen.has(rec.id)) rec.id = uid('I'); seen.add(rec.id); next.push(rec);
-      }
-      state.data = next; for(const d of state.data){ if(!(d.id in state.qty)) state.qty[d.id]=0; }
-    }
-
-    document.getElementById('dbAdd').addEventListener('click',()=>{
-      state.data.push({id: uid('N'), item:'', unit:'', price:0, shop:''}); markDirty(); renderDB();
-      const last = $dbTable.querySelector('tr:last-child input[data-f="item"]'); if(last) last.focus();
-    });
-
-    document.getElementById('dbSave').addEventListener('click',()=>{
-      collectDBEdits(); localStorage.setItem(LS_DB, JSON.stringify(state.data)); markDirty(false); renderCart(); showToast('資料庫已儲存');
-    });
-
-    document.getElementById('dbReset').addEventListener('click',()=>{
-      if(!confirm('將資料庫恢復為「預設資料」（可被你自訂）並清空未儲存變更？')) return;
-      state.data = loadFactory();
-      const nextQty={}; for(const d of state.data){ nextQty[d.id] = state.qty[d.id]||0; }
-      state.qty = nextQty; localStorage.setItem(LS_DB, JSON.stringify(state.data)); markDirty(false); renderDB(); renderCart(); showToast('已恢復到預設資料');
-    });
-
-    document.getElementById('dbSetDefault').addEventListener('click',()=>{
-      if(!confirm('確定將「目前資料庫內容」設為新的預設？\n之後按「恢復到預設」將回到你設定的版本。')) return;
-      collectDBEdits(); localStorage.setItem(LS_FACTORY, JSON.stringify(state.data)); showToast('已把目前資料設為新的預設');
-    });
-
-    document.getElementById('dbTemplate').addEventListener('click',()=>{
-      const tmpl = toCSV([{id:'ID(可留空)',item:'吸管',unit:'50支/包',price:284,shop:'清順'}]);
-      const blob = new Blob([tmpl], {type:'text/csv;charset=utf-8'});
-      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='template_items.csv'; a.click(); URL.revokeObjectURL(a.href);
-    });
-
-    // 匯出 CSV（整個資料庫）
-    document.getElementById('dbExport').addEventListener('click',()=>{
-      collectDBEdits(); if(!state.data.length){ showToast('沒有可匯出的資料',{error:true}); return; }
-      const rows = state.data.map(d=>({id:d.id,item:d.item,unit:d.unit,price:d.price,shop:d.shop}));
-      const csv = toCSV(rows);
-      const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
-      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`items_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
-      showToast('資料庫 CSV 已下載');
-    });
-
-    // 匯入 CSV
-    document.getElementById('dbImport').addEventListener('click',()=>document.getElementById('dbFile').click());
-    document.getElementById('dbFile').addEventListener('change', ev => {
-      const f = ev.target.files && ev.target.files[0]; if(!f) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const txt = String(reader.result||'');
-          const raw = parseCSV(txt); if(!raw.length) throw new Error('檔案內容為空');
-          const norm = raw.map(normalizeRecord);
-          state.data = norm;
-          const nextQty={}; for(const d of state.data){ nextQty[d.id] = state.qty[d.id]||0; }
-          state.qty = nextQty; localStorage.setItem(LS_DB, JSON.stringify(state.data));
-          markDirty(false); renderDB(); renderCart(); showToast(`已匯入 ${state.data.length} 筆資料並儲存`);
-        } catch(err){ console.error(err); showToast('匯入失敗：檔案格式不正確',{error:true, duration:2600}); }
-        ev.target.value='';
-      };
-      reader.readAsText(f, 'utf-8');
-    });
-
-    // ======== Tabs ========
-    const $tabCart = document.getElementById('tab-cart');
-    const $tabDB   = document.getElementById('tab-db');
-    const $viewCart= document.getElementById('view-cart');
-    const $viewDB  = document.getElementById('view-db');
-
-    function switchTab(which){
-      if(which==='cart'){
-        $tabCart.classList.add('active'); $tabCart.setAttribute('aria-selected','true');
-        $tabDB.classList.remove('active');  $tabDB.setAttribute('aria-selected','false');
-        $viewCart.classList.remove('hidden'); $viewDB.classList.add('hidden');
-      } else {
-        $tabDB.classList.add('active'); $tabDB.setAttribute('aria-selected','true');
-        $tabCart.classList.remove('active'); $tabCart.setAttribute('aria-selected','false');
-        $viewDB.classList.remove('hidden'); $viewCart.classList.add('hidden');
-      }
-    }
-
-    $tabCart.addEventListener('click',()=>switchTab('cart'));
-    $tabDB.addEventListener('click',()=>{ switchTab('db'); renderDB(); });
-
-    // ======== 初始渲染 ========
-    renderCart();
-
-    // ======== PWA：安裝提示與 Service Worker ========
-    let deferredPrompt=null;
-    const $installBtn=document.getElementById('installBtn');
-    window.addEventListener('beforeinstallprompt', (e)=>{
-      e.preventDefault();
-      deferredPrompt=e;
-      $installBtn.classList.remove('hidden');
-    });
-    $installBtn.addEventListener('click', async ()=>{
-      if(!deferredPrompt){ showToast('此裝置暫不支援安裝',{error:true}); return; }
-      $installBtn.disabled=true;
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if(outcome==='accepted') showToast('已開始安裝 App');
-      else showToast('已取消安裝',{error:true});
-      deferredPrompt=null; $installBtn.classList.add('hidden'); $installBtn.disabled=false;
-    });
-
-    if('serviceWorker' in navigator){
-      window.addEventListener('load', ()=>{
-        navigator.serviceWorker.register('./sw.js').then(()=>{
-          console.log('SW registered');
-        }).catch(err=>console.warn('SW failed', err));
-      });
-    }
-  </script>
-
-
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then(() => {
+                    console.log('SW registered');
+                }).catch(err => console.warn('SW failed', err));
+            });
+        }
+    </script>
 </body>
+
 </html>
