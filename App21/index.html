@@ -1,0 +1,1273 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>採購資料庫 · iOS App</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoi6Ley6LOc6LOH6KaZ5Y+rIiwic2hvcnRfbmFtZSI6IumHh2EmbvqwrOW/liIsInN0YXJ0X3VybCI6Ii4vIiwic2NvcGUiOiIuLyIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiMwMDdBRkYiLCJ0aGVtZV9jb2xvciI6IiMwMDdBRkYiLCJpY29ucyI6W3sic3JjIjoiZGF0YTppbWFnZS9zdmcreG1sO2Jhc2U2NCxQSE4yWnlCNGJXeHVjejBpYUhSMGNEb3ZMM2QzZHk1M015NXZjbWNqaTB4UkF0SW9rcWR5VVlBUkkwdU9Va1pGWEYtdkxXeGxhV2RvZEQwaU9EQXdJaUJvWldsbmFIUTlJakl4TnpRdjVVIlpQUkY3TkdGTTU6LkViQlBLWHFTMnpmLUQ0dXowSS02RTc5M1VjbU9jQ1JSXzF1b1gtUzhSdyJ9XX0=">
+    <meta name="theme-color" content="#007AFF">
+    
+    <!-- iOS Specific Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="採購資料庫">
+    
+    <!-- Safe Area Support -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <style>
+        :root {
+            --ios-blue: #007AFF;
+            --ios-gray: #8E8E93;
+            --ios-light-gray: #F2F2F7;
+            --ios-white: #FFFFFF;
+            --ios-black: #000000;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+            margin: 0;
+            background: var(--ios-light-gray);
+            color: var(--ios-black);
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            -webkit-user-select: none;
+            user-select: none;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: var(--ios-white);
+            padding: 16px 20px 12px;
+            border-bottom: 0.5px solid #C6C6C8;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0;
+            color: var(--ios-black);
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            color: var(--ios-gray);
+            margin: 4px 0 0;
+        }
+
+        .status-badge {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--ios-light-gray);
+            color: var(--ios-gray);
+        }
+
+        .status-badge.admin {
+            background: #34C759;
+            color: white;
+        }
+
+        /* Tab Bar */
+        .tab-bar {
+            display: flex;
+            background: var(--ios-white);
+            border-top: 0.5px solid #C6C6C8;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding-bottom: env(safe-area-inset-bottom);
+            z-index: 100;
+        }
+
+        .tab-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 4px 12px;
+            text-decoration: none;
+            color: var(--ios-gray);
+            font-size: 10px;
+            font-weight: 500;
+            transition: color 0.2s;
+            cursor: pointer;
+            border: none;
+            background: none;
+            position: relative;
+        }
+
+        .tab-item.active {
+            color: var(--ios-blue);
+        }
+
+        .tab-icon {
+            font-size: 24px;
+            margin-bottom: 2px;
+        }
+
+        .cart-count {
+            position: absolute;
+            top: 2px;
+            right: calc(50% - 20px);
+            background: #FF3B30;
+            color: white;
+            border-radius: 10px;
+            min-width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* Content */
+        .content {
+            flex: 1;
+            padding: 16px 20px 80px;
+            overflow-y: auto;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--ios-white);
+            border-radius: var(--radius);
+            margin-bottom: 16px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            padding: 16px 20px 12px;
+            border-bottom: 0.5px solid #F2F2F7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-content {
+            padding: 16px 20px;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+            color: var(--ios-black);
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"], 
+        input[type="search"], 
+        input[type="password"], 
+        input[type="number"],
+        input[type="file"] {
+            background: var(--ios-light-gray);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 16px;
+            flex: 1;
+            min-width: 120px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input:focus {
+            outline: 2px solid var(--ios-blue);
+            outline-offset: 0;
+        }
+
+        /* Buttons */
+        .btn {
+            background: var(--ios-blue);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            -webkit-appearance: none;
+            appearance: none;
+            white-space: nowrap;
+        }
+
+        .btn:active {
+            opacity: 0.7;
+        }
+
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--ios-light-gray);
+            color: var(--ios-blue);
+        }
+
+        .btn-danger {
+            background: #FF3B30;
+            color: white;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        /* Tables */
+        .table-container {
+            background: var(--ios-white);
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: var(--ios-light-gray);
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--ios-gray);
+            border-bottom: 0.5px solid #C6C6C8;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 0.5px solid #F2F2F7;
+            font-size: 16px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:active {
+            background: #F2F2F7;
+        }
+
+        /* Cart Summary */
+        .cart-summary {
+            background: var(--ios-blue);
+            color: white;
+            padding: 16px;
+            border-radius: var(--radius);
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .cart-total {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 8px 0;
+        }
+
+        .cart-items-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            border-bottom: 0.5px solid #F2F2F7;
+        }
+
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+
+        .cart-item-info {
+            flex: 1;
+        }
+
+        .cart-item-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .cart-item-details {
+            font-size: 14px;
+            color: var(--ios-gray);
+        }
+
+        .cart-item-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .quantity-display {
+            min-width: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: none;
+            align-items: flex-end;
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--ios-white);
+            border-radius: 16px 16px 0 0;
+            width: 100%;
+            padding: 20px;
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .modal.show .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .close-btn {
+            background: var(--ios-light-gray);
+            border: none;
+            border-radius: 16px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--ios-gray);
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .form-row {
+                flex-direction: column;
+            }
+            
+            .form-row input {
+                min-width: 100%;
+            }
+            
+            table {
+                font-size: 14px;
+            }
+            
+            th, td {
+                padding: 8px 12px;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --ios-light-gray: #1C1C1E;
+                --ios-white: #2C2C2E;
+                --ios-black: #FFFFFF;
+                --ios-gray: #8E8E93;
+            }
+            
+            body {
+                background: #000000;
+            }
+            
+            .header {
+                border-bottom-color: #38383A;
+            }
+            
+            .tab-bar {
+                border-top-color: #38383A;
+            }
+            
+            th {
+                border-bottom-color: #38383A;
+            }
+            
+            td {
+                border-bottom-color: #38383A;
+            }
+            
+            .cart-item {
+                border-bottom-color: #38383A;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <h1>採購資料庫</h1>
+            <p class="subtitle">離線可用的採購管理系統</p>
+            <div class="status-badge" id="statusBadge">🔒 唯讀模式</div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="content">
+            <!-- 資料管理 -->
+            <section id="data" class="section active">
+                <div class="card">
+                    <div class="card-content">
+                        <input type="search" id="searchInput" placeholder="搜尋編號、品項或廠商..." />
+                    </div>
+                </div>
+
+                <div class="card hidden" id="addItemCard">
+                    <div class="card-header">
+                        <h2 class="card-title">新增/編輯品項</h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <div class="form-row">
+                                <input type="text" id="itemId" placeholder="編號" />
+                                <input type="text" id="itemName" placeholder="品項" />
+                            </div>
+                            <div class="form-row">
+                                <input type="text" id="itemUnit" placeholder="單位" />
+                                <input type="number" id="itemPrice" placeholder="價格" step="0.01" />
+                            </div>
+                            <div class="form-row">
+                                <input type="text" id="itemVendor" placeholder="廠商" />
+                                <button class="btn" id="saveBtn" disabled>儲存</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="dataTable">
+                        <thead>
+                            <tr>
+                                <th>編號</th>
+                                <th>品項</th>
+                                <th>單位</th>
+                                <th>價格</th>
+                                <th>廠商</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <div class="card-content">
+                        <p id="dataCount" style="text-align: center; color: var(--ios-gray); margin: 0;">載入中...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 採購清單 -->
+            <section id="cart" class="section">
+                <div class="cart-summary">
+                    <div style="font-size: 16px;">購物車總計</div>
+                    <div class="cart-total" id="cartTotal">$0</div>
+                    <div style="font-size: 14px; opacity: 0.8;" id="cartItemCount">0 項商品</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">購物車</h2>
+                        <button class="btn btn-secondary btn-small" id="clearCartBtn">清空</button>
+                    </div>
+                    <div class="cart-items-container" id="cartItemsContainer">
+                        <div style="padding: 20px; text-align: center; color: var(--ios-gray);" id="emptyCartMessage">
+                            購物車目前是空的
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-content">
+                        <input type="search" id="cartSearchInput" placeholder="搜尋可加入的品項..." />
+                    </div>
+                </div>
+
+                <div class="table-container" id="availableItemsTable">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>品項</th>
+                                <th>價格</th>
+                                <th>廠商</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="availableItemsBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <div class="card-content">
+                        <button class="btn" id="copyCartBtn" style="width: 100%;">複製清單到剪貼簿</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 設定 -->
+            <section id="settings" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">管理功能</h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <input type="file" id="csvFile" accept=".csv" style="margin-bottom: 12px;" />
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button class="btn btn-secondary" id="importBtn" disabled>匯入 CSV</button>
+                                <button class="btn btn-secondary" id="exportBtn">匯出 CSV</button>
+                            </div>
+                            <div style="margin-top: 12px;">
+                                <button class="btn btn-danger" id="clearAllBtn" disabled>清空所有資料</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">安全設定</h2>
+                    </div>
+                    <div class="card-content">
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="btn btn-secondary" id="setPinBtn" disabled>設定密碼</button>
+                            <button class="btn" id="loginBtn">管理者登入</button>
+                            <button class="btn btn-secondary hidden" id="logoutBtn">登出</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Tab Bar -->
+        <nav class="tab-bar">
+            <button class="tab-item active" data-tab="data">
+                <div class="tab-icon">📋</div>
+                <div>資料</div>
+            </button>
+            <button class="tab-item" data-tab="cart">
+                <div class="tab-icon">🛒</div>
+                <div>採購</div>
+                <div class="cart-count hidden" id="cartBadge">0</div>
+            </button>
+            <button class="tab-item" data-tab="settings">
+                <div class="tab-icon">⚙️</div>
+                <div>設定</div>
+            </button>
+        </nav>
+
+        <!-- Login Modal -->
+        <div class="modal" id="loginModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">管理者登入</h3>
+                    <button class="close-btn" id="closeLoginModal">×</button>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="pinInput" placeholder="請輸入密碼 (預設: 0000)" />
+                    <button class="btn" id="confirmLoginBtn" style="margin-top: 12px; width: 100%;">登入</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        console.log('App started');
+        
+        // 全局變數
+        const STORAGE_KEY = 'procurement_data';
+        const CART_KEY = 'procurement_cart';
+        const PIN_KEY = 'admin_pin';
+        const DEFAULT_PIN = '0000';
+        
+        let isAdmin = false;
+        let currentData = [];
+        let currentCart = [];
+
+        // DOM 元素
+        const elements = {
+            statusBadge: document.getElementById('statusBadge'),
+            searchInput: document.getElementById('searchInput'),
+            dataTable: document.querySelector('#dataTable tbody'),
+            dataCount: document.getElementById('dataCount'),
+            addItemCard: document.getElementById('addItemCard'),
+            saveBtn: document.getElementById('saveBtn'),
+            cartTotal: document.getElementById('cartTotal'),
+            cartItemCount: document.getElementById('cartItemCount'),
+            cartBadge: document.getElementById('cartBadge'),
+            cartItemsContainer: document.getElementById('cartItemsContainer'),
+            emptyCartMessage: document.getElementById('emptyCartMessage'),
+            loginBtn: document.getElementById('loginBtn'),
+            logoutBtn: document.getElementById('logoutBtn'),
+            loginModal: document.getElementById('loginModal'),
+            pinInput: document.getElementById('pinInput'),
+            confirmLoginBtn: document.getElementById('confirmLoginBtn'),
+            closeLoginModal: document.getElementById('closeLoginModal'),
+            tabItems: document.querySelectorAll('.tab-item'),
+            sections: document.querySelectorAll('.section')
+        };
+
+        // 工具函數
+        function formatMoney(amount) {
+            if (amount === null || amount === undefined || isNaN(amount)) {
+                return '$0';
+            }
+            return '$' + Number(amount).toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        }
+
+        function loadData() {
+            try {
+                const data = localStorage.getItem(STORAGE_KEY);
+                return data ? JSON.parse(data) : getDefaultData();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                return getDefaultData();
+            }
+        }
+
+        function saveData(data) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                currentData = data;
+                console.log('Data saved:', data.length, 'items');
+            } catch (error) {
+                console.error('Error saving data:', error);
+            }
+        }
+
+        function loadCart() {
+            try {
+                const cart = sessionStorage.getItem(CART_KEY);
+                return cart ? JSON.parse(cart) : [];
+            } catch (error) {
+                console.error('Error loading cart:', error);
+                return [];
+            }
+        }
+
+        function saveCart(cart) {
+            try {
+                sessionStorage.setItem(CART_KEY, JSON.stringify(cart));
+                currentCart = cart;
+                updateCartDisplay();
+            } catch (error) {
+                console.error('Error saving cart:', error);
+            }
+        }
+
+        function getDefaultData() {
+            return [
+                { id: "PR-20250901-001", name: "A4 影印紙 80gsm", unit: "箱", price: 850, vendor: "辦公文具行" },
+                { id: "PR-20250901-002", name: "黑色碳粉匣 TN-2380", unit: "個", price: 1350, vendor: "印表機耗材" },
+                { id: "PR-20250901-003", name: "75吋顯示器支架", unit: "座", price: 4200, vendor: "展瑞五金" },
+                { id: "PR-20250901-004", name: "咖啡豆 中焙 1kg", unit: "包", price: 520, vendor: "山丘咖啡" },
+                { id: "PR-20250901-005", name: "RJ45 網路線 Cat6 3m", unit: "條", price: 69, vendor: "通訊科技" }
+            ];
+        }
+
+        // 初始化
+        function init() {
+            console.log('Initializing app...');
+            
+            // 檢查登入狀態
+            isAdmin = sessionStorage.getItem('admin_mode') === 'true';
+            
+            // 載入資料
+            currentData = loadData();
+            currentCart = loadCart();
+            
+            // 更新 UI
+            updateUI();
+            bindEvents();
+            
+            console.log('App initialized successfully');
+            console.log('Data items:', currentData.length);
+            console.log('Cart items:', currentCart.length);
+            console.log('Admin mode:', isAdmin);
+        }
+
+        // UI 更新
+        function updateUI() {
+            updateStatusBadge();
+            renderDataTable();
+            updateCartDisplay();
+            renderAvailableItems();
+        }
+
+        function updateStatusBadge() {
+            if (isAdmin) {
+                elements.statusBadge.textContent = '✅ 管理者';
+                elements.statusBadge.classList.add('admin');
+                elements.addItemCard.classList.remove('hidden');
+                document.getElementById('importBtn').disabled = false;
+                document.getElementById('clearAllBtn').disabled = false;
+                document.getElementById('setPinBtn').disabled = false;
+                elements.loginBtn.classList.add('hidden');
+                elements.logoutBtn.classList.remove('hidden');
+            } else {
+                elements.statusBadge.textContent = '🔒 唯讀';
+                elements.statusBadge.classList.remove('admin');
+                elements.addItemCard.classList.add('hidden');
+                document.getElementById('importBtn').disabled = true;
+                document.getElementById('clearAllBtn').disabled = true;
+                document.getElementById('setPinBtn').disabled = true;
+                elements.loginBtn.classList.remove('hidden');
+                elements.logoutBtn.classList.add('hidden');
+            }
+        }
+
+        function renderDataTable() {
+            const searchTerm = elements.searchInput.value.toLowerCase();
+            const filteredData = currentData.filter(item => 
+                item.id.toLowerCase().includes(searchTerm) ||
+                item.name.toLowerCase().includes(searchTerm) ||
+                item.vendor.toLowerCase().includes(searchTerm)
+            );
+
+            elements.dataTable.innerHTML = filteredData.map(item => {
+                const actionsHtml = isAdmin ? 
+                    `<button class="btn btn-small btn-secondary" onclick="editItem('${item.id}')">編輯</button>
+                     <button class="btn btn-small btn-danger" onclick="deleteItem('${item.id}')">刪除</button>` :
+                    '<span style="color: var(--ios-gray);">唯讀</span>';
+                
+                return `
+                    <tr>
+                        <td>${item.id}</td>
+                        <td>${item.name}</td>
+                        <td>${item.unit}</td>
+                        <td>${formatMoney(item.price)}</td>
+                        <td>${item.vendor}</td>
+                        <td>${actionsHtml}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            elements.dataCount.textContent = `顯示 ${filteredData.length} / ${currentData.length} 筆資料`;
+        }
+
+        function updateCartDisplay() {
+            const total = currentCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            elements.cartTotal.textContent = formatMoney(total);
+            elements.cartItemCount.textContent = `${currentCart.length} 項商品`;
+            
+            if (currentCart.length > 0) {
+                elements.cartBadge.textContent = currentCart.length.toString();
+                elements.cartBadge.classList.remove('hidden');
+                elements.emptyCartMessage.style.display = 'none';
+                
+                elements.cartItemsContainer.innerHTML = currentCart.map(item => `
+                    <div class="cart-item">
+                        <div class="cart-item-info">
+                            <div class="cart-item-name">${item.name}</div>
+                            <div class="cart-item-details">${formatMoney(item.price)} × ${item.quantity} = ${formatMoney(item.price * item.quantity)}</div>
+                        </div>
+                        <div class="cart-item-controls">
+                            <button class="btn btn-small btn-secondary" onclick="updateQuantity('${item.id}', ${item.quantity - 1})">−</button>
+                            <span class="quantity-display">${item.quantity}</span>
+                            <button class="btn btn-small" onclick="updateQuantity('${item.id}', ${item.quantity + 1})">+</button>
+                            <button class="btn btn-small btn-danger" onclick="removeFromCart('${item.id}')">×</button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                elements.cartBadge.classList.add('hidden');
+                elements.emptyCartMessage.style.display = 'block';
+                elements.cartItemsContainer.innerHTML = '';
+                elements.cartItemsContainer.appendChild(elements.emptyCartMessage);
+            }
+        }
+
+        function renderAvailableItems() {
+            const searchTerm = document.getElementById('cartSearchInput').value.toLowerCase();
+            const availableItems = currentData.filter(item =>
+                (item.id.toLowerCase().includes(searchTerm) ||
+                 item.name.toLowerCase().includes(searchTerm) ||
+                 item.vendor.toLowerCase().includes(searchTerm)) &&
+                !currentCart.find(cartItem => cartItem.id === item.id)
+            );
+
+            const tbody = document.getElementById('availableItemsBody');
+            tbody.innerHTML = availableItems.map(item => `
+                <tr>
+                    <td>${item.name}</td>
+                    <td>${formatMoney(item.price)}</td>
+                    <td>${item.vendor}</td>
+                    <td>
+                        <button class="btn btn-small" onclick="addToCart('${item.id}')">加入</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 事件綁定
+        function bindEvents() {
+            console.log('Binding events...');
+            
+            // Tab 切換
+            elements.tabItems.forEach(tab => {
+                tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+            });
+
+            // 搜尋
+            elements.searchInput.addEventListener('input', renderDataTable);
+            document.getElementById('cartSearchInput').addEventListener('input', renderAvailableItems);
+
+            // 表單驗證
+            const formInputs = [
+                'itemId', 'itemName', 'itemUnit', 'itemPrice', 'itemVendor'
+            ].map(id => document.getElementById(id));
+
+            formInputs.forEach(input => {
+                if (input) {
+                    input.addEventListener('input', validateForm);
+                }
+            });
+
+            // 按鈕事件
+            elements.saveBtn.addEventListener('click', saveItem);
+            document.getElementById('clearCartBtn').addEventListener('click', clearCart);
+            document.getElementById('copyCartBtn').addEventListener('click', copyCartToClipboard);
+            document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+            document.getElementById('importBtn').addEventListener('click', importFromCSV);
+            document.getElementById('clearAllBtn').addEventListener('click', clearAllData);
+
+            // 登入相關
+            elements.loginBtn.addEventListener('click', showLoginModal);
+            elements.logoutBtn.addEventListener('click', logout);
+            elements.confirmLoginBtn.addEventListener('click', login);
+            elements.closeLoginModal.addEventListener('click', hideLoginModal);
+            elements.pinInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') login();
+            });
+
+            // CSV 檔案
+            document.getElementById('csvFile').addEventListener('change', (e) => {
+                document.getElementById('importBtn').disabled = !e.target.files.length || !isAdmin;
+            });
+
+            console.log('Events bound successfully');
+        }
+
+        // 功能實現
+        function switchTab(tabName) {
+            elements.tabItems.forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tab === tabName);
+            });
+            elements.sections.forEach(section => {
+                section.classList.toggle('active', section.id === tabName);
+            });
+            
+            if (tabName === 'cart') {
+                renderAvailableItems();
+            }
+        }
+
+        function validateForm() {
+            const id = document.getElementById('itemId').value.trim();
+            const name = document.getElementById('itemName').value.trim();
+            const unit = document.getElementById('itemUnit').value.trim();
+            const price = document.getElementById('itemPrice').value.trim();
+            const vendor = document.getElementById('itemVendor').value.trim();
+
+            elements.saveBtn.disabled = !id || !name || !unit || !price || !vendor || !isAdmin;
+        }
+
+        function saveItem() {
+            if (!isAdmin) return;
+
+            const item = {
+                id: document.getElementById('itemId').value.trim(),
+                name: document.getElementById('itemName').value.trim(),
+                unit: document.getElementById('itemUnit').value.trim(),
+                price: parseFloat(document.getElementById('itemPrice').value.trim()) || 0,
+                vendor: document.getElementById('itemVendor').value.trim()
+            };
+
+            const existingIndex = currentData.findIndex(d => d.id === item.id);
+            if (existingIndex >= 0) {
+                currentData[existingIndex] = item;
+            } else {
+                currentData.push(item);
+            }
+
+            saveData(currentData);
+            clearForm();
+            renderDataTable();
+            renderAvailableItems();
+            
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
+        }
+
+        function clearForm() {
+            ['itemId', 'itemName', 'itemUnit', 'itemPrice', 'itemVendor'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.value = '';
+            });
+            validateForm();
+        }
+
+        function showLoginModal() {
+            elements.loginModal.classList.add('show');
+            setTimeout(() => elements.pinInput.focus(), 300);
+        }
+
+        function hideLoginModal() {
+            elements.loginModal.classList.remove('show');
+            elements.pinInput.value = '';
+        }
+
+        function login() {
+            const pin = elements.pinInput.value.trim();
+            const storedPin = localStorage.getItem(PIN_KEY) || DEFAULT_PIN;
+            
+            if (pin === storedPin) {
+                isAdmin = true;
+                sessionStorage.setItem('admin_mode', 'true');
+                hideLoginModal();
+                updateUI();
+                switchTab('data');
+            } else {
+                alert('密碼錯誤');
+                elements.pinInput.value = '';
+                elements.pinInput.focus();
+            }
+        }
+
+        function logout() {
+            isAdmin = false;
+            sessionStorage.removeItem('admin_mode');
+            updateUI();
+            clearForm();
+        }
+
+        function clearCart() {
+            if (currentCart.length === 0) return;
+            
+            if (confirm('確定要清空購物車嗎？')) {
+                currentCart = [];
+                saveCart(currentCart);
+                renderAvailableItems();
+            }
+        }
+
+        function copyCartToClipboard() {
+            if (currentCart.length === 0) {
+                alert('購物車目前是空的');
+                return;
+            }
+
+            const total = currentCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const text = currentCart.map(item => 
+                `${item.name} × ${item.quantity} = ${formatMoney(item.price * item.quantity)}`
+            ).join('\n') + `\n\n總計：${formatMoney(total)}`;
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('已複製到剪貼簿！');
+                }).catch(() => {
+                    fallbackCopyToClipboard(text);
+                });
+            } else {
+                fallbackCopyToClipboard(text);
+            }
+        }
+
+        function fallbackCopyToClipboard(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                alert('已複製到剪貼簿！');
+            } catch (err) {
+                alert('無法複製，請手動複製以下內容：\n\n' + text);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        function exportToCSV() {
+            const headers = ['編號', '品項', '單位', '價格', '廠商'];
+            const csvContent = [
+                headers.join(','),
+                ...currentData.map(item => [
+                    `"${item.id}"`,
+                    `"${item.name}"`,
+                    `"${item.unit}"`,
+                    item.price,
+                    `"${item.vendor}"`
+                ].join(','))
+            ].join('\n');
+
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `採購資料庫_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+
+        function importFromCSV() {
+            if (!isAdmin) return;
+            
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('請選擇 CSV 檔案');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const csv = e.target.result;
+                    const lines = csv.split('\n').filter(line => line.trim());
+                    
+                    if (lines.length < 2) {
+                        alert('CSV 檔案格式不正確');
+                        return;
+                    }
+                    
+                    const importedData = lines.slice(1).map(line => {
+                        const values = parseCSVLine(line);
+                        if (values.length >= 5) {
+                            return {
+                                id: values[0],
+                                name: values[1],
+                                unit: values[2],
+                                price: parseFloat(values[3]) || 0,
+                                vendor: values[4]
+                            };
+                        }
+                        return null;
+                    }).filter(item => item && item.id && item.name && item.unit && item.vendor);
+
+                    if (importedData.length > 0) {
+                        currentData = [...currentData, ...importedData];
+                        saveData(currentData);
+                        renderDataTable();
+                        alert(`成功匯入 ${importedData.length} 筆資料`);
+                        fileInput.value = '';
+                    } else {
+                        alert('CSV 格式不正確或沒有有效資料');
+                    }
+                } catch (error) {
+                    console.error('Import error:', error);
+                    alert('匯入失敗：' + error.message);
+                }
+            };
+            
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            result.push(current.trim());
+            return result.map(val => val.replace(/^"|"$/g, ''));
+        }
+
+        function clearAllData() {
+            if (!isAdmin || !confirm('確定要清空所有資料嗎？此操作無法復原！')) return;
+            
+            currentData = [];
+            currentCart = [];
+            saveData(currentData);
+            saveCart(currentCart);
+            updateUI();
+            clearForm();
+            
+            alert('所有資料已清空');
+        }
+
+        // 全域函數 (供 HTML onclick 使用)
+        window.editItem = function(id) {
+            if (!isAdmin) return;
+            
+            const item = currentData.find(d => d.id === id);
+            if (item) {
+                document.getElementById('itemId').value = item.id;
+                document.getElementById('itemName').value = item.name;
+                document.getElementById('itemUnit').value = item.unit;
+                document.getElementById('itemPrice').value = item.price;
+                document.getElementById('itemVendor').value = item.vendor;
+                validateForm();
+                
+                elements.addItemCard.scrollIntoView({ behavior: 'smooth' });
+            }
+        };
+
+        window.deleteItem = function(id) {
+            if (!isAdmin || !confirm('確定要刪除這筆資料嗎？')) return;
+            
+            currentData = currentData.filter(item => item.id !== id);
+            saveData(currentData);
+            renderDataTable();
+            renderAvailableItems();
+            
+            if (navigator.vibrate) {
+                navigator.vibrate(100);
+            }
+        };
+
+        window.addToCart = function(id) {
+            const item = currentData.find(d => d.id === id);
+            if (!item) return;
+
+            const existingItem = currentCart.find(c => c.id === id);
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                currentCart.push({ ...item, quantity: 1 });
+            }
+
+            saveCart(currentCart);
+            renderAvailableItems();
+            
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
+        };
+
+        window.updateQuantity = function(id, newQuantity) {
+            if (newQuantity <= 0) {
+                removeFromCart(id);
+                return;
+            }
+
+            const item = currentCart.find(c => c.id === id);
+            if (item) {
+                item.quantity = newQuantity;
+                saveCart(currentCart);
+            }
+        };
+
+        window.removeFromCart = function(id) {
+            currentCart = currentCart.filter(item => item.id !== id);
+            saveCart(currentCart);
+            renderAvailableItems();
+        };
+
+        // 啟動應用
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, starting app...');
+            init();
+        });
+
+        // iOS 優化
+        document.addEventListener('touchstart', function() {}, { passive: true });
+        document.addEventListener('dblclick', function(e) {
+            e.preventDefault();
+        });
+        
+        // 錯誤處理
+        window.addEventListener('error', function(e) {
+            console.error('App error:', e.error);
+        });
+
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+        });
+    </script>
+</body>
+
+</html>
