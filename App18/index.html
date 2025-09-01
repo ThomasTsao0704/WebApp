@@ -1,215 +1,214 @@
-<!doctype html>
-<html lang="zh-Hant">
+<!DOCTYPE html>
+<html lang="zh-TW">
+
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>IMF GDP 查詢 · DataMapper API</title>
-  <meta name="description" content="IMF GDP / PPP / 成長率等指標查詢（DataMapper v1）">
-  <style>
-    :root{--radius:12px;--border:#e5e7eb;--muted:#6b7280;--primary:#0a58ca;--bg:#fafafa}
-    *{box-sizing:border-box} body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans TC",Arial,sans-serif;margin:0;background:var(--bg);color:#111}
-    .container{max-width:1100px;margin:0 auto;padding:16px}
-    header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
-    h1{font-size:1.2rem;margin:0}
-    .card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-top:12px}
-    label{font-size:.9rem;color:#111;margin-right:6px}
-    select,input,button{padding:8px;border:1px solid var(--border);border-radius:10px}
-    button{cursor:pointer;background:var(--primary);color:#fff;border:none}
-    .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-    .grow{flex:1 1 240px}
-    .table{overflow:auto;max-height:50vh;border:1px solid var(--border);border-radius:var(--radius);margin-top:8px}
-    table{border-collapse:collapse;width:100%} th,td{padding:8px;border-bottom:1px solid var(--border);text-align:right}
-    th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:#fff}
-    small{color:var(--muted)}
-    .note{color:#374151}
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>調酒酒譜瀏覽</title>
+
+    <!-- PapaParse 供 CSV 解析 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" defer></script>
+
+    <!-- 樣式 -->
+    <link rel="stylesheet" href="style.css" />
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
 </head>
+
 <body>
-  <div class="container">
-    <header>
-      <h1>IMF GDP / PPP / 成長率查詢（DataMapper v1）</h1>
-      <small class="note">資料源：IMF DataMapper API</small>
+    <header class="topbar">
+        <div class="brand">🍸 調酒酒譜 WebApp</div>
+        <div class="actions">
+            <button id="btnPickFolder" class="btn btn-accent" type="button">選擇資料夾</button>
+            <button id="btnWriteCSV" class="btn btn-accent" type="button">寫入 recipes.csv</button>
+            <button id="btnExport" class="btn btn-accent" type="button">匯出 CSV</button>
+        </div>
     </header>
 
-    <div class="card">
-      <div class="row">
-        <div class="grow">
-          <label>指標</label>
-          <select id="indicator"></select>
+    <div class="container">
+        <header>
+            <h1>🍸 調酒酒譜瀏覽</h1>
+            <p class="subtitle">探索經典與創意調酒，享受微醺時光</p>
+            <nav class="nav-tabs">
+                <button class="nav-btn active" data-page="browse" type="button">📖 瀏覽酒譜</button>
+                <button class="nav-btn" data-page="add" type="button">➕ 新增酒譜</button>
+            </nav>
+        </header>
+
+        <!-- 瀏覽區 -->
+        <div class="page active" id="browsePage">
+            <div class="filters">
+                <div class="filter-row">
+                    <input type="text" id="searchInput" placeholder="🔍 搜尋酒名、材料或標籤..." />
+                    <select id="categorySelect">
+                        <option value="">📋 全部分類</option>
+                    </select>
+                    <div class="view-toggle">
+                        <button class="view-btn active" data-view="grid" type="button">網格</button>
+                        <button class="view-btn" data-view="list" type="button">列表</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats" id="stats">載入中...</div>
+            <div id="recipesContainer" class="recipes-grid">
+                <div class="loading">正在載入酒譜資料</div>
+            </div>
         </div>
-        <div class="grow">
-          <label>國家（可多選）</label>
-          <select id="countries" multiple size="6" style="width:100%"></select>
+
+        <!-- 新增區 -->
+        <div class="page" id="addPage">
+            <div class="add-recipe-form">
+                <div class="success-message" id="successMessage">✅ 酒譜新增成功！</div>
+
+                <form id="addRecipeForm">
+                    <div class="form-section">
+                        <h3>📝 基本資訊</h3>
+                        <div class="form-group">
+                            <label for="recipeTitle">酒名 *</label>
+                            <input type="text" id="recipeTitle" required placeholder="例如：瑪格麗特" />
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="recipeCategory">分類</label>
+                                <select id="recipeCategory">
+                                    <option value="">選擇分類</option>
+                                    <option value="Cocktail">Cocktail</option>
+                                    <option value="Mocktail">Mocktail</option>
+                                    <option value="Coffe">Coffe</option>
+                                    <option value="Tea">Tea</option>
+                                    <option value="Juice">Juice</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="recipeServings">份量</label>
+                                <input type="number" id="recipeServings" min="1" placeholder="杯數" />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="glass">杯款</label>
+                                <input type="text" id="glass" placeholder="馬丁尼杯" />
+                            </div>
+                            <div class="form-group">
+                                <label for="method">作法</label>
+                                <input type="text" id="method" placeholder="攪拌法" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>🏷️ 標籤</h3>
+                        <div class="tags-input">
+                            <input type="text" id="tagsInput" placeholder="輸入標籤後按 Enter（例如：酸甜）" />
+                            <div class="tags-display" id="tagsDisplay"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>🍶 材料</h3>
+                        <div class="ingredients-list" id="ingredientsList">
+                            <div class="ingredient-item">
+                                <input type="text" placeholder="例如：龍舌蘭 45ml" required />
+                                <button type="button" class="remove-btn"
+                                    onclick="app.removeIngredient(this)">移除</button>
+                            </div>
+                        </div>
+                        <button type="button" class="add-btn" onclick="app.addIngredient()">➕ 新增材料</button>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>🧊 調製步驟</h3>
+                        <div class="steps-list" id="stepsList">
+                            <div class="step-item">
+                                <span style="font-weight: bold; min-width: 30px;">1.</span>
+                                <input type="text" placeholder="詳細描述第一個步驟（例：搖盪 10 秒）" required />
+                                <button type="button" class="remove-btn" onclick="app.removeStep(this)">移除</button>
+                            </div>
+                        </div>
+                        <button type="button" class="add-btn" onclick="app.addStep()">➕ 新增步驟</button>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>🖼️ 上傳圖片（選填）</h3>
+                        <div class="form-group">
+                            <label for="recipeImageFile">選擇圖片檔案</label>
+                            <input type="file" id="recipeImageFile" accept="image/*" />
+                            <div id="addImagePreview" style="margin-top: 12px;"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="app.clearForm()">清空表單</button>
+                        <button type="submit" class="btn btn-primary">💾 儲存酒譜</button>
+                    </div>
+                </form>
+            </div>
         </div>
-        <div>
-          <label>自年份</label>
-          <input id="yearFrom" type="number" value="1990" min="1980" max="2035" style="width:100px">
-        </div>
-        <div>
-          <label>至年份</label>
-          <input id="yearTo" type="number" value="2030" min="1980" max="2035" style="width:100px">
-        </div>
-        <button id="run">查詢</button>
-        <button id="dl">匯出 CSV</button>
-      </div>
-      <small>提示：常用指標代碼如 <code>NGDPD</code>（名目GDP，十億美元）、<code>NGDPDPC</code>（名目人均）、<code>PPPPC</code>（PPP 人均），亦可在清單中搜尋。</small>
     </div>
 
-    <div class="card">
-      <canvas id="chart" height="280"></canvas>
-      <div class="table"><table id="tbl"></table></div>
-    </div>
+    <!-- 資料與功能 -->
+    <script src="data.js" defer></script>
+    <script src="app.js" defer></script>
 
-    <div class="card">
-      <details>
-        <summary>開發說明 / 疑難排解</summary>
-        <ul>
-          <li>API：<code>https://www.imf.org/external/datamapper/api/v1</code>（免鑰匙）</li>
-          <li>端點：<code>/indicators</code>、<code>/countries</code>、<code>/{indicator}/{COUNTRY...}?periods=YYYY,YYYY</code></li>
-          <li>若年份很多，<code>periods</code> 需用逗號列舉（此頁會自動產生列表）</li>
-          <li>若遇到 CORS/網路阻擋，請確認公司網路政策或改用 HTTPS 靜態主機。</li>
-        </ul>
-      </details>
-    </div>
-  </div>
+    <!-- 編輯抽屜 -->
+    <aside id="editDrawer" class="drawer hidden" aria-hidden="true">
+        <div class="drawer-header">
+            <h3>編輯酒譜</h3>
+            <button id="closeDrawer" class="btn btn-secondary" type="button">關閉</button>
+        </div>
+        <form id="editForm" class="edit-form">
+            <label>酒名</label>
+            <input name="title" type="text" required>
+            <label>分類</label>
+            <input name="category" type="text">
+            <label>標籤（分號分隔）</label>
+            <input name="tags" type="text">
+            <label>材料（每項以 | 分隔）</label>
+            <textarea name="ingredients" rows="3"></textarea>
+            <label>調製步驟（多行）</label>
+            <textarea name="steps" rows="5"></textarea>
+            <div class="grid-2">
+                <div>
+                    <label>杯款</label>
+                    <input name="glass" type="text">
+                </div>
+                <div>
+                    <label>作法</label>
+                    <input name="method" type="text">
+                </div>
+            </div>
+            <div class="grid-2">
+                <div>
+                    <label>份量（杯）</label>
+                    <input name="servings" type="number" min="1">
+                </div>
+            </div>
+            <label>圖片網址或上傳新圖片</label>
+            <input name="image_url" type="text" placeholder="相對路徑 / 連結均可">
+            <input id="imageFile" name="image_file" type="file" accept="image/*">
+            <div id="imagePreview" style="margin:8px 0;"></div>
+            <div class="drawer-actions">
+                <button id="saveRecipe" class="btn" type="button">儲存</button>
+                <button id="deleteRecipe" class="btn btn-danger" type="button">刪除</button>
+            </div>
+        </form>
+    </aside>
 
-  <!-- Chart.js（CDN） -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script>
-  const BASE = "https://www.imf.org/external/datamapper/api/v1";
-
-  // DOM
-  const selInd = document.getElementById('indicator');
-  const selCty = document.getElementById('countries');
-  const yearFrom = document.getElementById('yearFrom');
-  const yearTo = document.getElementById('yearTo');
-  const btn = document.getElementById('run');
-  const btnDl = document.getElementById('dl');
-  const tbl = document.getElementById('tbl');
-  let chart;
-
-  // 初始化：抓指標與國家
-  async function init() {
-    const [indRes, cRes] = await Promise.all([
-      fetch(`${BASE}/indicators`).then(r=>r.json()),
-      fetch(`${BASE}/countries`).then(r=>r.json())
-    ]);
-    // 指標下拉（加上常用優先）
-    const indicators = indRes.indicators;
-    const common = ["NGDPD","NGDPDPC","PPPPC","NGDP_RPCH"]; // 名目GDP、人均、PPP人均、實質GDP成長率
-    const keys = Object.keys(indicators).sort((a,b)=>{
-      const ai = common.indexOf(a), bi = common.indexOf(b);
-      if (ai!==-1 && bi===-1) return -1;
-      if (bi!==-1 && ai===-1) return 1;
-      return indicators[a].label.localeCompare(indicators[b].label,"zh-Hant");
-    });
-    selInd.innerHTML = keys.map(k=>`<option value="${k}">${k} — ${indicators[k].label||k}</option>`).join("");
-    selInd.value = "NGDPD";
-
-    // 國家多選
-    const countries = cRes.countries;
-    const ckeys = Object.keys(countries).sort((a,b)=>countries[a].label.localeCompare(countries[b].label,"zh-Hant"));
-    selCty.innerHTML = ckeys.map(k=>`<option value="${k}">${countries[k].label} (${k})</option>`).join("");
-    // 預選：TWN、USA、CHN、JPN
-    ["TWN","USA","CHN","JPN"].forEach(code=>{
-      const opt = [...selCty.options].find(o=>o.value===code);
-      if (opt) opt.selected = true;
-    });
-  }
-
-  function yearsList(from,to){
-    const y1 = Math.min(+from,+to), y2 = Math.max(+from,+to);
-    const arr = []; for(let y=y1; y<=y2; y++) arr.push(y);
-    return arr;
-  }
-
-  async function runQuery(){
-    const ind = selInd.value;
-    const countries = [...selCty.selectedOptions].map(o=>o.value);
-    if (!ind || countries.length===0) { alert("請選擇指標與至少一個國家"); return; }
-    const ys = yearsList(yearFrom.value, yearTo.value);
-    const url = `${BASE}/${encodeURIComponent(ind)}/${countries.join("/")}?periods=${ys.join(",")}`;
-    const json = await fetch(url).then(r=>r.json());
-    const series = json.values?.[ind] || [];
-
-    // 整理為 {year:..., country:..., value:...}
-    const rows = [];
-    const countrySet = new Set();
-    series.forEach(s=>{
-      const c = s['@iso2'] || s['@ref_area'] || s['@country'] || s['@name'] || s['@label'] || s['@id'] || s['@series'];
-      const name = s['@label'] || c;
-      countrySet.add(name);
-      Object.keys(s).forEach(k=>{
-        if (/^\d{4}$/.test(k)) rows.push({year:+k, country:name, value: s[k]===null?null:+s[k]});
-      });
-    });
-
-    // 畫表格（年 × 國家）
-    const countriesList = [...countrySet];
-    const years = [...new Set(rows.map(r=>r.year))].sort((a,b)=>a-b);
-    const map = new Map(); // key: year-country
-    rows.forEach(r=>map.set(`${r.year}||${r.country}`, r.value));
-    let html = `<thead><tr><th>Year</th>${countriesList.map(c=>`<th>${c}</th>`).join("")}</tr></thead><tbody>`;
-    years.forEach(y=>{
-      html += `<tr><td>${y}</td>${countriesList.map(c=>{
-        const v = map.get(`${y}||${c}`);
-        return `<td>${v==null?"" : Number(v).toLocaleString()}</td>`;
-      }).join("")}</tr>`;
-    });
-    html += `</tbody>`;
-    tbl.innerHTML = html;
-
-    // 畫圖
-    const ctx = document.getElementById('chart');
-    if (chart) chart.destroy();
-    const datasets = countriesList.map((c,idx)=>({
-      label: c,
-      data: years.map(y=>map.get(`${y}||${c}`)),
-      borderWidth: 2,
-      fill: false
-    }));
-    chart = new Chart(ctx, {
-      type: 'line',
-      data: { labels: years, datasets },
-      options: {
-        responsive: true,
-        interaction: { mode: 'nearest', intersect: false },
-        scales: {
-          y: { ticks:{ callback:(v)=>Number(v).toLocaleString() } }
-        },
-        plugins: { legend:{ position:'bottom' }, title:{ display:true, text: ind+"（資料：IMF DataMapper）" } }
-      }
-    });
-
-    // 暫存 CSV 內容
-    window.__csv = buildCSV(years, countriesList, map);
-  }
-
-  function buildCSV(years, countries, map){
-    const header = ["Year", ...countries];
-    const lines = [header.join(",")];
-    years.forEach(y=>{
-      const row = [y, ...countries.map(c=>{
-        const v = map.get(`${y}||${c}`);
-        return v==null? "" : v;
-      })];
-      lines.push(row.join(","));
-    });
-    return lines.join("\n");
-  }
-
-  function downloadCSV(){
-    const blob = new Blob([window.__csv || ""], {type:"text/csv;charset=utf-8"});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = "imf_datamapper.csv";
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
-
-  btn.addEventListener('click', runQuery);
-  btnDl.addEventListener('click', downloadCSV);
-  init();
-  </script>
+    <script>
+        (function () {
+            function registerSW() {
+                if ("serviceWorker" in navigator) {
+                    navigator.serviceWorker.register("./sw.js").catch(console.error);
+                }
+            }
+            function onceReady(fn) {
+                if (document.readyState !== "loading") fn();
+                else document.addEventListener("DOMContentLoaded", fn);
+            }
+            onceReady(registerSW);
+        })();
+    </script>
 </body>
+
 </html>
