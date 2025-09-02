@@ -1,5 +1,5 @@
 {
-    "name": "mobile-scheduling-app",
+    "name": "app23",
     "version": "0.0.1",
     "private": true,
     "type": "module",
@@ -10,18 +10,19 @@
         "deploy": "gh-pages -d dist"
     },
     "dependencies": {
-        "lucide-react": "^0.468.0",
         "react": "^18.3.1",
-        "react-dom": "^18.3.1"
+        "react-dom": "^18.3.1",
+        "lucide-react": "^0.468.0"
     },
     "devDependencies": {
+        "@vitejs/plugin-react": "^4.3.1",
+        "typescript": "^5.5.4",
+        "vite": "^5.4.2",
         "@types/react": "^18.3.3",
         "@types/react-dom": "^18.3.0",
-        "autoprefixer": "^10.4.20",
-        "gh-pages": "^6.1.1",
-        "postcss": "^8.4.47",
         "tailwindcss": "^3.4.10",
-        "typescript": "^5.5.4",
-        "vite": "^5.4.2"
+        "postcss": "^8.4.47",
+        "autoprefixer": "^10.4.20",
+        "gh-pages": "^6.1.1"
     }
 }
