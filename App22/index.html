@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>員工班表 - 2024年9月</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin: 0 0 10px 0;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .control-btn.edit-mode {
+            background: linear-gradient(45deg, #28a745, #20c997);
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #f8f9fa;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 1px solid #ddd;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            background: #e9ecef;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 30px;
+        }
+
+        .day-header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: 600;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .weekend-header {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52) !important;
+        }
+
+        .day-cell {
+            background: white;
+            border-radius: 8px;
+            padding: 8px;
+            min-height: 120px;
+            position: relative;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .day-cell:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .day-number {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .weekend-cell .day-number {
+            color: #ff6b6b;
+        }
+
+        .empty-cell {
+            background: #f8f9fa;
+        }
+
+        .staff-schedule {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .staff-item {
+            padding: 3px 6px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-align: center;
+            cursor: default;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .staff-item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .staff-item.editable {
+            cursor: pointer;
+            border: 1px dashed #007bff;
+        }
+
+        .staff-item.editable:hover {
+            border: 1px solid #007bff;
+            box-shadow: 0 0 8px rgba(0,123,255,0.3);
+        }
+
+        .staff-item.editing {
+            outline: 2px solid #007bff;
+            outline-offset: 1px;
+        }
+
+        .work-day {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .holiday {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .night-shift {
+            background: #cce7ff;
+            color: #004085;
+        }
+
+        .off-day {
+            background: #f8f9fa;
+            color: #6c757d;
+        }
+
+        .edit-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #007bff;
+            border-radius: 6px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .edit-option {
+            padding: 6px 8px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            border-bottom: 1px solid #eee;
+            transition: background 0.2s ease;
+        }
+
+        .edit-option:last-child {
+            border-bottom: none;
+        }
+
+        .edit-option:hover {
+            background: #f8f9fa;
+        }
+
+        .edit-option.off-day-option { background: #f8f9fa; color: #6c757d; }
+        .edit-option.holiday-option { background: #f8d7da; color: #721c24; }
+        .edit-option.night-shift-option { background: #cce7ff; color: #004085; }
+        .edit-option.work-day-option { background: #d4edda; color: #155724; }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .stat-label {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        .employee-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .employee-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .employee-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .employee-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .edit-hint {
+            background: #e7f3ff;
+            border: 1px solid #b3d7ff;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #0066cc;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                margin: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .day-cell {
+                min-height: 100px;
+                padding: 6px;
+            }
+
+            .staff-item {
+                font-size: 0.7rem;
+                padding: 2px 4px;
+            }
+
+            .legend {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>員工班表</h1>
+            <p>2024年9月份排班表</p>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" id="editBtn" onclick="toggleEditMode()">
+                📝 編輯模式
+            </button>
+            <button class="control-btn" onclick="exportSchedule()">
+                💾 匯出班表
+            </button>
+            <button class="control-btn" onclick="resetSchedule()">
+                🔄 重置班表
+            </button>
+        </div>
+
+        <div class="edit-hint" id="editHint" style="display: none;">
+            💡 編輯模式已啟用！點擊任何員工的排班項目來修改班別
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #d4edda;"></div>
+                <span>正常班</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #cce7ff;"></div>
+                <span>夜班</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f8d7da;"></div>
+                <span>休假</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f8f9fa;"></div>
+                <span>休息</span>
+            </div>
+        </div>
+
+        <div class="calendar-grid" id="calendar">
+            <!-- 將由JavaScript生成 -->
+        </div>
+
+        <div class="employee-summary" id="employeeSummary">
+            <!-- 將由JavaScript生成 -->
+        </div>
+
+        <div class="stats" id="stats">
+            <!-- 將由JavaScript生成 -->
+        </div>
+    </div>
+
+    <script>
+        // 班表資料 (可編輯)
+        let scheduleData = [
+            {"姓名":"Stu","9/1":null,"9/2":null,"9/3":"休假","9/4":null,"9/5":null,"9/6":"休假","9/7":"休假","9/8":null,"9/9":null,"9/10":null,"9/11":null,"9/12":null,"9/13":null,"9/14":null,"9/15":"休假","9/16":null,"9/17":null,"9/18":null,"9/19":null,"9/20":null,"9/21":null,"9/22":"休假","9/23":null,"9/24":"休假","9/25":null,"9/26":null,"9/27":null,"9/28":null,"9/29":null,"9/30":null},
+            {"姓名":"Dan","9/1":null,"9/2":"休假","9/3":null,"9/4":null,"9/5":null,"9/6":null,"9/7":null,"9/8":null,"9/9":"休假","9/10":"休假","9/11":null,"9/12":null,"9/13":null,"9/14":"休假","9/15":null,"9/16":null,"9/17":null,"9/18":null,"9/19":"休假","9/20":"休假","9/21":null,"9/22":null,"9/23":null,"9/24":null,"9/25":null,"9/26":"休假","9/27":null,"9/28":"休假","9/29":null,"9/30":null},
+            {"姓名":"Thomas","9/1":null,"9/2":"17:00-24:00","9/3":"17:00-24:00","9/4":null,"9/5":null,"9/6":"17:00-24:00","9/7":"17:00-24:00","9/8":null,"9/9":"17:00-24:00","9/10":"17:00-24:00","9/11":null,"9/12":null,"9/13":null,"9/14":"17:00-24:00","9/15":"17:00-24:00","9/16":null,"9/17":null,"9/18":null,"9/19":"17:00-24:00","9/20":null,"9/21":"17:00-24:00","9/22":"17:00-24:00","9/23":null,"9/24":"17:00-24:00","9/25":null,"9/26":"17:00-24:00","9/27":null,"9/28":null,"9/29":null,"9/30":null}
+        ];
+
+        // 備份原始數據
+        const originalScheduleData = JSON.parse(JSON.stringify(scheduleData));
+
+        const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+        let isEditMode = false;
+        let currentEditElement = null;
+
+        const scheduleOptions = [
+            { value: null, label: '休息', class: 'off-day-option' },
+            { value: '休假', label: '休假', class: 'holiday-option' },
+            { value: '17:00-24:00', label: '夜班', class: 'night-shift-option' },
+            { value: '09:00-17:00', label: '正常班', class: 'work-day-option' }
+        ];
+
+        function getStaffClass(value) {
+            if (value === null) return 'off-day';
+            if (value === '休假') return 'holiday';
+            if (value && value.includes('17:00-24:00')) return 'night-shift';
+            return 'work-day';
+        }
+
+        function getStaffDisplay(name, value) {
+            if (value === null) return `${name}`;
+            if (value === '休假') return `${name} 休`;
+            if (value && value.includes('17:00-24:00')) return `${name} 夜`;
+            return `${name} 班`;
+        }
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const editBtn = document.getElementById('editBtn');
+            const editHint = document.getElementById('editHint');
+            
+            if (isEditMode) {
+                editBtn.textContent = '✅ 完成編輯';
+                editBtn.classList.add('edit-mode');
+                editHint.style.display = 'block';
+                console.log('編輯模式已啟用');
+            } else {
+                editBtn.textContent = '📝 編輯模式';
+                editBtn.classList.remove('edit-mode');
+                editHint.style.display = 'none';
+                closeEditDropdown();
+                console.log('編輯模式已關閉');
+            }
+            
+            // 重新生成日曆以應用編輯樣式
+            generateCalendar();
+        }
+
+        function createEditDropdown(staffItem, employeeName, day) {
+            // 先關閉其他編輯下拉選單
+            closeEditDropdown();
+            
+            const dropdown = document.createElement('div');
+            dropdown.className = 'edit-dropdown';
+            
+            scheduleOptions.forEach(option => {
+                const optionElement = document.createElement('div');
+                optionElement.className = `edit-option ${option.class}`;
+                optionElement.textContent = option.label;
+                optionElement.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    updateSchedule(employeeName, day, option.value);
+                });
+                dropdown.appendChild(optionElement);
+            });
+            
+            staffItem.appendChild(dropdown);
+            staffItem.classList.add('editing');
+            currentEditElement = staffItem;
+            
+            console.log(`創建編輯下拉選單 - 員工: ${employeeName}, 日期: ${day}`);
+        }
+
+        function closeEditDropdown() {
+            if (currentEditElement) {
+                const dropdown = currentEditElement.querySelector('.edit-dropdown');
+                if (dropdown) {
+                    dropdown.remove();
+                }
+                currentEditElement.classList.remove('editing');
+                currentEditElement = null;
+                console.log('編輯下拉選單已關閉');
+            }
+        }
+
+        function updateSchedule(employeeName, day, newValue) {
+            console.log(`更新排班 - 員工: ${employeeName}, 日期: 9/${day}, 新值: ${newValue}`);
+            
+            // 更新數據
+            const employee = scheduleData.find(emp => emp['姓名'] === employeeName);
+            if (employee) {
+                employee[`9/${day}`] = newValue;
+                console.log('數據已更新:', employee);
+            } else {
+                console.error('找不到員工:', employeeName);
+            }
+            
+            // 重新生成顯示
+            generateCalendar();
+            generateEmployeeSummary();
+            generateStats();
+            
+            // 關閉編輯下拉選單
+            closeEditDropdown();
+            
+            alert(`已更新 ${employeeName} 在 9/${day} 的排班為: ${newValue || '休息'}`);
+        }
+
+        function generateCalendar() {
+            const calendar = document.getElementById('calendar');
+            calendar.innerHTML = '';
+            
+            // 生成星期標題
+            weekdays.forEach((day, index) => {
+                const header = document.createElement('div');
+                header.className = 'day-header';
+                if (index === 0 || index === 6) {
+                    header.classList.add('weekend-header');
+                }
+                header.textContent = day;
+                calendar.appendChild(header);
+            });
+
+            // 生成日期格子
+            for (let day = 1; day <= 30; day++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'day-cell';
+                
+                // 計算星期幾
+                const dayOfWeek = day % 7;
+                if (dayOfWeek === 1 || dayOfWeek === 0) {
+                    dayCell.classList.add('weekend-cell');
+                }
+
+                // 日期數字
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'day-number';
+                dayNumber.textContent = day;
+                dayCell.appendChild(dayNumber);
+
+                // 員工排班信息
+                const staffSchedule = document.createElement('div');
+                staffSchedule.className = 'staff-schedule';
+
+                scheduleData.forEach(employee => {
+                    const dateKey = `9/${day}`;
+                    const value = employee[dateKey];
+                    
+                    const staffItem = document.createElement('div');
+                    staffItem.className = `staff-item ${getStaffClass(value)}`;
+                    staffItem.textContent = getStaffDisplay(employee['姓名'], value);
+                    
+                    // 在編輯模式下添加可編輯樣式
+                    if (isEditMode) {
+                        staffItem.classList.add('editable');
+                    }
+                    
+                    // 總是添加點擊事件，但只在編輯模式下執行
+                    staffItem.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (isEditMode) {
+                            createEditDropdown(staffItem, employee['姓名'], day);
+                        }
+                    });
+                    
+                    // 添加資料屬性方便識別
+                    staffItem.setAttribute('data-employee', employee['姓名']);
+                    staffItem.setAttribute('data-day', day);
+                    
+                    staffSchedule.appendChild(staffItem);
+                });
+
+                dayCell.appendChild(staffSchedule);
+                calendar.appendChild(dayCell);
+            }
+        }
+
+        function generateEmployeeSummary() {
+            const summaryContainer = document.getElementById('employeeSummary');
+            summaryContainer.innerHTML = '';
+            
+            scheduleData.forEach(employee => {
+                let workDays = 0;
+                let holidays = 0;
+                let nightShifts = 0;
+                let offDays = 0;
+
+                for (let day = 1; day <= 30; day++) {
+                    const value = employee[`9/${day}`];
+                    if (value === null) {
+                        offDays++;
+                    } else if (value === '休假') {
+                        holidays++;
+                    } else if (value && value.includes('17:00-24:00')) {
+                        nightShifts++;
+                    } else {
+                        workDays++;
+                    }
+                }
+
+                const card = document.createElement('div');
+                card.className = 'employee-card';
+                card.innerHTML = `
+                    <div class="employee-name">${employee['姓名']}</div>
+                    <div class="employee-stats">
+                        <span>工作: ${workDays + nightShifts}天</span>
+                        <span>夜班: ${nightShifts}天</span>
+                        <span>休假: ${holidays}天</span>
+                        <span>休息: ${offDays}天</span>
+                    </div>
+                `;
+                summaryContainer.appendChild(card);
+            });
+        }
+
+        function generateStats() {
+            const statsContainer = document.getElementById('stats');
+            statsContainer.innerHTML = '';
+            
+            let totalHolidays = 0;
+            let totalNightShifts = 0;
+            let totalWorkDays = 0;
+            
+            scheduleData.forEach(employee => {
+                for (let day = 1; day <= 30; day++) {
+                    const value = employee[`9/${day}`];
+                    if (value === '休假') {
+                        totalHolidays++;
+                    } else if (value && value.includes('17:00-24:00')) {
+                        totalNightShifts++;
+                    } else if (value !== null) {
+                        totalWorkDays++;
+                    }
+                }
+            });
+            
+            const stats = [
+                { label: '總員工數', value: scheduleData.length },
+                { label: '總工作天數', value: totalWorkDays + totalNightShifts },
+                { label: '總夜班次數', value: totalNightShifts },
+                { label: '總休假天數', value: totalHolidays }
+            ];
+            
+            stats.forEach(stat => {
+                const card = document.createElement('div');
+                card.className = 'stat-card';
+                card.innerHTML = `
+                    <div class="stat-number">${stat.value}</div>
+                    <div class="stat-label">${stat.label}</div>
+                `;
+                statsContainer.appendChild(card);
+            });
+        }
+
+        function exportSchedule() {
+            const csvContent = generateCSV();
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', '班表_' + new Date().toISOString().slice(0,10) + '.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function generateCSV() {
+            const headers = ['姓名'];
+            for (let day = 1; day <= 30; day++) {
+                headers.push(`9/${day}`);
+            }
+            
+            let csv = headers.join(',') + '\n';
+            
+            scheduleData.forEach(employee => {
+                const row = [employee['姓名']];
+                for (let day = 1; day <= 30; day++) {
+                    const value = employee[`9/${day}`];
+                    row.push(value || '');
+                }
+                csv += row.join(',') + '\n';
+            });
+            
+            return csv;
+        }
+
+        function resetSchedule() {
+            if (confirm('確定要重置班表到原始狀態嗎？')) {
+                scheduleData = JSON.parse(JSON.stringify(originalScheduleData));
+                generateCalendar();
+                generateEmployeeSummary();
+                generateStats();
+            }
+        }
+
+        // 點擊其他地方關閉編輯下拉選單
+        document.addEventListener('click', () => {
+            if (isEditMode) {
+                closeEditDropdown();
+            }
+        });
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            generateCalendar();
+            generateEmployeeSummary();
+            generateStats();
+        });
+    </script>
+</body>
+</html>
