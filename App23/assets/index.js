@@ -1,1 +1,0 @@
-console.log("App23 loaded. React app would mount here.");

@@ -1,1 +1,0 @@
-console.log('React app would mount here (dist build).');
