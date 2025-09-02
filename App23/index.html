@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>排班管理系統 · Web 版</title>
+
+    <!-- Tailwind CDN（快速原型；正式上線可改自編譯） -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 字型（可選） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body class="min-h-screen bg-gray-50"
+    style="font-family: 'Noto Sans TC', system-ui, -apple-system, Segoe UI, Roboto, 'PingFang TC', 'Microsoft JhengHei', sans-serif;">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
+        <div class="px-4 py-4">
+            <h1 class="text-xl font-bold text-gray-800">排班管理系統</h1>
+        </div>
+    </div>
+
+    <!-- Tabs 容器（React 會注入整個 App） -->
+    <div id="root"></div>
+
+    <!-- React & ReactDOM & Babel（瀏覽器端轉譯 JSX） -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- 你的 App（以 JSX 撰寫，交給 Babel 即時轉譯） -->
+    <script type="text/babel" src="app.js"></script>
+</body>
+
+</html>

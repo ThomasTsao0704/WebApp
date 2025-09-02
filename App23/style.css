@@ -1,0 +1,29 @@
+/* 可選：細節微調用。主要樣式都走 Tailwind，這裡保持精簡。 */
+
+/* 讓行動裝置下 select/inputs 更易點擊 */
+input,
+select,
+button {
+    touch-action: manipulation;
+}
+
+/* 自訂滾動條（可自行刪除） */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+    /* thumb / track */
+}
+
+*::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+*::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 8px;
+}
