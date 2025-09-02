@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>員工班表 - 2024年9月</title>
+    <title>員工班表管理系統</title>
     <style>
         * {
             box-sizing: border-box;
@@ -18,7 +18,7 @@
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
             border-radius: 20px;
@@ -41,16 +41,33 @@
             background-clip: text;
         }
 
-        .header p {
-            color: #666;
-            font-size: 1.1rem;
-            margin: 0;
+        .date-selector {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .date-selector select {
+            padding: 8px 12px;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+        }
+
+        .date-selector label {
+            font-weight: 600;
+            color: #333;
         }
 
         .controls {
             display: flex;
             justify-content: center;
-            gap: 15px;
+            gap: 10px;
             margin-bottom: 20px;
             flex-wrap: wrap;
         }
@@ -64,6 +81,7 @@
             font-weight: 500;
             cursor: pointer;
             transition: transform 0.2s ease;
+            font-size: 0.9rem;
         }
 
         .control-btn:hover {
@@ -72,6 +90,30 @@
 
         .control-btn.edit-mode {
             background: linear-gradient(45deg, #28a745, #20c997);
+        }
+
+        .control-btn.danger {
+            background: linear-gradient(45deg, #dc3545, #c82333);
+        }
+
+        .control-btn.success {
+            background: linear-gradient(45deg, #28a745, #20c997);
+        }
+
+        .employee-management {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .employee-input {
+            padding: 8px 12px;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            font-size: 0.9rem;
         }
 
         .legend {
@@ -127,7 +169,7 @@
             background: white;
             border-radius: 8px;
             padding: 8px;
-            min-height: 120px;
+            min-height: 140px;
             position: relative;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
@@ -137,11 +179,26 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
+        .day-header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
         .day-number {
             font-weight: 600;
             font-size: 1.1rem;
             color: #333;
-            margin-bottom: 8px;
+        }
+
+        .holiday-name {
+            font-size: 0.7rem;
+            color: #dc3545;
+            font-weight: 600;
+            text-align: right;
+            line-height: 1.2;
+            max-width: 60px;
         }
 
         .weekend-cell .day-number {
@@ -150,6 +207,7 @@
 
         .empty-cell {
             background: #f8f9fa;
+            opacity: 0.5;
         }
 
         .staff-schedule {
@@ -187,6 +245,26 @@
         .staff-item.editing {
             outline: 2px solid #007bff;
             outline-offset: 1px;
+        }
+
+        .staff-item .delete-staff {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 16px;
+            height: 16px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            font-size: 10px;
+            display: none;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .staff-item.editable:hover .delete-staff {
+            display: flex;
         }
 
         .work-day {
@@ -280,6 +358,26 @@
             border-radius: 12px;
             padding: 20px;
             border-left: 4px solid #667eea;
+            position: relative;
+        }
+
+        .employee-card .delete-employee {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 14px;
+            display: none;
+        }
+
+        .employee-card:hover .delete-employee {
+            display: block;
         }
 
         .employee-name {
@@ -307,6 +405,44 @@
             font-size: 0.9rem;
         }
 
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+            text-align: center;
+        }
+
+        .modal button {
+            margin: 5px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .modal .btn-confirm {
+            background: #dc3545;
+            color: white;
+        }
+
+        .modal .btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
@@ -318,7 +454,7 @@
             }
 
             .day-cell {
-                min-height: 100px;
+                min-height: 120px;
                 padding: 6px;
             }
 
@@ -327,9 +463,14 @@
                 padding: 2px 4px;
             }
 
-            .legend {
+            .controls, .employee-management, .date-selector {
                 flex-direction: column;
                 align-items: center;
+            }
+
+            .holiday-name {
+                font-size: 0.6rem;
+                max-width: 45px;
             }
         }
     </style>
@@ -337,8 +478,37 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>員工班表</h1>
-            <p>2024年9月份排班表</p>
+            <h1>員工班表管理系統</h1>
+        </div>
+
+        <div class="date-selector">
+            <label for="yearSelect">年份：</label>
+            <select id="yearSelect" onchange="updateCalendar()">
+                <option value="2024">2024年</option>
+                <option value="2025">2025年</option>
+                <option value="2026">2026年</option>
+            </select>
+            
+            <label for="monthSelect">月份：</label>
+            <select id="monthSelect" onchange="updateCalendar()">
+                <option value="1">1月</option>
+                <option value="2">2月</option>
+                <option value="3">3月</option>
+                <option value="4">4月</option>
+                <option value="5">5月</option>
+                <option value="6">6月</option>
+                <option value="7">7月</option>
+                <option value="8">8月</option>
+                <option value="9" selected>9月</option>
+                <option value="10">10月</option>
+                <option value="11">11月</option>
+                <option value="12">12月</option>
+            </select>
+        </div>
+
+        <div class="employee-management">
+            <input type="text" id="newEmployeeName" class="employee-input" placeholder="輸入員工姓名" maxlength="20">
+            <button class="control-btn success" onclick="addEmployee()">➕ 新增員工</button>
         </div>
 
         <div class="controls">
@@ -351,10 +521,13 @@
             <button class="control-btn" onclick="resetSchedule()">
                 🔄 重置班表
             </button>
+            <button class="control-btn danger" onclick="clearAllSchedule()">
+                🗑️ 清空班表
+            </button>
         </div>
 
         <div class="edit-hint" id="editHint" style="display: none;">
-            💡 編輯模式已啟用！點擊任何員工的排班項目來修改班別
+            💡 編輯模式已啟用！點擊員工排班項目修改班別，或懸停員工卡片刪除員工
         </div>
 
         <div class="legend">
@@ -389,20 +562,84 @@
         </div>
     </div>
 
+    <!-- 確認刪除模態框 -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <p id="confirmMessage">確定要執行此操作嗎？</p>
+            <button class="btn-confirm" onclick="confirmAction()">確定</button>
+            <button class="btn-cancel" onclick="closeModal()">取消</button>
+        </div>
+    </div>
+
     <script>
         // 班表資料 (可編輯)
         let scheduleData = [
-            {"姓名":"Stu","9/1":null,"9/2":null,"9/3":"休假","9/4":null,"9/5":null,"9/6":"休假","9/7":"休假","9/8":null,"9/9":null,"9/10":null,"9/11":null,"9/12":null,"9/13":null,"9/14":null,"9/15":"休假","9/16":null,"9/17":null,"9/18":null,"9/19":null,"9/20":null,"9/21":null,"9/22":"休假","9/23":null,"9/24":"休假","9/25":null,"9/26":null,"9/27":null,"9/28":null,"9/29":null,"9/30":null},
-            {"姓名":"Dan","9/1":null,"9/2":"休假","9/3":null,"9/4":null,"9/5":null,"9/6":null,"9/7":null,"9/8":null,"9/9":"休假","9/10":"休假","9/11":null,"9/12":null,"9/13":null,"9/14":"休假","9/15":null,"9/16":null,"9/17":null,"9/18":null,"9/19":"休假","9/20":"休假","9/21":null,"9/22":null,"9/23":null,"9/24":null,"9/25":null,"9/26":"休假","9/27":null,"9/28":"休假","9/29":null,"9/30":null},
-            {"姓名":"Thomas","9/1":null,"9/2":"17:00-24:00","9/3":"17:00-24:00","9/4":null,"9/5":null,"9/6":"17:00-24:00","9/7":"17:00-24:00","9/8":null,"9/9":"17:00-24:00","9/10":"17:00-24:00","9/11":null,"9/12":null,"9/13":null,"9/14":"17:00-24:00","9/15":"17:00-24:00","9/16":null,"9/17":null,"9/18":null,"9/19":"17:00-24:00","9/20":null,"9/21":"17:00-24:00","9/22":"17:00-24:00","9/23":null,"9/24":"17:00-24:00","9/25":null,"9/26":"17:00-24:00","9/27":null,"9/28":null,"9/29":null,"9/30":null}
+            {"姓名":"Stu"},
+            {"姓名":"Dan"},
+            {"姓名":"Thomas"}
         ];
 
         // 備份原始數據
         const originalScheduleData = JSON.parse(JSON.stringify(scheduleData));
 
+        // 當前選擇的年月
+        let currentYear = 2024;
+        let currentMonth = 9;
+
         const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
         let isEditMode = false;
         let currentEditElement = null;
+        let pendingAction = null;
+        let pendingActionData = null;
+
+        // 台灣國定假日資料 (2024-2026)
+        const holidays = {
+            2024: {
+                '1/1': '元旦',
+                '2/10': '除夕',
+                '2/11': '春節',
+                '2/12': '初二',
+                '2/13': '初三',
+                '2/14': '初四',
+                '2/28': '和平紀念日',
+                '4/4': '兒童節',
+                '4/5': '清明節',
+                '5/1': '勞動節',
+                '6/10': '端午節',
+                '9/17': '中秋節',
+                '10/10': '國慶日'
+            },
+            2025: {
+                '1/1': '元旦',
+                '1/28': '除夕',
+                '1/29': '春節',
+                '1/30': '初二',
+                '1/31': '初三',
+                '2/1': '初四',
+                '2/28': '和平紀念日',
+                '4/4': '兒童節',
+                '4/5': '清明節',
+                '5/1': '勞動節',
+                '5/31': '端午節',
+                '10/6': '中秋節',
+                '10/10': '國慶日'
+            },
+            2026: {
+                '1/1': '元旦',
+                '2/16': '除夕',
+                '2/17': '春節',
+                '2/18': '初二',
+                '2/19': '初三',
+                '2/20': '初四',
+                '2/28': '和平紀念日',
+                '4/4': '兒童節',
+                '4/5': '清明節',
+                '5/1': '勞動節',
+                '6/19': '端午節',
+                '9/25': '中秋節',
+                '10/10': '國慶日'
+            }
+        };
 
         const scheduleOptions = [
             { value: null, label: '休息', class: 'off-day-option' },
@@ -410,6 +647,51 @@
             { value: '17:00-24:00', label: '夜班', class: 'night-shift-option' },
             { value: '09:00-17:00', label: '正常班', class: 'work-day-option' }
         ];
+
+        // 初始化默認班表資料
+        function initializeScheduleData() {
+            const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+            
+            scheduleData.forEach(employee => {
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateKey = `${currentMonth}/${day}`;
+                    if (!employee.hasOwnProperty(dateKey)) {
+                        // 根據原始資料設置默認值
+                        if (employee['姓名'] === 'Stu') {
+                            const stuDays = [3,6,7,15,22,24];
+                            employee[dateKey] = stuDays.includes(day) ? '休假' : null;
+                        } else if (employee['姓名'] === 'Dan') {
+                            const danDays = [2,9,10,14,19,20,26,28];
+                            employee[dateKey] = danDays.includes(day) ? '休假' : null;
+                        } else if (employee['姓名'] === 'Thomas') {
+                            const thomasDays = [2,3,6,7,9,10,14,15,19,21,22,24,26];
+                            employee[dateKey] = thomasDays.includes(day) ? '17:00-24:00' : null;
+                        } else {
+                            employee[dateKey] = null;
+                        }
+                    }
+                }
+            });
+        }
+
+        function getDaysInMonth(year, month) {
+            return new Date(year, month, 0).getDate();
+        }
+
+        function getFirstDayOfWeek(year, month) {
+            return new Date(year, month - 1, 1).getDay();
+        }
+
+        function getHolidayName(year, month, day) {
+            const key = `${month}/${day}`;
+            return holidays[year] && holidays[year][key] ? holidays[year][key] : null;
+        }
+
+        function isWeekend(year, month, day) {
+            const date = new Date(year, month - 1, day);
+            const dayOfWeek = date.getDay();
+            return dayOfWeek === 0 || dayOfWeek === 6;
+        }
 
         function getStaffClass(value) {
             if (value === null) return 'off-day';
@@ -425,6 +707,16 @@
             return `${name} 班`;
         }
 
+        function updateCalendar() {
+            currentYear = parseInt(document.getElementById('yearSelect').value);
+            currentMonth = parseInt(document.getElementById('monthSelect').value);
+            
+            initializeScheduleData();
+            generateCalendar();
+            generateEmployeeSummary();
+            generateStats();
+        }
+
         function toggleEditMode() {
             isEditMode = !isEditMode;
             const editBtn = document.getElementById('editBtn');
@@ -434,21 +726,57 @@
                 editBtn.textContent = '✅ 完成編輯';
                 editBtn.classList.add('edit-mode');
                 editHint.style.display = 'block';
-                console.log('編輯模式已啟用');
             } else {
                 editBtn.textContent = '📝 編輯模式';
                 editBtn.classList.remove('edit-mode');
                 editHint.style.display = 'none';
                 closeEditDropdown();
-                console.log('編輯模式已關閉');
             }
             
-            // 重新生成日曆以應用編輯樣式
             generateCalendar();
+            generateEmployeeSummary();
+        }
+
+        function addEmployee() {
+            const nameInput = document.getElementById('newEmployeeName');
+            const employeeName = nameInput.value.trim();
+            
+            if (!employeeName) {
+                alert('請輸入員工姓名！');
+                return;
+            }
+            
+            if (scheduleData.find(emp => emp['姓名'] === employeeName)) {
+                alert('員工姓名已存在！');
+                return;
+            }
+            
+            const newEmployee = { '姓名': employeeName };
+            const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+            
+            // 初始化新員工的排班為全部休息
+            for (let day = 1; day <= daysInMonth; day++) {
+                newEmployee[`${currentMonth}/${day}`] = null;
+            }
+            
+            scheduleData.push(newEmployee);
+            nameInput.value = '';
+            
+            generateCalendar();
+            generateEmployeeSummary();
+            generateStats();
+            
+            alert(`已成功新增員工：${employeeName}`);
+        }
+
+        function removeEmployee(employeeName) {
+            pendingAction = 'removeEmployee';
+            pendingActionData = employeeName;
+            document.getElementById('confirmMessage').textContent = `確定要刪除員工「${employeeName}」嗎？此操作無法復原。`;
+            document.getElementById('confirmModal').style.display = 'block';
         }
 
         function createEditDropdown(staffItem, employeeName, day) {
-            // 先關閉其他編輯下拉選單
             closeEditDropdown();
             
             const dropdown = document.createElement('div');
@@ -468,8 +796,6 @@
             staffItem.appendChild(dropdown);
             staffItem.classList.add('editing');
             currentEditElement = staffItem;
-            
-            console.log(`創建編輯下拉選單 - 員工: ${employeeName}, 日期: ${day}`);
         }
 
         function closeEditDropdown() {
@@ -480,31 +806,19 @@
                 }
                 currentEditElement.classList.remove('editing');
                 currentEditElement = null;
-                console.log('編輯下拉選單已關閉');
             }
         }
 
         function updateSchedule(employeeName, day, newValue) {
-            console.log(`更新排班 - 員工: ${employeeName}, 日期: 9/${day}, 新值: ${newValue}`);
-            
-            // 更新數據
             const employee = scheduleData.find(emp => emp['姓名'] === employeeName);
             if (employee) {
-                employee[`9/${day}`] = newValue;
-                console.log('數據已更新:', employee);
-            } else {
-                console.error('找不到員工:', employeeName);
+                employee[`${currentMonth}/${day}`] = newValue;
             }
             
-            // 重新生成顯示
             generateCalendar();
             generateEmployeeSummary();
             generateStats();
-            
-            // 關閉編輯下拉選單
             closeEditDropdown();
-            
-            alert(`已更新 ${employeeName} 在 9/${day} 的排班為: ${newValue || '休息'}`);
         }
 
         function generateCalendar() {
@@ -522,51 +836,66 @@
                 calendar.appendChild(header);
             });
 
+            const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+            const firstDay = getFirstDayOfWeek(currentYear, currentMonth);
+
+            // 添加空白單元格
+            for (let i = 0; i < firstDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'day-cell empty-cell';
+                calendar.appendChild(emptyCell);
+            }
+
             // 生成日期格子
-            for (let day = 1; day <= 30; day++) {
+            for (let day = 1; day <= daysInMonth; day++) {
                 const dayCell = document.createElement('div');
                 dayCell.className = 'day-cell';
                 
-                // 計算星期幾
-                const dayOfWeek = day % 7;
-                if (dayOfWeek === 1 || dayOfWeek === 0) {
+                const isWeekendDay = isWeekend(currentYear, currentMonth, day);
+                if (isWeekendDay) {
                     dayCell.classList.add('weekend-cell');
                 }
+
+                // 日期標題區域
+                const dayHeaderInfo = document.createElement('div');
+                dayHeaderInfo.className = 'day-header-info';
 
                 // 日期數字
                 const dayNumber = document.createElement('div');
                 dayNumber.className = 'day-number';
                 dayNumber.textContent = day;
-                dayCell.appendChild(dayNumber);
+                dayHeaderInfo.appendChild(dayNumber);
+
+                // 國定假日名稱
+                const holidayName = getHolidayName(currentYear, currentMonth, day);
+                if (holidayName) {
+                    const holidayElement = document.createElement('div');
+                    holidayElement.className = 'holiday-name';
+                    holidayElement.textContent = holidayName;
+                    dayHeaderInfo.appendChild(holidayElement);
+                }
+
+                dayCell.appendChild(dayHeaderInfo);
 
                 // 員工排班信息
                 const staffSchedule = document.createElement('div');
                 staffSchedule.className = 'staff-schedule';
 
                 scheduleData.forEach(employee => {
-                    const dateKey = `9/${day}`;
+                    const dateKey = `${currentMonth}/${day}`;
                     const value = employee[dateKey];
                     
                     const staffItem = document.createElement('div');
                     staffItem.className = `staff-item ${getStaffClass(value)}`;
                     staffItem.textContent = getStaffDisplay(employee['姓名'], value);
                     
-                    // 在編輯模式下添加可編輯樣式
                     if (isEditMode) {
                         staffItem.classList.add('editable');
-                    }
-                    
-                    // 總是添加點擊事件，但只在編輯模式下執行
-                    staffItem.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        if (isEditMode) {
+                        staffItem.addEventListener('click', (e) => {
+                            e.stopPropagation();
                             createEditDropdown(staffItem, employee['姓名'], day);
-                        }
-                    });
-                    
-                    // 添加資料屬性方便識別
-                    staffItem.setAttribute('data-employee', employee['姓名']);
-                    staffItem.setAttribute('data-day', day);
+                        });
+                    }
                     
                     staffSchedule.appendChild(staffItem);
                 });
@@ -580,14 +909,16 @@
             const summaryContainer = document.getElementById('employeeSummary');
             summaryContainer.innerHTML = '';
             
+            const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+            
             scheduleData.forEach(employee => {
                 let workDays = 0;
                 let holidays = 0;
                 let nightShifts = 0;
                 let offDays = 0;
 
-                for (let day = 1; day <= 30; day++) {
-                    const value = employee[`9/${day}`];
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const value = employee[`${currentMonth}/${day}`];
                     if (value === null) {
                         offDays++;
                     } else if (value === '休假') {
@@ -601,7 +932,16 @@
 
                 const card = document.createElement('div');
                 card.className = 'employee-card';
-                card.innerHTML = `
+                
+                if (isEditMode) {
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-employee';
+                    deleteBtn.textContent = '×';
+                    deleteBtn.onclick = () => removeEmployee(employee['姓名']);
+                    card.appendChild(deleteBtn);
+                }
+                
+                card.innerHTML += `
                     <div class="employee-name">${employee['姓名']}</div>
                     <div class="employee-stats">
                         <span>工作: ${workDays + nightShifts}天</span>
@@ -618,13 +958,14 @@
             const statsContainer = document.getElementById('stats');
             statsContainer.innerHTML = '';
             
+            const daysInMonth = getDaysInMonth(currentYear, currentMonth);
             let totalHolidays = 0;
             let totalNightShifts = 0;
             let totalWorkDays = 0;
             
             scheduleData.forEach(employee => {
-                for (let day = 1; day <= 30; day++) {
-                    const value = employee[`9/${day}`];
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const value = employee[`${currentMonth}/${day}`];
                     if (value === '休假') {
                         totalHolidays++;
                     } else if (value && value.includes('17:00-24:00')) {
@@ -659,7 +1000,7 @@
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
             link.setAttribute('href', url);
-            link.setAttribute('download', '班表_' + new Date().toISOString().slice(0,10) + '.csv');
+            link.setAttribute('download', `班表_${currentYear}年${currentMonth}月_${new Date().toISOString().slice(0,10)}.csv`);
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
@@ -668,16 +1009,18 @@
 
         function generateCSV() {
             const headers = ['姓名'];
-            for (let day = 1; day <= 30; day++) {
-                headers.push(`9/${day}`);
+            const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                headers.push(`${currentMonth}/${day}`);
             }
             
             let csv = headers.join(',') + '\n';
             
             scheduleData.forEach(employee => {
                 const row = [employee['姓名']];
-                for (let day = 1; day <= 30; day++) {
-                    const value = employee[`9/${day}`];
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const value = employee[`${currentMonth}/${day}`];
                     row.push(value || '');
                 }
                 csv += row.join(',') + '\n';
@@ -687,23 +1030,69 @@
         }
 
         function resetSchedule() {
-            if (confirm('確定要重置班表到原始狀態嗎？')) {
+            pendingAction = 'reset';
+            document.getElementById('confirmMessage').textContent = '確定要重置班表到原始狀態嗎？';
+            document.getElementById('confirmModal').style.display = 'block';
+        }
+
+        function clearAllSchedule() {
+            pendingAction = 'clear';
+            document.getElementById('confirmMessage').textContent = '確定要清空所有班表資料嗎？此操作無法復原。';
+            document.getElementById('confirmModal').style.display = 'block';
+        }
+
+        function confirmAction() {
+            if (pendingAction === 'removeEmployee') {
+                const index = scheduleData.findIndex(emp => emp['姓名'] === pendingActionData);
+                if (index > -1) {
+                    scheduleData.splice(index, 1);
+                    generateCalendar();
+                    generateEmployeeSummary();
+                    generateStats();
+                    alert(`已刪除員工：${pendingActionData}`);
+                }
+            } else if (pendingAction === 'reset') {
                 scheduleData = JSON.parse(JSON.stringify(originalScheduleData));
+                initializeScheduleData();
                 generateCalendar();
                 generateEmployeeSummary();
                 generateStats();
+                alert('班表已重置！');
+            } else if (pendingAction === 'clear') {
+                const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+                scheduleData.forEach(employee => {
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        employee[`${currentMonth}/${day}`] = null;
+                    }
+                });
+                generateCalendar();
+                generateEmployeeSummary();
+                generateStats();
+                alert('班表已清空！');
             }
+            
+            closeModal();
         }
 
-        // 點擊其他地方關閉編輯下拉選單
-        document.addEventListener('click', () => {
-            if (isEditMode) {
+        function closeModal() {
+            document.getElementById('confirmModal').style.display = 'none';
+            pendingAction = null;
+            pendingActionData = null;
+        }
+
+        // 點擊其他地方關閉編輯下拉選單和模態框
+        document.addEventListener('click', (e) => {
+            if (isEditMode && !e.target.closest('.edit-dropdown')) {
                 closeEditDropdown();
+            }
+            if (e.target.id === 'confirmModal') {
+                closeModal();
             }
         });
 
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
+            initializeScheduleData();
             generateCalendar();
             generateEmployeeSummary();
             generateStats();
