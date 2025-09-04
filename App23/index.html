@@ -1,41 +1,157 @@
 <!doctype html>
 <html lang="zh-Hant">
-
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>排班管理系統 · Web 版</title>
-
-    <!-- Tailwind CDN（快速原型；正式上線可改自編譯） -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- 字型（可選） -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap"
-        rel="stylesheet">
-
-    <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>商品料號管理 · 進銷存 PWA</title>
+  <meta name="theme-color" content="#0ea5e9" />
+  <link rel="manifest" href="manifest.json">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
+  <style>
+    body{margin:0;font-family:ui-sans-serif,system-ui,"Noto Sans TC";background:#0b1220;color:#e2e8f0}
+    header{background:#0f172a;padding:12px;position:sticky;top:0;z-index:9;display:flex;flex-direction:column;gap:6px}
+    h1{margin:0;font-size:20px;color:#0ea5e9}
+    button{background:#0ea5e9;border:none;color:white;padding:6px 12px;border-radius:8px;cursor:pointer}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{border-bottom:1px solid rgba(148,163,184,.3);padding:6px;text-align:left}
+    tr:hover{background:rgba(148,163,184,.08)}
+  </style>
 </head>
+<body>
+<header>
+  <h1>📦 商品料號管理 · 進銷存</h1>
+  <div class="toolbar">
+    <input id="q" placeholder="搜尋..." />
+    <button onclick="document.getElementById('fileCsv').click()">匯入 CSV（自動套料號）</button>
+    <input type="file" id="fileCsv" accept=".csv" style="display:none" />
+    <button onclick="exportCSV()">匯出 CSV</button>
+  </div>
+</header>
+<main>
+  <h2>商品清單</h2>
+  <table>
+    <thead><tr><th>代號</th><th>品牌</th><th>品名</th><th>規格</th><th>單位</th><th>分類</th><th>未稅</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+</main>
+<script>
+let db,SQL;
+(async()=>{
+  SQL = await initSqlJs({locateFile:f=>`https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`});
+  db=new SQL.Database();
+  db.run(`CREATE TABLE IF NOT EXISTS products(
+    code TEXT PRIMARY KEY,brand TEXT,name TEXT,spec TEXT,unit TEXT,category TEXT,price_excl REAL
+  );`);
+  try{db.run('ALTER TABLE products ADD COLUMN category TEXT');}catch(_){ }
+  render();
+})();
 
-<body class="min-h-screen bg-gray-50"
-    style="font-family: 'Noto Sans TC', system-ui, -apple-system, Segoe UI, Roboto, 'PingFang TC', 'Microsoft JhengHei', sans-serif;">
-    <!-- Header -->
-    <div class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
-        <div class="px-4 py-4">
-            <h1 class="text-xl font-bold text-gray-800">排班管理系統</h1>
-        </div>
-    </div>
+const CATEGORY_PREFIX = {
+  '清潔用品':'62','清潔':'62','清潔劑':'62',
+  '餐具用品':'66','餐具':'66','宴會用品':'66',
+  '辦公用品':'70','辦公':'70',
+  '包裝材料':'80','包材':'80','包裝':'80',
+  '五金工具':'90','五金':'90','工具':'90',
+  '其他商品':'99','其他':'99','未分類':'99'
+};
+const PREFIX_NAME = {'62':'清潔用品','66':'餐具用品','70':'辦公用品','80':'包裝材料','90':'五金工具','99':'其他商品'};
 
-    <!-- Tabs 容器（React 會注入整個 App） -->
-    <div id="root"></div>
+function splitMix(mixed){
+  if(!mixed) return {brand:'',name:'',spec:''};
+  const parts = String(mixed).split('/').map(s=>s.trim()).filter(Boolean);
+  if(parts.length===1) return {brand:'',name:parts[0],spec:''};
+  if(parts.length===2) return {brand:parts[0],name:parts[1],spec:''};
+  return {brand:parts[0],name:parts[1],spec:parts.slice(2).join('/')};
+}
+function brandAbbr(brand){
+  if(!brand || brand==='-') return 'NO';
+  const letters = (brand.match(/[A-Za-z0-9]/g)||[]).join('').toUpperCase();
+  if(letters) return letters.slice(0,3);
+  let h=0; for(let i=0;i<brand.length;i++){ h=(h*31 + brand.charCodeAt(i))>>>0; }
+  const a = String.fromCharCode(65 + (h%26));
+  const b = String.fromCharCode(65 + ((h>>5)%26));
+  return a+b;
+}
+function parsePrice(s){
+  if(s==null) return null;
+  const t=String(s).replace(/[,$\s]/g,'').replace(/^\$/,'');
+  const v=parseFloat(t);
+  return isNaN(v)? null : v;
+}
+function inferPrefix(categoryText, oldCode){
+  if(categoryText){
+    for(const k in CATEGORY_PREFIX){ if(categoryText.includes(k)) return CATEGORY_PREFIX[k]; }
+  }
+  if(oldCode){ const m = String(oldCode).match(/^(\d{2})/); if(m) return m[1]; }
+  return '99';
+}
+function nextSerial(prefix, abbr){
+  const stmt = db.prepare("SELECT code FROM products WHERE code LIKE ? ORDER BY code DESC LIMIT 1");
+  stmt.bind([`${prefix}-${abbr}-%`]);
+  let max=0; while(stmt.step()){ const [code]=stmt.get(); const m=String(code).match(/-(\d{3})$/); if(m){ max=Math.max(max,parseInt(m[1],10)); } }
+  stmt.free();
+  return (max+1).toString().padStart(3,'0');
+}
 
-    <!-- React & ReactDOM & Babel（瀏覽器端轉譯 JSX） -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+function parseCSV(text){
+  return text.split(/\r?\n/).filter(l=>l.trim()).map(r=>r.split(','));
+}
 
-    <!-- 你的 App（以 JSX 撰寫，交給 Babel 即時轉譯） -->
-    <script type="text/babel" src="app.js"></script>
+document.getElementById('fileCsv').addEventListener('change',async e=>{
+  const text=await e.target.files[0].text();
+  const lines=parseCSV(text);
+  if(!lines.length) return;
+  const header = lines.shift().map(h=>h.trim());
+  const idxCodeOld = header.findIndex(h=>/^(貨品)?代號|品號|code/i.test(h));
+  const idxNameMix = header.findIndex(h=>/貨品名稱|品名|名稱/i.test(h));
+  const idxUnit    = header.findIndex(h=>/規格單位|單位|unit/i.test(h));
+  const idxPrice   = header.findIndex(h=>/單價|未稅|price/i.test(h));
+  const idxCat     = header.findIndex(h=>/分類|類別|category/i.test(h));
+
+  for(const cols of lines){
+    const oldCode = idxCodeOld>=0? cols[idxCodeOld] : '';
+    const mixed   = idxNameMix>=0? cols[idxNameMix] : '';
+    const unit    = idxUnit>=0? cols[idxUnit] : '';
+    const price   = idxPrice>=0? cols[idxPrice] : '';
+    const catText = idxCat>=0? cols[idxCat] : '';
+
+    const {brand,name,spec} = splitMix(mixed);
+    const prefix = inferPrefix(catText||'', oldCode||'');
+    const abbr   = brandAbbr(brand||'-');
+    const serial = nextSerial(prefix, abbr);
+    const code   = `${prefix}-${abbr}-${serial}`;
+    const excl   = parsePrice(price);
+
+    db.run(`INSERT OR REPLACE INTO products(code,brand,name,spec,unit,price_excl,category) VALUES(?,?,?,?,?,?,?)`,
+      [code,brand||'',name||mixed||'',spec||'',unit||'',excl, PREFIX_NAME[prefix]||'其他商品']);
+  }
+  render();
+  alert('CSV 已匯入並自動套用料號');
+  e.target.value='';
+});
+
+function exportCSV(){
+  let stmt=db.prepare("SELECT code,brand,name,spec,unit,category,price_excl FROM products ORDER BY code");
+  let out="代號,品牌,品名,規格,單位,分類,未稅\n";
+  while(stmt.step()){
+    const [c,b,n,s,u,cat,p]=stmt.get();
+    out+=`${c},${b||''},${n||''},${s||''},${u||''},${cat||''},${p||''}\n`;
+  }
+  stmt.free();
+  let blob=new Blob(["\uFEFF"+out],{type:'text/csv'});
+  let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='products_with_codes.csv';a.click();
+}
+
+function render(){
+  const tbody=document.getElementById('rows');tbody.innerHTML="";
+  let stmt=db.prepare("SELECT code,brand,name,spec,unit,category,price_excl FROM products ORDER BY code");
+  while(stmt.step()){
+    const [c,b,n,s,u,cat,p]=stmt.get();
+    tbody.innerHTML+=`<tr><td>${c}</td><td>${b}</td><td>${n}</td><td>${s}</td><td>${u}</td><td>${cat}</td><td>${p}</td></tr>`;
+  }
+  stmt.free();
+}
+</script>
 </body>
-
 </html>
