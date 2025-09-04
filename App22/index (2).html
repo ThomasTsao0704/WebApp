@@ -1,0 +1,1841 @@
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>員工班表管理系統</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'Arial', sans-serif;
+            margin: 0;
+            padding: 10px;
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            min-width: 380px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin: 0 0 10px 0;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .save-status {
+            text-align: center;
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .save-status.saved {
+            background: #d4edda;
+            color: #155724;
+            opacity: 1;
+        }
+
+        .save-status.saving {
+            background: #fff3cd;
+            color: #856404;
+            opacity: 1;
+        }
+
+        .date-selector {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .date-selector select {
+            padding: 8px 12px;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+        }
+
+        .date-selector label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .employee-management {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .control-btn.edit-mode {
+            background: linear-gradient(45deg, #28a745, #20c997);
+        }
+
+        .control-btn.danger {
+            background: linear-gradient(45deg, #dc3545, #c82333);
+        }
+
+        .control-btn.success {
+            background: linear-gradient(45deg, #28a745, #20c997);
+        }
+
+        .employee-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .employee-modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 400px;
+            max-width: 90%;
+            text-align: left;
+        }
+
+        .employee-modal h3 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 1.3rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .form-group input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .radio-option input[type="radio"] {
+            margin: 0;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 25px;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .modal-btn.primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .modal-btn.secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .shift-input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .shift-input-row input {
+            flex: 1;
+            padding: 8px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .shift-input-row button {
+            padding: 8px 12px;
+            font-size: 0.8rem;
+        }
+
+        .shift-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            border-left: 3px solid #667eea;
+        }
+
+        .shift-item .shift-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .shift-item .delete-shift {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #f8f9fa;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 1px solid #ddd;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #e9ecef;
+            border-radius: 15px;
+            padding: 8px;
+            margin-bottom: 30px;
+            min-width: 350px;
+            overflow-x: auto;
+        }
+
+        .day-header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px;
+            text-align: center;
+            font-weight: 600;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .weekend-header {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52) !important;
+        }
+
+        .day-cell {
+            background: white;
+            border-radius: 6px;
+            padding: 4px;
+            min-height: 140px;
+            min-width: 45px;
+            position: relative;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .day-header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .day-number {
+            font-weight: 600;
+            font-size: 1rem;
+            color: #333;
+        }
+
+        .holiday-name {
+            font-size: 0.7rem;
+            color: #dc3545;
+            font-weight: 600;
+            text-align: right;
+            line-height: 1.2;
+            max-width: 60px;
+        }
+
+        .weekend-cell .day-number {
+            color: #ff6b6b;
+        }
+
+        .empty-cell {
+            background: #f8f9fa;
+            opacity: 0.5;
+        }
+
+        .staff-schedule {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .staff-item {
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            text-align: center;
+            cursor: default;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .staff-item.editable {
+            cursor: pointer;
+            border: 1px dashed #007bff;
+        }
+
+        .staff-item.editable:hover {
+            border: 1px solid #007bff;
+            box-shadow: 0 0 8px rgba(0,123,255,0.3);
+        }
+
+        .staff-item.editing {
+            outline: 2px solid #007bff;
+            outline-offset: 1px;
+        }
+
+        .work-day {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .holiday {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .night-shift {
+            background: #cce7ff;
+            color: #004085;
+        }
+
+        .off-day {
+            background: #f8f9fa;
+            color: #6c757d;
+        }
+
+        .edit-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #007bff;
+            border-radius: 6px;
+            z-index: 2000;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .edit-option {
+            padding: 8px 10px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .edit-option:last-child {
+            border-bottom: none;
+        }
+
+        .edit-option:hover {
+            background: #f8f9fa;
+        }
+
+        .edit-option.off-day-option { background: #f8f9fa; color: #6c757d; }
+        .edit-option.holiday-option { background: #f8d7da; color: #721c24; }
+        .edit-option.night-shift-option { background: #cce7ff; color: #004085; }
+        .edit-option.work-day-option { background: #d4edda; color: #155724; }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .stat-label {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        .employee-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .employee-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+            position: relative;
+        }
+
+        .employee-card .delete-employee {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 14px;
+            display: none;
+        }
+
+        .employee-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .employee-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .edit-hint {
+            background: #e7f3ff;
+            border: 1px solid #b3d7ff;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #0066cc;
+            font-size: 0.9rem;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+            text-align: center;
+        }
+
+        .modal button {
+            margin: 5px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .modal .btn-confirm {
+            background: #dc3545;
+            color: white;
+        }
+
+        .modal .btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+
+            .container {
+                padding: 8px;
+                margin: 0;
+                min-width: 360px;
+                border-radius: 10px;
+            }
+
+            .calendar-grid {
+                min-width: 350px;
+                padding: 6px;
+                gap: 1px;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .day-cell {
+                min-height: 120px;
+                min-width: 45px;
+                padding: 3px;
+            }
+
+            .staff-item {
+                font-size: 0.65rem;
+                padding: 1px 3px;
+            }
+
+            .controls, .employee-management, .date-selector {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .holiday-name {
+                font-size: 0.6rem;
+                max-width: 40px;
+            }
+
+            .calendar-grid::before {
+                content: "可左右滑動查看完整週班表";
+                position: absolute;
+                top: -20px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 0.75rem;
+                color: #666;
+                background: rgba(255,255,255,0.9);
+                padding: 2px 6px;
+                border-radius: 8px;
+                white-space: nowrap;
+            }
+
+            .calendar-grid {
+                position: relative;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>員工班表管理系統</h1>
+        </div>
+
+        <div class="save-status" id="saveStatus">資料已儲存</div>
+
+        <div class="date-selector">
+            <label for="yearSelect">年份：</label>
+            <select id="yearSelect" onchange="updateCalendar()">
+                <option value="2024">2024年</option>
+                <option value="2025">2025年</option>
+                <option value="2026">2026年</option>
+            </select>
+            
+            <label for="monthSelect">月份：</label>
+            <select id="monthSelect" onchange="updateCalendar()">
+                <option value="1">1月</option>
+                <option value="2">2月</option>
+                <option value="3">3月</option>
+                <option value="4">4月</option>
+                <option value="5">5月</option>
+                <option value="6">6月</option>
+                <option value="7">7月</option>
+                <option value="8">8月</option>
+                <option value="9" selected>9月</option>
+                <option value="10">10月</option>
+                <option value="11">11月</option>
+                <option value="12">12月</option>
+            </select>
+        </div>
+
+        <div class="employee-management">
+            <button class="control-btn success" onclick="showEmployeeModal()">新增員工</button>
+            <button class="control-btn" onclick="showShiftSettingsModal()">班別設定</button>
+            <button class="control-btn" onclick="document.getElementById('importFile').click()">匯入班表</button>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" id="editBtn" onclick="toggleEditMode()">
+                編輯模式
+            </button>
+            <button class="control-btn success" onclick="loadTaiwanHolidays()">
+                套用台灣假日
+            </button>
+            <button class="control-btn" onclick="exportSchedule()">
+                匯出班表
+            </button>
+            <button class="control-btn danger" onclick="clearAllSchedule()">
+                清空班表
+            </button>
+        </div>
+
+        <input type="file" id="importFile" accept=".csv" style="display: none" onchange="importSchedule(event)">
+
+        <div class="edit-hint" id="editHint" style="display: none;">
+            編輯模式已啟用，點擊員工排班項目修改班別，或懸停員工卡片刪除員工
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #d4edda;"></div>
+                <span>正常班</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #cce7ff;"></div>
+                <span>夜班</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f8d7da;"></div>
+                <span>休假</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f8f9fa;"></div>
+                <span>休息</span>
+            </div>
+        </div>
+
+        <div class="calendar-grid" id="calendar">
+            <!-- 將由JavaScript生成 -->
+        </div>
+
+        <div class="employee-summary" id="employeeSummary">
+            <!-- 將由JavaScript生成 -->
+        </div>
+
+        <div class="stats" id="stats">
+            <!-- 將由JavaScript生成 -->
+        </div>
+    </div>
+
+    <!-- 班別設定模態框 -->
+    <div id="shiftSettingsModal" class="employee-modal">
+        <div class="employee-modal-content">
+            <h3>班別設定管理</h3>
+            
+            <div class="form-group">
+                <label>正職員工班別：</label>
+                <div id="fullTimeShifts">
+                    <!-- 正職班別將由JavaScript生成 -->
+                </div>
+                <div class="shift-input-row">
+                    <input type="text" id="newFullTimeShift" placeholder="新增正職班別（如：早班、晚班）" maxlength="20">
+                    <button class="modal-btn primary" onclick="addShift('fullTime')">新增</button>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>兼職員工班別：</label>
+                <div id="partTimeShifts">
+                    <!-- 兼職班別將由JavaScript生成 -->
+                </div>
+                <div class="shift-input-row">
+                    <input type="text" id="newPartTimeShift" placeholder="新增兼職班別（如：17:00-21:00）" maxlength="20">
+                    <button class="modal-btn primary" onclick="addShift('partTime')">新增</button>
+                </div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn primary" onclick="saveShiftSettings()">儲存設定</button>
+                <button class="modal-btn secondary" onclick="closeShiftSettingsModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 員工資料卡模態框 -->
+    <div id="employeeModal" class="employee-modal">
+        <div class="employee-modal-content">
+            <h3>新增員工資料</h3>
+            
+            <div class="form-group">
+                <label for="employeeName">員工姓名：</label>
+                <input type="text" id="employeeName" placeholder="請輸入姓名" maxlength="20">
+            </div>
+            
+            <div class="form-group">
+                <label>員工類型：</label>
+                <div class="radio-group">
+                    <div class="radio-option">
+                        <input type="radio" id="fullTime" name="employeeType" value="fullTime" checked>
+                        <label for="fullTime">正職</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="partTime" name="employeeType" value="partTime">
+                        <label for="partTime">兼職</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>工作區域：</label>
+                <div class="radio-group">
+                    <div class="radio-option">
+                        <input type="radio" id="frontArea" name="workArea" value="front" checked>
+                        <label for="frontArea">外場</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="backArea" name="workArea" value="back">
+                        <label for="backArea">內場</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn primary" onclick="addEmployeeFromModal()">確定新增</button>
+                <button class="modal-btn secondary" onclick="closeEmployeeModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 確認刪除模態框 -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <p id="confirmMessage">確定要執行此操作嗎？</p>
+            <button class="btn-confirm" onclick="confirmAction()">確定</button>
+            <button class="btn-cancel" onclick="closeModal()">取消</button>
+        </div>
+    </div>
+
+    <script>
+        // 全域變數
+        let scheduleData = {};
+        let currentYear = 2024;
+        let currentMonth = 9;
+        let isEditMode = false;
+        let currentEditElement = null;
+        let pendingAction = null;
+        let pendingActionData = null;
+        let saveTimeout = null;
+
+        // 班別設定
+        let shiftSettings = {
+            fullTime: [
+                { name: '上班', type: 'work', color: '#28a745' },
+                { name: '休假', type: 'holiday', color: '#dc3545' },
+                { name: '特休', type: 'holiday', color: '#dc3545' }
+            ],
+            partTime: [
+                { name: '休息', type: 'off', color: '#6c757d' },
+                { name: '17:00-23:00', type: 'night', color: '#007bff' },
+                { name: '18:00-24:00', type: 'night', color: '#007bff' }
+            ]
+        };
+
+        const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+
+        const holidays = {
+            2024: {},
+            2025: {},
+            2026: {}
+        };
+
+        const taiwanHolidaysData = {
+            2024: {
+                '1/1': '元旦',
+                '2/10': '除夕',
+                '2/11': '春節',
+                '2/12': '初二',
+                '2/13': '初三',
+                '2/14': '初四',
+                '2/28': '和平紀念日',
+                '4/4': '兒童節',
+                '4/5': '清明節',
+                '5/1': '勞動節',
+                '6/10': '端午節',
+                '9/17': '中秋節',
+                '10/10': '國慶日'
+            },
+            2025: {
+                '1/1': '元旦',
+                '1/28': '除夕',
+                '1/29': '春節',
+                '1/30': '初二',
+                '1/31': '初三',
+                '2/1': '初四',
+                '2/28': '和平紀念日',
+                '4/4': '兒童節',
+                '4/5': '清明節',
+                '5/1': '勞動節',
+                '5/31': '端午節',
+                '10/6': '中秋節',
+                '10/10': '國慶日'
+            },
+            2026: {
+                '1/1': '元旦',
+                '2/16': '除夕',
+                '2/17': '春節',
+                '2/18': '初二',
+                '2/19': '初三',
+                '2/20': '初四',
+                '2/28': '和平紀念日',
+                '4/4': '兒童節',
+                '4/5': '清明節',
+                '5/1': '勞動節',
+                '6/19': '端午節',
+                '9/25': '中秋節',
+                '10/10': '國慶日'
+            }
+        };
+
+        // 自動儲存功能
+        function showSaveStatus(status) {
+            const saveStatus = document.getElementById('saveStatus');
+            saveStatus.className = `save-status ${status}`;
+            
+            if (status === 'saved') {
+                setTimeout(() => {
+                    saveStatus.className = 'save-status';
+                }, 2000);
+            }
+        }
+
+        function autoSave() {
+            if (saveTimeout) clearTimeout(saveTimeout);
+            
+            showSaveStatus('saving');
+            saveTimeout = setTimeout(() => {
+                saveToStorage();
+                showSaveStatus('saved');
+            }, 1000);
+        }
+
+        function saveToStorage() {
+            try {
+                localStorage.setItem('employeeScheduleData', JSON.stringify(scheduleData));
+                localStorage.setItem('lastSaveTime', new Date().toISOString());
+                console.log('資料已儲存');
+            } catch (error) {
+                console.error('儲存失敗:', error);
+                alert('儲存失敗，請檢查瀏覽器設定');
+            }
+        }
+
+        function loadFromStorage() {
+            try {
+                const saved = localStorage.getItem('employeeScheduleData');
+                if (saved) {
+                    scheduleData = JSON.parse(saved);
+                    console.log('已載入儲存的資料');
+                    return true;
+                } else {
+                    return false;
+                }
+            } catch (error) {
+                console.error('載入失敗:', error);
+                return false;
+            }
+        }
+
+        function initializeDefaultData() {
+            scheduleData = {
+                employees: [],
+                schedules: {}
+            };
+            saveToStorage();
+        }
+
+        // 班別設定功能
+        function showShiftSettingsModal() {
+            loadShiftSettings();
+            updateShiftDisplay();
+            document.getElementById('shiftSettingsModal').style.display = 'block';
+        }
+
+        function closeShiftSettingsModal() {
+            document.getElementById('shiftSettingsModal').style.display = 'none';
+            document.getElementById('newFullTimeShift').value = '';
+            document.getElementById('newPartTimeShift').value = '';
+        }
+
+        function updateShiftDisplay() {
+            const fullTimeContainer = document.getElementById('fullTimeShifts');
+            const partTimeContainer = document.getElementById('partTimeShifts');
+            
+            fullTimeContainer.innerHTML = '';
+            partTimeContainer.innerHTML = '';
+
+            shiftSettings.fullTime.forEach((shift, index) => {
+                if (shift.name !== '上班') {
+                    const shiftItem = document.createElement('div');
+                    shiftItem.className = 'shift-item';
+                    shiftItem.innerHTML = `
+                        <span class="shift-name">${shift.name}</span>
+                        <button class="delete-shift" onclick="deleteShift('fullTime', ${index})">刪除</button>
+                    `;
+                    fullTimeContainer.appendChild(shiftItem);
+                }
+            });
+
+            shiftSettings.partTime.forEach((shift, index) => {
+                if (shift.name !== '休息') {
+                    const shiftItem = document.createElement('div');
+                    shiftItem.className = 'shift-item';
+                    shiftItem.innerHTML = `
+                        <span class="shift-name">${shift.name}</span>
+                        <button class="delete-shift" onclick="deleteShift('partTime', ${index})">刪除</button>
+                    `;
+                    partTimeContainer.appendChild(shiftItem);
+                }
+            });
+        }
+
+        function addShift(employeeType) {
+            const inputId = employeeType === 'fullTime' ? 'newFullTimeShift' : 'newPartTimeShift';
+            const input = document.getElementById(inputId);
+            const shiftName = input.value.trim();
+            
+            if (!shiftName) {
+                alert('請輸入班別名稱！');
+                return;
+            }
+            
+            const exists = shiftSettings[employeeType].some(shift => shift.name === shiftName);
+            if (exists) {
+                alert('此班別已存在！');
+                return;
+            }
+            
+            let shiftType = 'work';
+            let shiftColor = '#28a745';
+            
+            if (shiftName.includes('休') || shiftName.includes('假')) {
+                shiftType = 'holiday';
+                shiftColor = '#dc3545';
+            } else if (shiftName.includes('夜') || shiftName.includes(':') || shiftName.includes('-')) {
+                shiftType = 'night';
+                shiftColor = '#007bff';
+            } else if (shiftName.includes('休息') || shiftName.includes('無')) {
+                shiftType = 'off';
+                shiftColor = '#6c757d';
+            }
+            
+            shiftSettings[employeeType].push({
+                name: shiftName,
+                type: shiftType,
+                color: shiftColor
+            });
+            
+            input.value = '';
+            updateShiftDisplay();
+        }
+
+        function deleteShift(employeeType, index) {
+            const shift = shiftSettings[employeeType][index];
+            
+            if ((employeeType === 'fullTime' && shift.name === '上班') ||
+                (employeeType === 'partTime' && shift.name === '休息')) {
+                alert('無法刪除基本班別！');
+                return;
+            }
+            
+            if (confirm(`確定要刪除班別「${shift.name}」嗎？`)) {
+                shiftSettings[employeeType].splice(index, 1);
+                updateShiftDisplay();
+            }
+        }
+
+        function saveShiftSettings() {
+            try {
+                localStorage.setItem('shiftSettings', JSON.stringify(shiftSettings));
+                closeShiftSettingsModal();
+                alert('班別設定已儲存！');
+            } catch (error) {
+                alert('儲存失敗');
+            }
+        }
+
+        function loadShiftSettings() {
+            try {
+                const saved = localStorage.getItem('shiftSettings');
+                if (saved) {
+                    shiftSettings = JSON.parse(saved);
+                }
+            } catch (error) {
+                console.error('載入班別設定失敗:', error);
+            }
+        }
+
+        // 匯入功能
+        function importSchedule(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.name.endsWith('.csv')) {
+                alert('請選擇CSV檔案！');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const csvContent = e.target.result;
+                    parseAndImportCSV(csvContent);
+                } catch (error) {
+                    alert('檔案讀取失敗：' + error.message);
+                }
+            };
+            
+            reader.readAsText(file, 'utf-8');
+            event.target.value = '';
+        }
+
+        function parseAndImportCSV(csvContent) {
+            const lines = csvContent.split('\n').filter(line => line.trim());
+            
+            if (lines.length < 2) {
+                alert('CSV檔案格式不正確');
+                return;
+            }
+
+            const headers = lines[0].split(',').map(h => h.trim());
+            
+            if (headers.length < 4 || headers[0] !== '姓名') {
+                alert('CSV檔案格式不正確，第一欄必須是「姓名」');
+                return;
+            }
+
+            const dateColumns = headers.slice(3);
+            let targetYear, targetMonth;
+
+            if (dateColumns.length > 0) {
+                const firstDate = dateColumns[0];
+                const dateMatch = firstDate.match(/(\d+)\/(\d+)/);
+                if (dateMatch) {
+                    targetMonth = parseInt(dateMatch[1]);
+                    targetYear = currentYear;
+                } else {
+                    alert('日期格式不正確');
+                    return;
+                }
+            }
+
+            const newEmployees = [];
+            const newSchedules = {};
+            const scheduleKey = `${targetYear}-${targetMonth}`;
+            newSchedules[scheduleKey] = {};
+
+            for (let i = 1; i < lines.length; i++) {
+                const cells = lines[i].split(',').map(c => c.trim());
+                if (cells.length < headers.length) continue;
+
+                const employeeName = cells[0];
+                const employeeTypeText = cells[1];
+                const employeeAreaText = cells[2];
+
+                if (!employeeName) continue;
+
+                const employeeType = employeeTypeText === '兼職' ? 'partTime' : 'fullTime';
+                const employeeArea = employeeAreaText === '內場' ? 'back' : 'front';
+
+                const existingEmployee = scheduleData.employees && scheduleData.employees.find(emp => emp.姓名 === employeeName);
+                
+                if (!existingEmployee) {
+                    newEmployees.push({
+                        姓名: employeeName,
+                        類型: employeeType,
+                        區域: employeeArea
+                    });
+                }
+
+                newSchedules[scheduleKey][employeeName] = {};
+                for (let j = 3; j < cells.length && j < headers.length; j++) {
+                    const dateStr = headers[j];
+                    const dayMatch = dateStr.match(/\d+\/(\d+)/);
+                    if (dayMatch) {
+                        const day = parseInt(dayMatch[1]);
+                        const cellValue = cells[j];
+                        
+                        let scheduleValue = null;
+                        if (cellValue && cellValue !== '上班' && cellValue !== '休息' && cellValue !== '') {
+                            scheduleValue = cellValue;
+                        }
+                        
+                        newSchedules[scheduleKey][employeeName][day] = scheduleValue;
+                    }
+                }
+            }
+
+            const confirmMessage = `即將匯入：${newEmployees.length}位新員工，${targetYear}年${targetMonth}月班表\n確定要繼續嗎？`;
+
+            if (confirm(confirmMessage)) {
+                if (!scheduleData.employees) {
+                    scheduleData.employees = [];
+                }
+                
+                newEmployees.forEach(newEmp => {
+                    scheduleData.employees.push(newEmp);
+                });
+
+                if (!scheduleData.schedules) {
+                    scheduleData.schedules = {};
+                }
+                
+                Object.assign(scheduleData.schedules, newSchedules);
+
+                currentYear = targetYear;
+                currentMonth = targetMonth;
+                document.getElementById('yearSelect').value = currentYear;
+                document.getElementById('monthSelect').value = currentMonth;
+
+                ensureScheduleData(currentYear, currentMonth);
+                updateCalendar();
+                autoSave();
+
+                alert(`匯入成功！已匯入 ${newEmployees.length} 位員工`);
+            }
+        }
+
+        // 台灣假日功能
+        function loadTaiwanHolidays() {
+            holidays[2024] = { ...taiwanHolidaysData[2024] };
+            holidays[2025] = { ...taiwanHolidaysData[2025] };
+            holidays[2026] = { ...taiwanHolidaysData[2026] };
+            
+            updateCalendar();
+            alert('已成功套用台灣國定假日！');
+        }
+
+        // 其他核心功能
+        function getScheduleOptions(employeeType) {
+            const shifts = shiftSettings[employeeType] || [];
+            const options = [];
+            
+            const defaultShift = shifts.find(s => s.name === (employeeType === 'fullTime' ? '上班' : '休息'));
+            if (defaultShift) {
+                options.push({
+                    value: null,
+                    label: defaultShift.name,
+                    class: getShiftTypeClass(defaultShift.type) + '-option'
+                });
+            }
+            
+            shifts.forEach(shift => {
+                if (shift.name !== (employeeType === 'fullTime' ? '上班' : '休息')) {
+                    options.push({
+                        value: shift.name,
+                        label: shift.name,
+                        class: getShiftTypeClass(shift.type) + '-option'
+                    });
+                }
+            });
+            
+            return options;
+        }
+
+        function getShiftTypeClass(type) {
+            switch (type) {
+                case 'work': return 'work-day';
+                case 'holiday': return 'holiday';
+                case 'night': return 'night-shift';
+                case 'off': return 'off-day';
+                default: return 'work-day';
+            }
+        }
+
+        function sortEmployees(employees) {
+            const order = {
+                'front-fullTime': 1,
+                'front-partTime': 2,
+                'back-fullTime': 3,
+                'back-partTime': 4
+            };
+            
+            return employees.sort((a, b) => {
+                const keyA = `${a.區域}-${a.類型}`;
+                const keyB = `${b.區域}-${b.類型}`;
+                return (order[keyA] || 999) - (order[keyB] || 999);
+            });
+        }
+
+        function ensureScheduleData(year, month) {
+            const key = `${year}-${month}`;
+            
+            if (!scheduleData.schedules) {
+                scheduleData.schedules = {};
+            }
+            
+            if (!scheduleData.schedules[key]) {
+                scheduleData.schedules[key] = {};
+            }
+            
+            const daysInMonth = getDaysInMonth(year, month);
+            
+            if (scheduleData.employees) {
+                scheduleData.employees.forEach(employee => {
+                    if (!scheduleData.schedules[key][employee.姓名]) {
+                        scheduleData.schedules[key][employee.姓名] = {};
+                    }
+                    
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        if (!scheduleData.schedules[key][employee.姓名].hasOwnProperty(day)) {
+                            scheduleData.schedules[key][employee.姓名][day] = null;
+                        }
+                    }
+                });
+            }
+        }
+
+        function getDaysInMonth(year, month) {
+            return new Date(year, month, 0).getDate();
+        }
+
+        function getFirstDayOfWeek(year, month) {
+            return new Date(year, month - 1, 1).getDay();
+        }
+
+        function getHolidayName(year, month, day) {
+            const key = `${month}/${day}`;
+            return holidays[year] && holidays[year][key] ? holidays[year][key] : null;
+        }
+
+        function isWeekend(year, month, day) {
+            const date = new Date(year, month - 1, day);
+            const dayOfWeek = date.getDay();
+            return dayOfWeek === 0 || dayOfWeek === 6;
+        }
+
+        function getStaffClass(value, employeeType) {
+            if (value === null) {
+                return employeeType === 'fullTime' ? 'work-day' : 'off-day';
+            }
+            
+            const shifts = shiftSettings[employeeType] || [];
+            const shift = shifts.find(s => s.name === value);
+            
+            if (shift) {
+                return getShiftTypeClass(shift.type);
+            }
+            
+            if (value.includes('休') || value.includes('假')) return 'holiday';
+            if (value.includes(':') || value.includes('-') || value.includes('夜')) return 'night-shift';
+            return 'work-day';
+        }
+
+        function getStaffDisplay(name, value, employeeType) {
+            if (value === null) {
+                const defaultName = employeeType === 'fullTime' ? '班' : '';
+                return `${name} ${defaultName}`;
+            }
+            
+            let displayText = value;
+            if (value.includes('17:00-23:00')) displayText = '17-23';
+            else if (value.includes('18:00-24:00')) displayText = '18-24';
+            else if (value === '休假') displayText = '休';
+            else if (value === '特休') displayText = '特';
+            else if (value.length > 4) displayText = value.substring(0, 4);
+            
+            return `${name} ${displayText}`;
+        }
+
+        function updateCalendar() {
+            currentYear = parseInt(document.getElementById('yearSelect').value);
+            currentMonth = parseInt(document.getElementById('monthSelect').value);
+            
+            ensureScheduleData(currentYear, currentMonth);
+            generateCalendar();
+            generateEmployeeSummary();
+            generateStats();
+        }
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const editBtn = document.getElementById('editBtn');
+            const editHint = document.getElementById('editHint');
+            
+            if (isEditMode) {
+                editBtn.textContent = '完成編輯';
+                editBtn.classList.add('edit-mode');
+                editHint.style.display = 'block';
+            } else {
+                editBtn.textContent = '編輯模式';
+                editBtn.classList.remove('edit-mode');
+                editHint.style.display = 'none';
+                closeEditDropdown();
+            }
+            
+            generateCalendar();
+            generateEmployeeSummary();
+        }
+
+        function showEmployeeModal() {
+            document.getElementById('employeeModal').style.display = 'block';
+            document.getElementById('employeeName').focus();
+        }
+
+        function closeEmployeeModal() {
+            document.getElementById('employeeModal').style.display = 'none';
+            document.getElementById('employeeName').value = '';
+            document.getElementById('fullTime').checked = true;
+            document.getElementById('frontArea').checked = true;
+        }
+
+        function addEmployeeFromModal() {
+            const employeeName = document.getElementById('employeeName').value.trim();
+            const employeeType = document.querySelector('input[name="employeeType"]:checked').value;
+            const workArea = document.querySelector('input[name="workArea"]:checked').value;
+            
+            if (!employeeName) {
+                alert('請輸入員工姓名！');
+                return;
+            }
+            
+            if (scheduleData.employees && scheduleData.employees.find(emp => emp.姓名 === employeeName)) {
+                alert('員工姓名已存在！');
+                return;
+            }
+            
+            const newEmployee = { 
+                '姓名': employeeName,
+                '類型': employeeType,
+                '區域': workArea
+            };
+            
+            if (!scheduleData.employees) {
+                scheduleData.employees = [];
+            }
+            
+            scheduleData.employees.push(newEmployee);
+            
+            Object.keys(scheduleData.schedules).forEach(monthKey => {
+                const [year, month] = monthKey.split('-').map(Number);
+                const daysInMonth = getDaysInMonth(year, month);
+                
+                scheduleData.schedules[monthKey][employeeName] = {};
+                for (let day = 1; day <= daysInMonth; day++) {
+                    scheduleData.schedules[monthKey][employeeName][day] = null;
+                }
+            });
+            
+            closeEmployeeModal();
+            updateCalendar();
+            autoSave();
+            
+            const typeText = employeeType === 'fullTime' ? '正職' : '兼職';
+            const areaText = workArea === 'front' ? '外場' : '內場';
+            alert(`已新增員工：${employeeName}（${areaText}${typeText}）`);
+        }
+
+        function removeEmployee(employeeName) {
+            pendingAction = 'removeEmployee';
+            pendingActionData = employeeName;
+            document.getElementById('confirmMessage').textContent = `確定要刪除員工「${employeeName}」嗎？`;
+            document.getElementById('confirmModal').style.display = 'block';
+        }
+
+        function createEditDropdown(staffItem, employeeName, day) {
+            closeEditDropdown();
+            
+            const employee = scheduleData.employees.find(emp => emp.姓名 === employeeName);
+            if (!employee) return;
+            
+            const dropdown = document.createElement('div');
+            dropdown.className = 'edit-dropdown';
+            
+            const options = getScheduleOptions(employee.類型);
+            
+            options.forEach(option => {
+                const optionElement = document.createElement('div');
+                optionElement.className = `edit-option ${option.class}`;
+                optionElement.textContent = option.label;
+                optionElement.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    updateSchedule(employeeName, day, option.value);
+                });
+                dropdown.appendChild(optionElement);
+            });
+            
+            staffItem.appendChild(dropdown);
+            staffItem.classList.add('editing');
+            currentEditElement = staffItem;
+        }
+
+        function closeEditDropdown() {
+            if (currentEditElement) {
+                const dropdown = currentEditElement.querySelector('.edit-dropdown');
+                if (dropdown) {
+                    dropdown.remove();
+                }
+                currentEditElement.classList.remove('editing');
+                currentEditElement = null;
+            }
+        }
+
+        function updateSchedule(employeeName, day, newValue) {
+            const scheduleKey = `${currentYear}-${currentMonth}`;
+            
+            if (!scheduleData.schedules[scheduleKey]) {
+                scheduleData.schedules[scheduleKey] = {};
+            }
+            
+            if (!scheduleData.schedules[scheduleKey][employeeName]) {
+                scheduleData.schedules[scheduleKey][employeeName] = {};
+            }
+            
+            scheduleData.schedules[scheduleKey][employeeName][day] = newValue;
+            
+            generateCalendar();
+            generateEmployeeSummary();
+            generateStats();
+            autoSave();
+            closeEditDropdown();
+        }
+
+        function generateCalendar() {
+            const calendar = document.getElementById('calendar');
+            calendar.innerHTML = '';
+            
+            weekdays.forEach((day, index) => {
+                const header = document.createElement('div');
+                header.className = 'day-header';
+                if (index === 0 || index === 6) {
+                    header.classList.add('weekend-header');
+                }
+                header.textContent = day;
+                calendar.appendChild(header);
+            });
+
+            const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+            const firstDay = getFirstDayOfWeek(currentYear, currentMonth);
+
+            for (let i = 0; i < firstDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'day-cell empty-cell';
+                calendar.appendChild(emptyCell);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'day-cell';
+                
+                const isWeekendDay = isWeekend(currentYear, currentMonth, day);
+                if (isWeekendDay) {
+                    dayCell.classList.add('weekend-cell');
+                }
+
+                const dayHeaderInfo = document.createElement('div');
+                dayHeaderInfo.className = 'day-header-info';
+
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'day-number';
+                dayNumber.textContent = day;
+                dayHeaderInfo.appendChild(dayNumber);
+
+                const holidayName = getHolidayName(currentYear, currentMonth, day);
+                if (holidayName) {
+                    const holidayElement = document.createElement('div');
+                    holidayElement.className = 'holiday-name';
+                    holidayElement.textContent = holidayName;
+                    dayHeaderInfo.appendChild(holidayElement);
+                }
+
+                dayCell.appendChild(dayHeaderInfo);
+
+                const staffSchedule = document.createElement('div');
+                staffSchedule.className = 'staff-schedule';
+
+                if (scheduleData.employees) {
+                    const sortedEmployees = sortEmployees([...scheduleData.employees]);
+                    const scheduleKey = `${currentYear}-${currentMonth}`;
+
+                    sortedEmployees.forEach(employee => {
+                        const value = scheduleData.schedules[scheduleKey] && 
+                                    scheduleData.schedules[scheduleKey][employee.姓名] ? 
+                                    scheduleData.schedules[scheduleKey][employee.姓名][day] : null;
+                        
+                        const staffItem = document.createElement('div');
+                        staffItem.className = `staff-item ${getStaffClass(value, employee.類型)}`;
+                        staffItem.textContent = getStaffDisplay(employee.姓名, value, employee.類型);
+                        
+                        if (isEditMode) {
+                            staffItem.classList.add('editable');
+                            staffItem.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                createEditDropdown(staffItem, employee.姓名, day);
+                            });
+                        }
+                        
+                        staffSchedule.appendChild(staffItem);
+                    });
+                }
+
+                dayCell.appendChild(staffSchedule);
+                calendar.appendChild(dayCell);
+            }
+        }
+
+        function generateEmployeeSummary() {
+            const summaryContainer = document.getElementById('employeeSummary');
+            summaryContainer.innerHTML = '';
+            
+            if (!scheduleData.employees) return;
+            
+            const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+            const sortedEmployees = sortEmployees([...scheduleData.employees]);
+            const scheduleKey = `${currentYear}-${currentMonth}`;
+            
+            sortedEmployees.forEach(employee => {
+                let workDays = 0;
+                let holidays = 0;
+                let nightShifts = 0;
+                let offDays = 0;
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const value = scheduleData.schedules[scheduleKey] && 
+                                scheduleData.schedules[scheduleKey][employee.姓名] ? 
+                                scheduleData.schedules[scheduleKey][employee.姓名][day] : null;
+                                
+                    if (value === null) {
+                        if (employee.類型 === 'fullTime') {
+                            workDays++;
+                        } else {
+                            offDays++;
+                        }
+                    } else if (value === '休假' || value === '特休') {
+                        holidays++;
+                    } else if (value && (value.includes('17:00-23:00') || value.includes('18:00-24:00') || value.includes('17:00-24:00'))) {
+                        nightShifts++;
+                    } else {
+                        workDays++;
+                    }
+                }
+
+                const card = document.createElement('div');
+                card.className = 'employee-card';
+                
+                if (isEditMode) {
+                    card.classList.add('edit-mode');
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-employee';
+                    deleteBtn.textContent = '×';
+                    deleteBtn.onclick = () => removeEmployee(employee.姓名);
+                    card.appendChild(deleteBtn);
+                    
+                    card.addEventListener('mouseenter', () => {
+                        deleteBtn.style.display = 'flex';
+                    });
+                    
+                    card.addEventListener('mouseleave', () => {
+                        deleteBtn.style.display = 'none';
+                    });
+                }
+                
+                const typeText = employee.類型 === 'fullTime' ? '正職' : '兼職';
+                const areaText = employee.區域 === 'front' ? '外場' : '內場';
+                
+                card.innerHTML += `
+                    <div class="employee-name">${employee.姓名} (${areaText}${typeText})</div>
+                    <div class="employee-stats">
+                        <span>工作: ${workDays + nightShifts}天</span>
+                        <span>班次: ${nightShifts}天</span>
+                        <span>休假: ${holidays}天</span>
+                        <span>休息: ${offDays}天</span>
+                    </div>
+                `;
+                summaryContainer.appendChild(card);
+            });
+        }
+
+        function generateStats() {
+            const statsContainer = document.getElementById('stats');
+            statsContainer.innerHTML = '';
+            
+            if (!scheduleData.employees) return;
+            
+            const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+            const scheduleKey = `${currentYear}-${currentMonth}`;
+            let totalHolidays = 0;
+            let totalNightShifts = 0;
+            let totalWorkDays = 0;
+            
+            scheduleData.employees.forEach(employee => {
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const value = scheduleData.schedules[scheduleKey] && 
+                                scheduleData.schedules[scheduleKey][employee.姓名] ? 
+                                scheduleData.schedules[scheduleKey][employee.姓名][day] : null;
+                                
+                    if (value === null) {
+                        if (employee.類型 === 'fullTime') {
+                            totalWorkDays++;
+                        }
+                    } else if (value === '休假' || value === '特休') {
+                        totalHolidays++;
+                    } else if (value && (value.includes('17:00-23:00') || value.includes('18:00-24:00') || value.includes('17:00-24:00'))) {
+                        totalNightShifts++;
+                    } else {
+                        totalWorkDays++;
+                    }
+                }
+            });
+            
+            const stats = [
+                { label: '總員工數', value: scheduleData.employees.length },
+                { label: '總工作天數', value: totalWorkDays + totalNightShifts },
+                { label: '總班次數', value: totalNightShifts },
+                { label: '總休假天數', value: totalHolidays }
+            ];
+            
+            stats.forEach(stat => {
+                const card = document.createElement('div');
+                card.className = 'stat-card';
+                card.innerHTML = `
+                    <div class="stat-number">${stat.value}</div>
+                    <div class="stat-label">${stat.label}</div>
+                `;
+                statsContainer.appendChild(card);
+            });
+        }
+
+        function exportSchedule() {
+            const csvContent = generateCSV();
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `班表_${currentYear}年${currentMonth}月_${new Date().toISOString().slice(0,10)}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function generateCSV() {
+            if (!scheduleData.employees) return '';
+            
+            const headers = ['姓名', '類型', '區域'];
+            const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                headers.push(`${currentMonth}/${day}`);
+            }
+            
+            let csv = headers.join(',') + '\n';
+            
+            const scheduleKey = `${currentYear}-${currentMonth}`;
+            scheduleData.employees.forEach(employee => {
+                const typeText = employee.類型 === 'fullTime' ? '正職' : '兼職';
+                const areaText = employee.區域 === 'front' ? '外場' : '內場';
+                const row = [employee.姓名, typeText, areaText];
+                
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const value = scheduleData.schedules[scheduleKey] && 
+                                scheduleData.schedules[scheduleKey][employee.姓名] ? 
+                                scheduleData.schedules[scheduleKey][employee.姓名][day] : null;
+                    row.push(value || (employee.類型 === 'fullTime' ? '上班' : '休息'));
+                }
+                csv += row.join(',') + '\n';
+            });
+            
+            return csv;
+        }
+
+        function clearAllSchedule() {
+            pendingAction = 'clear';
+            document.getElementById('confirmMessage').textContent = '確定要清空所有班表資料嗎？';
+            document.getElementById('confirmModal').style.display = 'block';
+        }
+
+        function confirmAction() {
+            if (pendingAction === 'removeEmployee') {
+                const index = scheduleData.employees.findIndex(emp => emp.姓名 === pendingActionData);
+                if (index > -1) {
+                    const employeeName = scheduleData.employees[index].姓名;
+                    scheduleData.employees.splice(index, 1);
+                    
+                    Object.keys(scheduleData.schedules).forEach(monthKey => {
+                        if (scheduleData.schedules[monthKey][employeeName]) {
+                            delete scheduleData.schedules[monthKey][employeeName];
+                        }
+                    });
+                    
+                    generateCalendar();
+                    generateEmployeeSummary();
+                    generateStats();
+                    autoSave();
+                    alert(`已刪除員工：${pendingActionData}`);
+                }
+            } else if (pendingAction === 'clear') {
+                const scheduleKey = `${currentYear}-${currentMonth}`;
+                const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+                
+                if (scheduleData.schedules[scheduleKey] && scheduleData.employees) {
+                    scheduleData.employees.forEach(employee => {
+                        for (let day = 1; day <= daysInMonth; day++) {
+                            if (scheduleData.schedules[scheduleKey][employee.姓名]) {
+                                scheduleData.schedules[scheduleKey][employee.姓名][day] = null;
+                            }
+                        }
+                    });
+                }
+                
+                generateCalendar();
+                generateEmployeeSummary();
+                generateStats();
+                autoSave();
+                alert('班表已清空！');
+            }
+            
+            closeModal();
+        }
+
+        function closeModal() {
+            document.getElementById('confirmModal').style.display = 'none';
+            pendingAction = null;
+            pendingActionData = null;
+        }
+
+        document.addEventListener('click', (e) => {
+            if (isEditMode && !e.target.closest('.edit-dropdown')) {
+                closeEditDropdown();
+            }
+            if (e.target.id === 'confirmModal') {
+                closeModal();
+            }
+            if (e.target.id === 'employeeModal') {
+                closeEmployeeModal();
+            }
+            if (e.target.id === 'shiftSettingsModal') {
+                closeShiftSettingsModal();
+            }
+        });
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            localStorage.removeItem('employeeScheduleData');
+            localStorage.removeItem('lastSaveTime');
+            
+            // 設定當前年月
+            document.getElementById('yearSelect').value = currentYear;
+            document.getElementById('monthSelect').value = currentMonth;
+            
+            loadShiftSettings();
+            
+            if (!loadFromStorage()) {
+                initializeDefaultData();
+            }
+            
+            ensureScheduleData(currentYear, currentMonth);
+            updateCalendar();
+            
+            setInterval(() => {
+                if (!saveTimeout) {
+                    saveToStorage();
+                }
+            }, 600000);
+        });
+    </script>
+</body>
+</html>
