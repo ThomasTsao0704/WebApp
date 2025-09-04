@@ -22,31 +22,52 @@
 <header>
   <h1>📦 商品料號管理 · 進銷存</h1>
   <div class="toolbar">
-    <input id="q" placeholder="搜尋..." />
+    <input id="q" placeholder="搜尋 編號/廠商/品名/規格/分類..." />
     <button onclick="document.getElementById('fileCsv').click()">匯入 CSV（自動套料號）</button>
-    <input type="file" id="fileCsv" accept=".csv" style="display:none" />
+    <input type="file" id="fileCsv" accept=".csv,text/csv" style="display:none" />
     <button onclick="exportCSV()">匯出 CSV</button>
   </div>
 </header>
 <main>
   <h2>商品清單</h2>
   <table>
-    <thead><tr><th>代號</th><th>品牌</th><th>品名</th><th>規格</th><th>單位</th><th>分類</th><th>未稅</th></tr></thead>
+    <!-- 表頭：已改為 編號 / 廠商 / 品名 / 規格 / 單位 / 分類 / 未稅 -->
+    <thead><tr><th>編號</th><th>廠商</th><th>品名</th><th>規格</th><th>單位</th><th>分類</th><th>未稅</th></tr></thead>
     <tbody id="rows"></tbody>
   </table>
 </main>
+
 <script>
+// ========================
+// 初始化 SQLite (sql.js)
+// ========================
 let db,SQL;
 (async()=>{
+  // 下載 sql.js，並在瀏覽器開一顆記憶體資料庫
   SQL = await initSqlJs({locateFile:f=>`https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`});
   db=new SQL.Database();
+
+  // 建立商品表（主鍵：code = 料號）
   db.run(`CREATE TABLE IF NOT EXISTS products(
-    code TEXT PRIMARY KEY,brand TEXT,name TEXT,spec TEXT,unit TEXT,category TEXT,price_excl REAL
+    code TEXT PRIMARY KEY,
+    brand TEXT,    -- 廠商/品牌
+    name  TEXT,    -- 品名
+    spec  TEXT,    -- 規格
+    unit  TEXT,    -- 單位
+    category TEXT, -- 分類名稱
+    price_excl REAL -- 未稅單價
   );`);
-  try{db.run('ALTER TABLE products ADD COLUMN category TEXT');}catch(_){ }
+
+  // 向下相容：舊 DB 若沒有 category 欄，嘗試新增（有就忽略錯誤）
+  try{db.run('ALTER TABLE products ADD COLUMN category TEXT');}catch(_){}
+
+  bindUI();
   render();
 })();
 
+// ========================================
+// 規則：自動產生料號（前綴-品牌縮寫-流水號）
+// ========================================
 const CATEGORY_PREFIX = {
   '清潔用品':'62','清潔':'62','清潔劑':'62',
   '餐具用品':'66','餐具':'66','宴會用品':'66',
@@ -57,6 +78,7 @@ const CATEGORY_PREFIX = {
 };
 const PREFIX_NAME = {'62':'清潔用品','66':'餐具用品','70':'辦公用品','80':'包裝材料','90':'五金工具','99':'其他商品'};
 
+// 將「品牌/品名/規格」合併字串拆成三欄
 function splitMix(mixed){
   if(!mixed) return {brand:'',name:'',spec:''};
   const parts = String(mixed).split('/').map(s=>s.trim()).filter(Boolean);
@@ -64,6 +86,8 @@ function splitMix(mixed){
   if(parts.length===2) return {brand:parts[0],name:parts[1],spec:''};
   return {brand:parts[0],name:parts[1],spec:parts.slice(2).join('/')};
 }
+
+// 由品牌產生縮寫：有英數取前三碼；純中文則哈希成 2 碼 A~Z
 function brandAbbr(brand){
   if(!brand || brand==='-') return 'NO';
   const letters = (brand.match(/[A-Za-z0-9]/g)||[]).join('').toUpperCase();
@@ -73,50 +97,99 @@ function brandAbbr(brand){
   const b = String.fromCharCode(65 + ((h>>5)%26));
   return a+b;
 }
+
+// 解析價格字串成數值
 function parsePrice(s){
   if(s==null) return null;
   const t=String(s).replace(/[,$\s]/g,'').replace(/^\$/,'');
   const v=parseFloat(t);
   return isNaN(v)? null : v;
 }
+
+// 依「分類文字」或「舊代號前2碼」推斷前綴
 function inferPrefix(categoryText, oldCode){
   if(categoryText){
-    for(const k in CATEGORY_PREFIX){ if(categoryText.includes(k)) return CATEGORY_PREFIX[k]; }
+    for(const k in CATEGORY_PREFIX){ if(String(categoryText).includes(k)) return CATEGORY_PREFIX[k]; }
   }
   if(oldCode){ const m = String(oldCode).match(/^(\d{2})/); if(m) return m[1]; }
   return '99';
 }
+
+// 同一組「前綴-品牌縮寫」下，找最大流水號 +1
 function nextSerial(prefix, abbr){
   const stmt = db.prepare("SELECT code FROM products WHERE code LIKE ? ORDER BY code DESC LIMIT 1");
   stmt.bind([`${prefix}-${abbr}-%`]);
-  let max=0; while(stmt.step()){ const [code]=stmt.get(); const m=String(code).match(/-(\d{3})$/); if(m){ max=Math.max(max,parseInt(m[1],10)); } }
+  let max=0; while(stmt.step()){
+    const [code]=stmt.get();
+    const m=String(code).match(/-(\d{3})$/);
+    if(m){ max=Math.max(max,parseInt(m[1],10)); }
+  }
   stmt.free();
   return (max+1).toString().padStart(3,'0');
 }
 
+// ========================================
+// CSV 解析（支援引號/逗號/換行）
+// ========================================
 function parseCSV(text){
-  return text.split(/\r?\n/).filter(l=>l.trim()).map(r=>r.split(','));
+  const out=[]; let row=[],val='',inQ=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(inQ){
+      if(c==='"'){ if(text[i+1]==='"'){ val+='"'; i++; } else inQ=false; }
+      else val+=c;
+    }else{
+      if(c==='"') inQ=true;
+      else if(c===','){ row.push(val); val=''; }
+      else if(c==='\n' || c==='\r'){ if(val!==''||row.length>0){ row.push(val); out.push(row); row=[]; val=''; } }
+      else val+=c;
+    }
+  }
+  if(val!==''||row.length>0){ row.push(val); out.push(row); }
+  return out.filter(r=> r.some(x=>String(x).trim()!=='') );
 }
 
+// ========================================
+// 匯入 CSV（同時支援兩種格式）
+// 1) 合併欄位：『品牌/品名/規格』在一欄（標題：貨品名稱/品名/名稱）
+// 2) 分開欄位：廠商(或品牌)、品名(或名稱)、規格 各自一欄
+// ========================================
 document.getElementById('fileCsv').addEventListener('change',async e=>{
-  const text=await e.target.files[0].text();
-  const lines=parseCSV(text);
-  if(!lines.length) return;
-  const header = lines.shift().map(h=>h.trim());
-  const idxCodeOld = header.findIndex(h=>/^(貨品)?代號|品號|code/i.test(h));
+  const file=e.target.files[0]; if(!file) return;
+  const text=await file.text();
+  const rows=parseCSV(text); if(!rows.length){ alert('CSV 是空的'); return; }
+  const header = rows.shift().map(h=>String(h).trim());
+
+  // 支援舊新標題：代號/編號、品牌/廠商
+  const idxCodeOld = header.findIndex(h=>/^(貨品)?代號|編號|品號|code/i.test(h));
   const idxNameMix = header.findIndex(h=>/貨品名稱|品名|名稱/i.test(h));
+  const idxBrand   = header.findIndex(h=>/品牌|廠商/i.test(h));
+  const idxName    = header.findIndex(h=>/(^|[^品])名稱|品名/i.test(h)); // 名稱 or 品名
+  const idxSpec    = header.findIndex(h=>/規格/i.test(h));
   const idxUnit    = header.findIndex(h=>/規格單位|單位|unit/i.test(h));
   const idxPrice   = header.findIndex(h=>/單價|未稅|price/i.test(h));
   const idxCat     = header.findIndex(h=>/分類|類別|category/i.test(h));
 
-  for(const cols of lines){
-    const oldCode = idxCodeOld>=0? cols[idxCodeOld] : '';
-    const mixed   = idxNameMix>=0? cols[idxNameMix] : '';
-    const unit    = idxUnit>=0? cols[idxUnit] : '';
-    const price   = idxPrice>=0? cols[idxPrice] : '';
-    const catText = idxCat>=0? cols[idxCat] : '';
+  rows.forEach(cols=>{
+    const get = i=> (i>=0 && i<cols.length? String(cols[i]).trim() : '');
 
-    const {brand,name,spec} = splitMix(mixed);
+    const oldCode = get(idxCodeOld);
+    const unit    = get(idxUnit);
+    const price   = get(idxPrice);
+    const catText = get(idxCat);
+
+    let brand='', name='', spec='';
+    if(idxNameMix >= 0){
+      // 合併欄位模式：把「品牌/品名/規格」拆開
+      ({brand,name,spec} = splitMix(get(idxNameMix)));
+    } else {
+      // 分開欄位模式：直接對應 廠商(或品牌) / 品名(或名稱) / 規格
+      brand = get(idxBrand);
+      name  = get(idxName);
+      spec  = get(idxSpec);
+    }
+
+    // 產生料號並寫入 DB
     const prefix = inferPrefix(catText||'', oldCode||'');
     const abbr   = brandAbbr(brand||'-');
     const serial = nextSerial(prefix, abbr);
@@ -124,31 +197,51 @@ document.getElementById('fileCsv').addEventListener('change',async e=>{
     const excl   = parsePrice(price);
 
     db.run(`INSERT OR REPLACE INTO products(code,brand,name,spec,unit,price_excl,category) VALUES(?,?,?,?,?,?,?)`,
-      [code,brand||'',name||mixed||'',spec||'',unit||'',excl, PREFIX_NAME[prefix]||'其他商品']);
-  }
+      [code,brand||'',name||'',spec||'',unit||'',excl, PREFIX_NAME[prefix]||'其他商品']);
+  });
+
   render();
   alert('CSV 已匯入並自動套用料號');
   e.target.value='';
 });
 
+// ========================================
+// 匯出 CSV（表頭已改為「編號,廠商,...」）
+// ========================================
 function exportCSV(){
-  let stmt=db.prepare("SELECT code,brand,name,spec,unit,category,price_excl FROM products ORDER BY code");
-  let out="代號,品牌,品名,規格,單位,分類,未稅\n";
+  const stmt=db.prepare("SELECT code,brand,name,spec,unit,category,price_excl FROM products ORDER BY code");
+  let out="編號,廠商,品名,規格,單位,分類,未稅\n"; // <-- 這裡已更名
   while(stmt.step()){
     const [c,b,n,s,u,cat,p]=stmt.get();
-    out+=`${c},${b||''},${n||''},${s||''},${u||''},${cat||''},${p||''}\n`;
+    // 基本 CSV 轉義
+    const cells=[c,b,n,s,u,cat,p].map(x=>{
+      const t=(x==null?'' : String(x));
+      return /[\",\n]/.test(t)? '"'+t.replace(/\"/g,'""')+'"' : t;
+    });
+    out+=cells.join(',')+"\n";
   }
   stmt.free();
-  let blob=new Blob(["\uFEFF"+out],{type:'text/csv'});
-  let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='products_with_codes.csv';a.click();
+  const blob=new Blob(["\uFEFF"+out],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='products_with_codes.csv';a.click();
 }
 
+// ========================================
+function bindUI(){
+  document.getElementById('q').addEventListener('input', render);
+}
+
+// 畫面渲染 + 搜尋
 function render(){
+  const q=(document.getElementById('q').value||'').toLowerCase();
   const tbody=document.getElementById('rows');tbody.innerHTML="";
-  let stmt=db.prepare("SELECT code,brand,name,spec,unit,category,price_excl FROM products ORDER BY code");
+  const stmt=db.prepare("SELECT code,brand,name,spec,unit,category,price_excl FROM products ORDER BY code");
   while(stmt.step()){
     const [c,b,n,s,u,cat,p]=stmt.get();
-    tbody.innerHTML+=`<tr><td>${c}</td><td>${b}</td><td>${n}</td><td>${s}</td><td>${u}</td><td>${cat}</td><td>${p}</td></tr>`;
+    const hay = `${c} ${b||''} ${n||''} ${s||''} ${u||''} ${cat||''}`.toLowerCase();
+    if(q && !hay.includes(q)) continue;
+    tbody.insertAdjacentHTML('beforeend',
+      `<tr><td>${c}</td><td>${b||''}</td><td>${n||''}</td><td>${s||''}</td><td>${u||''}</td><td>${cat||''}</td><td>${p??''}</td></tr>`
+    );
   }
   stmt.free();
 }
