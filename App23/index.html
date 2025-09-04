@@ -149,61 +149,65 @@ function parseCSV(text){
   return out.filter(r=> r.some(x=>String(x).trim()!=='') );
 }
 
-// ========================================
-// 匯入 CSV（同時支援兩種格式）
-// 1) 合併欄位：『品牌/品名/規格』在一欄（標題：貨品名稱/品名/名稱）
-// 2) 分開欄位：廠商(或品牌)、品名(或名稱)、規格 各自一欄
-// ========================================
-document.getElementById('fileCsv').addEventListener('change',async e=>{
-  const file=e.target.files[0]; if(!file) return;
-  const text=await file.text();
-  const rows=parseCSV(text); if(!rows.length){ alert('CSV 是空的'); return; }
-  const header = rows.shift().map(h=>String(h).trim());
+// ===== 匯入 CSV（同時支援兩種格式，優先使用分開欄位） =====
+document.getElementById('fileCsv').addEventListener('change', async e => {
+  const file = e.target.files[0]; if (!file) return;
+  const text = await file.text();
+  const rows = parseCSV(text); if (!rows.length) { alert('CSV 是空的'); return; }
+  const header = rows.shift().map(h => String(h).trim());
 
-  // 支援舊新標題：代號/編號、品牌/廠商
-  const idxCodeOld = header.findIndex(h=>/^(貨品)?代號|編號|品號|code/i.test(h));
-  const idxNameMix = header.findIndex(h=>/貨品名稱|品名|名稱/i.test(h));
-  const idxBrand   = header.findIndex(h=>/品牌|廠商/i.test(h));
-  const idxName    = header.findIndex(h=>/(^|[^品])名稱|品名/i.test(h)); // 名稱 or 品名
-  const idxSpec    = header.findIndex(h=>/規格/i.test(h));
-  const idxUnit    = header.findIndex(h=>/規格單位|單位|unit/i.test(h));
-  const idxPrice   = header.findIndex(h=>/單價|未稅|price/i.test(h));
-  const idxCat     = header.findIndex(h=>/分類|類別|category/i.test(h));
+  // 標題匹配（擴充同義詞）
+  const idxCodeOld = header.findIndex(h => /^(貨品)?代號|編號|品號|code/i.test(h));
+  const idxNameMix = header.findIndex(h => /貨品名稱|品名|名稱/i.test(h));             // 合併欄位（最後才使用）
+  const idxBrand   = header.findIndex(h => /(品牌|廠商|廠牌|供應商)/i.test(h));         // 分開欄位：品牌/廠商
+  const idxName    = header.findIndex(h => /(品名|名稱)/i.test(h));                     // 分開欄位：品名/名稱
+  const idxSpec    = header.findIndex(h => /(規格(說明)?|型號|規格型號)/i.test(h));     // 分開欄位：規格/型號
+  const idxUnit    = header.findIndex(h => /規格單位|單位|unit/i.test(h));
+  const idxPrice   = header.findIndex(h => /單價|未稅|price/i.test(h));
+  const idxCat     = header.findIndex(h => /分類|類別|category/i.test(h));
 
-  rows.forEach(cols=>{
-    const get = i=> (i>=0 && i<cols.length? String(cols[i]).trim() : '');
+  rows.forEach(cols => {
+    const get = i => (i >= 0 && i < cols.length ? String(cols[i]).trim() : '');
 
     const oldCode = get(idxCodeOld);
     const unit    = get(idxUnit);
     const price   = get(idxPrice);
     const catText = get(idxCat);
 
-    let brand='', name='', spec='';
-    if(idxNameMix >= 0){
-      // 合併欄位模式：把「品牌/品名/規格」拆開
-      ({brand,name,spec} = splitMix(get(idxNameMix)));
-    } else {
-      // 分開欄位模式：直接對應 廠商(或品牌) / 品名(或名稱) / 規格
+    // —— 關鍵修正：只要偵測到分開欄位（brand/spec 其中之一存在），就優先走分開模式 ——
+    const hasSeparated = (idxBrand >= 0) || (idxSpec >= 0);
+
+    let brand = '', name = '', spec = '';
+    if (hasSeparated) {
       brand = get(idxBrand);
-      name  = get(idxName);
+      // 名稱欄優先使用「品名/名稱」，若沒提供就退回合併欄位
+      name  = get(idxName) || get(idxNameMix);
       spec  = get(idxSpec);
+    } else if (idxNameMix >= 0) {
+      // 合併欄位模式（品牌/品名/規格）
+      ({ brand, name, spec } = splitMix(get(idxNameMix)));
+    } else {
+      // 兩種都沒偵測到時，盡量塞入名稱避免整列空白
+      name = get(0);
     }
 
-    // 產生料號並寫入 DB
-    const prefix = inferPrefix(catText||'', oldCode||'');
-    const abbr   = brandAbbr(brand||'-');
+    const prefix = inferPrefix(catText || '', oldCode || '');
+    const abbr   = brandAbbr(brand || '-');
     const serial = nextSerial(prefix, abbr);
     const code   = `${prefix}-${abbr}-${serial}`;
     const excl   = parsePrice(price);
 
-    db.run(`INSERT OR REPLACE INTO products(code,brand,name,spec,unit,price_excl,category) VALUES(?,?,?,?,?,?,?)`,
-      [code,brand||'',name||'',spec||'',unit||'',excl, PREFIX_NAME[prefix]||'其他商品']);
+    db.run(
+      `INSERT OR REPLACE INTO products(code,brand,name,spec,unit,price_excl,category) VALUES(?,?,?,?,?,?,?)`,
+      [code, brand || '', name || '', spec || '', unit || '', excl, PREFIX_NAME[prefix] || '其他商品']
+    );
   });
 
   render();
   alert('CSV 已匯入並自動套用料號');
-  e.target.value='';
+  e.target.value = '';
 });
+
 
 // ========================================
 // 匯出 CSV（表頭已改為「編號,廠商,...」）
