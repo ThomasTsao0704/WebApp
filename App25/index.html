@@ -719,64 +719,251 @@
         </div>
     </div>
 
-    <script>
-        // 匯率數據
-        const exchangeRates = {
-            '2021/02/01': { TWD: 1, USD: 0.0357, USDTWD: 28.001, EUR: 0.0294, PHP: 1.72, MYR: 0.148, CAD: 0.0433, KRW: 40.0, CNY: 0.23 },
-            '2021/02/08': { TWD: 1, USD: 0.0359, USDTWD: 27.881, EUR: 0.0295, PHP: 1.71, MYR: 0.147, CAD: 0.0435, KRW: 39.8, CNY: 0.232 },
-            '2021/02/15': { TWD: 1, USD: 0.0357, USDTWD: 27.994, EUR: 0.0293, PHP: 1.72, MYR: 0.148, CAD: 0.0432, KRW: 40.1, CNY: 0.229 },
-            '2021/02/22': { TWD: 1, USD: 0.0359, USDTWD: 27.809, EUR: 0.0295, PHP: 1.73, MYR: 0.149, CAD: 0.0434, KRW: 39.7, CNY: 0.231 },
-            '2021/03/01': { TWD: 1, USD: 0.0359, USDTWD: 27.819, EUR: 0.0296, PHP: 1.74, MYR: 0.150, CAD: 0.0435, KRW: 39.5, CNY: 0.233 },
-            '2021/03/08': { TWD: 1, USD: 0.0354, USDTWD: 28.283, EUR: 0.0292, PHP: 1.70, MYR: 0.146, CAD: 0.0431, KRW: 40.2, CNY: 0.227 },
-            '2021/03/15': { TWD: 1, USD: 0.0355, USDTWD: 28.177, EUR: 0.0293, PHP: 1.71, MYR: 0.147, CAD: 0.0432, KRW: 40.0, CNY: 0.228 },
-            '2021/03/22': { TWD: 1, USD: 0.0356, USDTWD: 28.309, EUR: 0.0294, PHP: 1.72, MYR: 0.148, CAD: 0.0433, KRW: 39.8, CNY: 0.230 },
-            '2021/03/29': { TWD: 1, USD: 0.0354, USDTWD: 28.528, EUR: 0.0291, PHP: 1.69, MYR: 0.145, CAD: 0.0430, KRW: 40.3, CNY: 0.225 },
-            '2021/04/05': { TWD: 1, USD: 0.0352, USDTWD: 28.387, EUR: 0.0290, PHP: 1.68, MYR: 0.144, CAD: 0.0428, KRW: 40.5, CNY: 0.223 },
-            '2021/04/12': { TWD: 1, USD: 0.0354, USDTWD: 28.394, EUR: 0.0291, PHP: 1.69, MYR: 0.145, CAD: 0.0430, KRW: 40.2, CNY: 0.225 },
-            '2021/04/19': { TWD: 1, USD: 0.0356, USDTWD: 28.127, EUR: 0.0293, PHP: 1.71, MYR: 0.147, CAD: 0.0432, KRW: 39.9, CNY: 0.228 },
-            '2021/04/26': { TWD: 1, USD: 0.0354, USDTWD: 28.503, EUR: 0.0290, PHP: 1.68, MYR: 0.144, CAD: 0.0429, KRW: 40.4, CNY: 0.224 },
-            '2021/05/03': { TWD: 1, USD: 0.0352, USDTWD: 28.531, EUR: 0.0289, PHP: 1.67, MYR: 0.143, CAD: 0.0427, KRW: 40.6, CNY: 0.222 },
-            '2021/05/10': { TWD: 1, USD: 0.0352, USDTWD: 28.441, EUR: 0.0290, PHP: 1.68, MYR: 0.144, CAD: 0.0428, KRW: 40.4, CNY: 0.223 },
-            '2021/05/17': { TWD: 1, USD: 0.0354, USDTWD: 28.245, EUR: 0.0291, PHP: 1.69, MYR: 0.145, CAD: 0.0430, KRW: 40.1, CNY: 0.225 },
-            '2021/05/24': { TWD: 1, USD: 0.0357, USDTWD: 28.000, EUR: 0.0294, PHP: 1.72, MYR: 0.148, CAD: 0.0433, KRW: 39.7, CNY: 0.229 }
-        };
+<script>
+  // 匯率數據（保持你原本的資料）
+  const exchangeRates = {
+    '2021/02/01': { TWD: 1, USD: 0.0357, USDTWD: 28.001, EUR: 0.0294, PHP: 1.72, MYR: 0.148, CAD: 0.0433, KRW: 40.0, CNY: 0.23 },
+    '2021/02/08': { TWD: 1, USD: 0.0359, USDTWD: 27.881, EUR: 0.0295, PHP: 1.71, MYR: 0.147, CAD: 0.0435, KRW: 39.8, CNY: 0.232 },
+    '2021/02/15': { TWD: 1, USD: 0.0357, USDTWD: 27.994, EUR: 0.0293, PHP: 1.72, MYR: 0.148, CAD: 0.0432, KRW: 40.1, CNY: 0.229 },
+    '2021/02/22': { TWD: 1, USD: 0.0359, USDTWD: 27.809, EUR: 0.0295, PHP: 1.73, MYR: 0.149, CAD: 0.0434, KRW: 39.7, CNY: 0.231 },
+    '2021/03/01': { TWD: 1, USD: 0.0359, USDTWD: 27.819, EUR: 0.0296, PHP: 1.74, MYR: 0.150, CAD: 0.0435, KRW: 39.5, CNY: 0.233 },
+    '2021/03/08': { TWD: 1, USD: 0.0354, USDTWD: 28.283, EUR: 0.0292, PHP: 1.70, MYR: 0.146, CAD: 0.0431, KRW: 40.2, CNY: 0.227 },
+    '2021/03/15': { TWD: 1, USD: 0.0355, USDTWD: 28.177, EUR: 0.0293, PHP: 1.71, MYR: 0.147, CAD: 0.0432, KRW: 40.0, CNY: 0.228 },
+    '2021/03/22': { TWD: 1, USD: 0.0356, USDTWD: 28.309, EUR: 0.0294, PHP: 1.72, MYR: 0.148, CAD: 0.0433, KRW: 39.8, CNY: 0.230 },
+    '2021/03/29': { TWD: 1, USD: 0.0354, USDTWD: 28.528, EUR: 0.0291, PHP: 1.69, MYR: 0.145, CAD: 0.0430, KRW: 40.3, CNY: 0.225 },
+    '2021/04/05': { TWD: 1, USD: 0.0352, USDTWD: 28.387, EUR: 0.0290, PHP: 1.68, MYR: 0.144, CAD: 0.0428, KRW: 40.5, CNY: 0.223 },
+    '2021/04/12': { TWD: 1, USD: 0.0354, USDTWD: 28.394, EUR: 0.0291, PHP: 1.69, MYR: 0.145, CAD: 0.0430, KRW: 40.2, CNY: 0.225 },
+    '2021/04/19': { TWD: 1, USD: 0.0356, USDTWD: 28.127, EUR: 0.0293, PHP: 1.71, MYR: 0.147, CAD: 0.0432, KRW: 39.9, CNY: 0.228 },
+    '2021/04/26': { TWD: 1, USD: 0.0354, USDTWD: 28.503, EUR: 0.0290, PHP: 1.68, MYR: 0.144, CAD: 0.0429, KRW: 40.4, CNY: 0.224 },
+    '2021/05/03': { TWD: 1, USD: 0.0352, USDTWD: 28.531, EUR: 0.0289, PHP: 1.67, MYR: 0.143, CAD: 0.0427, KRW: 40.6, CNY: 0.222 },
+    '2021/05/10': { TWD: 1, USD: 0.0352, USDTWD: 28.441, EUR: 0.0290, PHP: 1.68, MYR: 0.144, CAD: 0.0428, KRW: 40.4, CNY: 0.223 },
+    '2021/05/17': { TWD: 1, USD: 0.0354, USDTWD: 28.245, EUR: 0.0291, PHP: 1.69, MYR: 0.145, CAD: 0.0430, KRW: 40.1, CNY: 0.225 },
+    '2021/05/24': { TWD: 1, USD: 0.0357, USDTWD: 28.000, EUR: 0.0294, PHP: 1.72, MYR: 0.148, CAD: 0.0433, KRW: 39.7, CNY: 0.229 }
+  };
 
-        const currencies = {
-            TWD: { name: '新台幣', symbol: 'NT$' },
-            USD: { name: '美元', symbol: '$' },
-            EUR: { name: '歐元', symbol: '€' },
-            PHP: { name: '菲律賓比索', symbol: '₱' },
-            MYR: { name: '馬來西亞令吉', symbol: 'RM' },
-            CAD: { name: '加拿大元', symbol: 'C$' },
-            KRW: { name: '韓元', symbol: '₩' },
-            CNY: { name: '人民幣', symbol: '¥' }
-        };
+  const currencies = {
+    TWD: { name: '新台幣', symbol: 'NT$' },
+    USD: { name: '美元', symbol: '$' },
+    EUR: { name: '歐元', symbol: '€' },
+    PHP: { name: '菲律賓比索', symbol: '₱' },
+    MYR: { name: '馬來西亞令吉', symbol: 'RM' },
+    CAD: { name: '加拿大元', symbol: 'C$' },
+    KRW: { name: '韓元', symbol: '₩' },
+    CNY: { name: '人民幣', symbol: '¥' }
+  };
 
-        const availableDates = Object.keys(exchangeRates).sort();
+  // 依 'YYYY/MM/DD' 字串排序，這種格式用字典序即可正確遞增
+  const availableDates = Object.keys(exchangeRates).sort();
 
-        // 初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeDateSelects();
-            initializeEventListeners();
-            calculateConversion();
-            calculateAnalysis();
-        });
+  // 工具：格式化數字
+  function fmt(n, digits = 2) {
+    return Number(n).toLocaleString('zh-TW', {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    });
+  }
 
-        // 初始化日期選擇器
-        function initializeDateSelects() {
-            const selectedDateSelect = document.getElementById('selectedDate');
-            const startDateSelect = document.getElementById('startDate');
-            const endDateSelect = document.getElementById('endDate');
+  // 工具：計算某日 from->to 的匯率（1 from = ? to）
+  function pairRateAt(date, from, to) {
+    const rates = exchangeRates[date];
+    if (!rates) return null;
+    const fromRate = rates[from];
+    const toRate = rates[to];
+    if (!(fromRate > 0) || !(toRate > 0)) return null;
+    // 皆為「每 1 TWD 可換多少該幣別」→ 任兩幣別之間比值 = toRate / fromRate
+    return toRate / fromRate;
+  }
 
-            availableDates.forEach(date => {
-                const option1 = new Option(date, date);
-                const option2 = new Option(date, date);
-                const option3 = new Option(date, date);
-                
-                selectedDateSelect.add(option1);
-                startDateSelect.add(option2);
-                endDateSelect.add(option3);
-            });
+  document.addEventListener('DOMContentLoaded', () => {
+    initTabs();
+    initializeDateSelects();
+    initializeEventListeners();
+    calculateConversion();
+    calculateAnalysis();
+  });
 
-            selectedDateSelect.value = '2021/05/24';
-            startDateSelect.value
+  // 分頁切換
+  function initTabs() {
+    const tabs = document.querySelectorAll('.tab');
+    const contents = document.querySelectorAll('.tab-content');
+    tabs.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabs.forEach(b => b.classList.remove('active'));
+        contents.forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        const targetId = btn.getAttribute('data-tab');
+        document.getElementById(targetId).classList.add('active');
+      });
+    });
+  }
+
+  // 初始化日期選擇器（單日、起訖）
+  function initializeDateSelects() {
+    const selectedDateSelect = document.getElementById('selectedDate');
+    const startDateSelect = document.getElementById('startDate');
+    const endDateSelect   = document.getElementById('endDate');
+
+    // 先清空（避免重複）
+    [selectedDateSelect, startDateSelect, endDateSelect].forEach(sel => sel.innerHTML = '');
+
+    availableDates.forEach(date => {
+      selectedDateSelect.add(new Option(date, date));
+      startDateSelect.add(new Option(date, date));
+      endDateSelect.add(new Option(date, date));
+    });
+
+    // 預設：單日用最後一天；起始用第一天；結束用最後一天
+    const first = availableDates[0];
+    const last  = availableDates[availableDates.length - 1];
+    selectedDateSelect.value = last;
+    startDateSelect.value = first;
+    endDateSelect.value = last;
+  }
+
+  function initializeEventListeners() {
+    // 即時轉換
+    document.getElementById('amount').addEventListener('input', calculateConversion);
+    document.getElementById('fromCurrency').addEventListener('change', calculateConversion);
+    document.getElementById('toCurrency').addEventListener('change', calculateConversion);
+    document.getElementById('selectedDate').addEventListener('change', calculateConversion);
+
+    // 交換幣別
+    document.getElementById('swapButton').addEventListener('click', () => {
+      const fromSel = document.getElementById('fromCurrency');
+      const toSel = document.getElementById('toCurrency');
+      const tmp = fromSel.value;
+      fromSel.value = toSel.value;
+      toSel.value = tmp;
+      calculateConversion();
+      // 若當前在分析頁，也同步更新標題（非必要）
+      calculateAnalysis();
+    });
+
+    // 變化分析
+    document.getElementById('analysisFromCurrency').addEventListener('change', calculateAnalysis);
+    document.getElementById('analysisToCurrency').addEventListener('change', calculateAnalysis);
+    document.getElementById('startDate').addEventListener('change', calculateAnalysis);
+    document.getElementById('endDate').addEventListener('change', calculateAnalysis);
+  }
+
+  function calculateConversion() {
+    const amount = Number(document.getElementById('amount').value || 0);
+    const from = document.getElementById('fromCurrency').value;
+    const to = document.getElementById('toCurrency').value;
+    const date = document.getElementById('selectedDate').value;
+
+    const rate = pairRateAt(date, from, to);
+    if (rate == null) return;
+
+    const converted = amount * rate;
+
+    // 更新卡片
+    const resultFrom = document.getElementById('resultFrom');
+    const resultTo = document.getElementById('resultTo');
+    const resultDate = document.getElementById('resultDate');
+
+    resultFrom.textContent = `${currencies[from].symbol} ${fmt(amount, 2)}`;
+    resultTo.textContent   = `${currencies[to].symbol} ${fmt(converted, 2)}`;
+    resultDate.textContent = `匯率日期: ${date}`;
+
+    // 更新下方「匯率信息」：1 from = X to、1 to = Y from
+    const info1Label = document.getElementById('rateInfo1');
+    const info1Value = document.getElementById('rateValue1');
+    const info2Label = document.getElementById('rateInfo2');
+    const info2Value = document.getElementById('rateValue2');
+
+    info1Label.textContent = `1 ${from} =`;
+    info1Value.textContent = `${fmt(rate, 6)} ${to}`;
+
+    const inverse = rate > 0 ? 1 / rate : 0;
+    info2Label.textContent = `1 ${to} =`;
+    info2Value.textContent = `${fmt(inverse, 6)} ${from}`;
+  }
+
+  function calculateAnalysis() {
+    const from = document.getElementById('analysisFromCurrency').value;
+    const to = document.getElementById('analysisToCurrency').value;
+    const start = document.getElementById('startDate').value;
+    const end = document.getElementById('endDate').value;
+
+    const startIdx = availableDates.indexOf(start);
+    const endIdx = availableDates.indexOf(end);
+
+    const changeCard = document.getElementById('changeCard');
+    const chartDataDiv = document.getElementById('chartData');
+
+    // 清空簡易走勢列
+    chartDataDiv.innerHTML = '';
+
+    if (startIdx === -1 || endIdx === -1 || startIdx > endIdx) {
+      changeCard.style.display = 'none';
+      return;
+    }
+
+    // 組賽局範圍的日期陣列
+    const rangeDates = availableDates.slice(startIdx, endIdx + 1);
+
+    // 產出簡易走勢列
+    let prev = null;
+    rangeDates.forEach(d => {
+      const rate = pairRateAt(d, from, to);
+      if (rate == null) return;
+      let trendIcon = '—';
+      let trendClass = '';
+      if (prev != null) {
+        if (rate > prev) { trendIcon = '▲'; trendClass = 'trend-up'; }
+        else if (rate < prev) { trendIcon = '▼'; trendClass = 'trend-down'; }
+      }
+      const row = document.createElement('div');
+      row.className = 'chart-row';
+      row.innerHTML = `
+        <span class="chart-date">${d}</span>
+        <span class="chart-rate">${fmt(rate, 6)}</span>
+        <span class="chart-trend ${trendClass}">${trendIcon}</span>
+      `;
+      chartDataDiv.appendChild(row);
+      prev = rate;
+    });
+
+    // 起訖匯率與變化
+    const startRate = pairRateAt(start, from, to);
+    const endRate = pairRateAt(end, from, to);
+
+    if (startRate == null || endRate == null) {
+      changeCard.style.display = 'none';
+      return;
+    }
+
+    const absChange = endRate - startRate;
+    const pctChange = startRate !== 0 ? (absChange / startRate) * 100 : 0;
+
+    // 更新卡片內容
+    changeCard.style.display = 'block';
+    document.getElementById('changeTitle').textContent = `${from}/${to} 匯率變化`;
+    document.getElementById('periodValue').textContent = `${start} 至 ${end}`;
+    document.getElementById('startRateValue').textContent = fmt(startRate, 6);
+    document.getElementById('endRateValue').textContent = fmt(endRate, 6);
+    document.getElementById('changeAbsolute').textContent = (absChange >= 0 ? '+' : '') + fmt(absChange, 6);
+    document.getElementById('changePercent').textContent = (pctChange >= 0 ? '+' : '') + fmt(pctChange, 2) + '%';
+
+    // 圖示與趨勢說明
+    const icon = document.getElementById('changeIcon');
+    const trendText = document.getElementById('trendText');
+
+    if (absChange > 0) {
+      icon.classList.remove('fa-trending-down');
+      icon.classList.add('fa-trending-up');
+      trendText.innerHTML = `<span class="positive">${from}</span> 相對於 <span class="positive">${to}</span> 在此期間<strong>升值</strong>（1 ${from} 可換更多 ${to}）。`;
+    } else if (absChange < 0) {
+      icon.classList.remove('fa-trending-up');
+      icon.classList.add('fa-trending-down');
+      trendText.innerHTML = `<span class="negative">${from}</span> 相對於 <span class="negative">${to}</span> 在此期間<strong>貶值</strong>（1 ${from} 可換更少 ${to}）。`;
+    } else {
+      icon.classList.remove('fa-trending-up', 'fa-trending-down');
+      icon.classList.add('fa-trending-up'); // 隨便放一個，不影響文字
+      trendText.textContent = `${from} 相對於 ${to} 在此期間大致維持穩定。`;
+    }
+  }
+</script>
+</body>
+</html>
