@@ -1,475 +1,782 @@
-import React, { useState, useEffect } from 'react';
-import { Calculator, TrendingUp, TrendingDown, RefreshCw, Calendar, BarChart3, Activity } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>匯率計算工具</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-const CurrencyConverter = () => {
-  const [activeTab, setActiveTab] = useState('converter');
-  const [amount, setAmount] = useState(100);
-  const [fromCurrency, setFromCurrency] = useState('USD');
-  const [toCurrency, setToCurrency] = useState('TWD');
-  const [result, setResult] = useState(0);
-  const [selectedDate, setSelectedDate] = useState('2021/05/24');
-  const [startDate, setStartDate] = useState('2021/02/01');
-  const [endDate, setEndDate] = useState('2021/05/24');
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
 
-  // 從文檔提取的匯率數據
-  const exchangeRates = {
-    '2021/02/01': { TWD: 1, USD: 0.0357, USDTWD: 28.001, EUR: 0.0294, PHP: 1.72, MYR: 0.148, CAD: 0.0433, KRW: 40.0, CNY: 0.23 },
-    '2021/02/08': { TWD: 1, USD: 0.0359, USDTWD: 27.881, EUR: 0.0295, PHP: 1.71, MYR: 0.147, CAD: 0.0435, KRW: 39.8, CNY: 0.232 },
-    '2021/02/15': { TWD: 1, USD: 0.0357, USDTWD: 27.994, EUR: 0.0293, PHP: 1.72, MYR: 0.148, CAD: 0.0432, KRW: 40.1, CNY: 0.229 },
-    '2021/02/22': { TWD: 1, USD: 0.0359, USDTWD: 27.809, EUR: 0.0295, PHP: 1.73, MYR: 0.149, CAD: 0.0434, KRW: 39.7, CNY: 0.231 },
-    '2021/03/01': { TWD: 1, USD: 0.0359, USDTWD: 27.819, EUR: 0.0296, PHP: 1.74, MYR: 0.150, CAD: 0.0435, KRW: 39.5, CNY: 0.233 },
-    '2021/03/08': { TWD: 1, USD: 0.0354, USDTWD: 28.283, EUR: 0.0292, PHP: 1.70, MYR: 0.146, CAD: 0.0431, KRW: 40.2, CNY: 0.227 },
-    '2021/03/15': { TWD: 1, USD: 0.0355, USDTWD: 28.177, EUR: 0.0293, PHP: 1.71, MYR: 0.147, CAD: 0.0432, KRW: 40.0, CNY: 0.228 },
-    '2021/03/22': { TWD: 1, USD: 0.0356, USDTWD: 28.309, EUR: 0.0294, PHP: 1.72, MYR: 0.148, CAD: 0.0433, KRW: 39.8, CNY: 0.230 },
-    '2021/03/29': { TWD: 1, USD: 0.0354, USDTWD: 28.528, EUR: 0.0291, PHP: 1.69, MYR: 0.145, CAD: 0.0430, KRW: 40.3, CNY: 0.225 },
-    '2021/04/05': { TWD: 1, USD: 0.0352, USDTWD: 28.387, EUR: 0.0290, PHP: 1.68, MYR: 0.144, CAD: 0.0428, KRW: 40.5, CNY: 0.223 },
-    '2021/04/12': { TWD: 1, USD: 0.0354, USDTWD: 28.394, EUR: 0.0291, PHP: 1.69, MYR: 0.145, CAD: 0.0430, KRW: 40.2, CNY: 0.225 },
-    '2021/04/19': { TWD: 1, USD: 0.0356, USDTWD: 28.127, EUR: 0.0293, PHP: 1.71, MYR: 0.147, CAD: 0.0432, KRW: 39.9, CNY: 0.228 },
-    '2021/04/26': { TWD: 1, USD: 0.0354, USDTWD: 28.503, EUR: 0.0290, PHP: 1.68, MYR: 0.144, CAD: 0.0429, KRW: 40.4, CNY: 0.224 },
-    '2021/05/03': { TWD: 1, USD: 0.0352, USDTWD: 28.531, EUR: 0.0289, PHP: 1.67, MYR: 0.143, CAD: 0.0427, KRW: 40.6, CNY: 0.222 },
-    '2021/05/10': { TWD: 1, USD: 0.0352, USDTWD: 28.441, EUR: 0.0290, PHP: 1.68, MYR: 0.144, CAD: 0.0428, KRW: 40.4, CNY: 0.223 },
-    '2021/05/17': { TWD: 1, USD: 0.0354, USDTWD: 28.245, EUR: 0.0291, PHP: 1.69, MYR: 0.145, CAD: 0.0430, KRW: 40.1, CNY: 0.225 },
-    '2021/05/24': { TWD: 1, USD: 0.0357, USDTWD: 28.000, EUR: 0.0294, PHP: 1.72, MYR: 0.148, CAD: 0.0433, KRW: 39.7, CNY: 0.229 }
-  };
+        .container {
+            max-width: 1024px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+        }
 
-  const currencies = [
-    { code: 'TWD', name: '新台幣', symbol: 'NT$' },
-    { code: 'USD', name: '美元', symbol: '$' },
-    { code: 'EUR', name: '歐元', symbol: '€' },
-    { code: 'PHP', name: '菲律賓比索', symbol: '₱' },
-    { code: 'MYR', name: '馬來西亞令吉', symbol: 'RM' },
-    { code: 'CAD', name: '加拿大元', symbol: 'C$' },
-    { code: 'KRW', name: '韓元', symbol: '₩' },
-    { code: 'CNY', name: '人民幣', symbol: '¥' }
-  ];
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
 
-  const availableDates = Object.keys(exchangeRates).sort();
+        .header i {
+            color: #2563eb;
+            margin-right: 8px;
+            font-size: 32px;
+        }
 
-  const calculateConversion = (date = selectedDate) => {
-    const rates = exchangeRates[date];
-    if (!rates) return 0;
+        .header h1 {
+            font-size: 24px;
+            font-weight: bold;
+            color: #374151;
+        }
 
-    if (fromCurrency === 'TWD') {
-      return amount * rates[toCurrency];
-    } else if (toCurrency === 'TWD') {
-      return amount / rates[fromCurrency];
-    } else {
-      const amountInTWD = amount / rates[fromCurrency];
-      return amountInTWD * rates[toCurrency];
-    }
-  };
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 24px;
+        }
 
-  const calculateChange = () => {
-    if (!startDate || !endDate) return null;
-    
-    const startRates = exchangeRates[startDate];
-    const endRates = exchangeRates[endDate];
-    
-    if (!startRates || !endRates) return null;
+        .tab {
+            display: flex;
+            align-items: center;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #6b7280;
+        }
 
-    let startRate, endRate;
-    
-    if (fromCurrency === 'TWD') {
-      startRate = startRates[toCurrency];
-      endRate = endRates[toCurrency];
-    } else if (toCurrency === 'TWD') {
-      startRate = 1 / startRates[fromCurrency];
-      endRate = 1 / endRates[fromCurrency];
-    } else {
-      startRate = startRates[toCurrency] / startRates[fromCurrency];
-      endRate = endRates[toCurrency] / endRates[fromCurrency];
-    }
+        .tab:hover {
+            color: #374151;
+            border-bottom-color: #d1d5db;
+        }
 
-    const change = ((endRate - startRate) / startRate) * 100;
-    const absoluteChange = endRate - startRate;
-    
-    return {
-      percentChange: change,
-      absoluteChange: absoluteChange,
-      startRate: startRate,
-      endRate: endRate,
-      isPositive: change >= 0
-    };
-  };
+        .tab.active {
+            border-bottom-color: #3b82f6;
+            color: #2563eb;
+            background-color: #eff6ff;
+        }
 
-  // 生成圖表數據
-  const generateChartData = () => {
-    const dates = availableDates.filter(date => date >= startDate && date <= endDate);
-    return dates.map(date => {
-      const rates = exchangeRates[date];
-      let rate;
-      
-      if (fromCurrency === 'TWD') {
-        rate = rates[toCurrency];
-      } else if (toCurrency === 'TWD') {
-        rate = 1 / rates[fromCurrency];
-      } else {
-        rate = rates[toCurrency] / rates[fromCurrency];
-      }
-      
-      return {
-        date: date.slice(5), // 只顯示月/日
-        rate: rate,
-        formattedRate: formatNumber(rate, 6)
-      };
-    });
-  };
+        .tab i {
+            margin-right: 8px;
+            width: 16px;
+            height: 16px;
+        }
 
-  useEffect(() => {
-    setResult(calculateConversion());
-  }, [amount, fromCurrency, toCurrency, selectedDate]);
+        .tab-content {
+            display: none;
+        }
 
-  const swapCurrencies = () => {
-    setFromCurrency(toCurrency);
-    setToCurrency(fromCurrency);
-  };
+        .tab-content.active {
+            display: block;
+        }
 
-  const formatNumber = (num, decimals = 4) => {
-    return new Intl.NumberFormat('zh-TW', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: decimals
-    }).format(num);
-  };
+        /* 轉換器樣式 */
+        .converter-container {
+            max-width: 448px;
+            margin: 0 auto;
+        }
 
-  const getCurrencySymbol = (currencyCode) => {
-    const currency = currencies.find(c => c.code === currencyCode);
-    return currency ? currency.symbol : currencyCode;
-  };
+        .converter-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
 
-  const change = calculateChange();
-  const chartData = generateChartData();
+        .converter-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #374151;
+        }
 
-  // 分頁標籤
-  const tabs = [
-    { id: 'converter', name: '即時匯率轉換', icon: Calculator },
-    { id: 'analysis', name: '匯率變化分析', icon: BarChart3 }
-  ];
+        .converter-header p {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
 
-  return (
-    <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-lg">
-      {/* 頁面標題 */}
-      <div className="flex items-center justify-center mb-6">
-        <Activity className="w-8 h-8 text-blue-600 mr-2" />
-        <h1 className="text-2xl font-bold text-gray-800">匯率計算工具</h1>
-      </div>
+        .form-group {
+            margin-bottom: 24px;
+        }
 
-      {/* 分頁導航 */}
-      <div className="flex border-b border-gray-200 mb-6">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center px-6 py-3 text-sm font-medium border-b-2 transition-colors duration-200 ${
-                activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600 bg-blue-50'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Icon className="w-4 h-4 mr-2" />
-              {tab.name}
-            </button>
-          );
-        })}
-      </div>
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 8px;
+        }
 
-      {/* 即時匯率轉換頁面 */}
-      {activeTab === 'converter' && (
-        <div className="max-w-md mx-auto space-y-6">
-          <div className="text-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-700">即時匯率轉換</h2>
-            <p className="text-sm text-gray-500 mt-1">選擇日期查看歷史匯率並進行轉換</p>
-          </div>
+        .form-label i {
+            margin-right: 4px;
+        }
 
-          {/* 金額輸入 */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">輸入金額</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
-              placeholder="輸入金額"
-              min="0"
-              step="0.01"
-            />
-          </div>
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
 
-          {/* 源貨幣 */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">從</label>
-            <select
-              value={fromCurrency}
-              onChange={(e) => setFromCurrency(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {currencies.map(currency => (
-                <option key={currency.code} value={currency.code}>
-                  {currency.code} - {currency.name}
-                </option>
-              ))}
-            </select>
-          </div>
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
 
-          {/* 交換按鈕 */}
-          <div className="flex justify-center py-2">
-            <button
-              onClick={swapCurrencies}
-              className="p-3 bg-blue-100 hover:bg-blue-200 rounded-full transition-all duration-200 hover:scale-105"
-            >
-              <RefreshCw className="w-6 h-6 text-blue-600" />
-            </button>
-          </div>
+        .swap-button-container {
+            display: flex;
+            justify-content: center;
+            padding: 8px 0;
+        }
 
-          {/* 目標貨幣 */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">到</label>
-            <select
-              value={toCurrency}
-              onChange={(e) => setToCurrency(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {currencies.map(currency => (
-                <option key={currency.code} value={currency.code}>
-                  {currency.code} - {currency.name}
-                </option>
-              ))}
-            </select>
-          </div>
+        .swap-button {
+            padding: 12px;
+            background: #dbeafe;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
 
-          {/* 日期選擇 */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-              <Calendar className="w-4 h-4 mr-1" />
-              選擇日期
-            </label>
-            <select
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {availableDates.map(date => (
-                <option key={date} value={date}>{date}</option>
-              ))}
-            </select>
-          </div>
+        .swap-button:hover {
+            background: #bfdbfe;
+            transform: scale(1.05);
+        }
 
-          {/* 轉換結果 */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-8 rounded-xl border">
-            <div className="text-center">
-              <div className="text-sm text-gray-600 mb-3">轉換結果</div>
-              <div className="text-2xl font-bold text-gray-800 mb-2">
-                {getCurrencySymbol(fromCurrency)} {formatNumber(amount)}
-              </div>
-              <div className="text-xl text-gray-600 my-3">=</div>
-              <div className="text-3xl font-bold text-blue-600 mb-3">
-                {getCurrencySymbol(toCurrency)} {formatNumber(result)}
-              </div>
-              <div className="text-xs text-gray-500 mt-4">
-                匯率日期: {selectedDate}
-              </div>
-            </div>
-          </div>
+        .swap-button i {
+            color: #2563eb;
+            font-size: 24px;
+        }
 
-          {/* 當前匯率信息 */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-              <TrendingUp className="w-4 h-4 mr-1" />
-              匯率信息
-            </h4>
-            <div className="text-sm text-gray-600 space-y-2">
-              <div className="flex justify-between">
-                <span>1 {fromCurrency} =</span>
-                <span className="font-medium">{formatNumber(result / amount, 6)} {toCurrency}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>1 {toCurrency} =</span>
-                <span className="font-medium">{formatNumber(amount / result, 6)} {fromCurrency}</span>
-              </div>
-            </div>
-          </div>
+        .result-card {
+            background: linear-gradient(to right, #eff6ff, #e0e7ff);
+            padding: 32px;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .result-label {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 12px;
+        }
+
+        .result-from {
+            font-size: 32px;
+            font-weight: bold;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .result-equals {
+            font-size: 20px;
+            color: #6b7280;
+            margin: 12px 0;
+        }
+
+        .result-to {
+            font-size: 48px;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 12px;
+        }
+
+        .result-date {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 16px;
+        }
+
+        .info-card {
+            background: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .info-card h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        .info-card h4 i {
+            margin-right: 4px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-row .value {
+            font-weight: 500;
+        }
+
+        /* 分析頁面樣式 */
+        .analysis-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .analysis-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .analysis-header p {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        @media (min-width: 1024px) {
+            .analysis-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .analysis-section h3 {
+            font-size: 18px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 16px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .chart-card {
+            background: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .chart-card h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 12px;
+        }
+
+        .chart-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .chart-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .chart-date {
+            color: #6b7280;
+        }
+
+        .chart-rate {
+            font-family: monospace;
+        }
+
+        .chart-trend {
+            font-size: 12px;
+        }
+
+        .trend-up {
+            color: #16a34a;
+        }
+
+        .trend-down {
+            color: #dc2626;
+        }
+
+        .change-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 24px;
+        }
+
+        .change-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .change-header i {
+            margin-right: 8px;
+            font-size: 24px;
+        }
+
+        .change-header h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .period-info {
+            background: #eff6ff;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+
+        .period-label {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .period-value {
+            font-weight: 500;
+        }
+
+        .rate-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .rate-item {
+            text-align: center;
+        }
+
+        .rate-label {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .rate-value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .change-summary {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 16px;
+        }
+
+        .change-percent-container {
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .change-percent-label {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .change-percent {
+            font-size: 48px;
+            font-weight: bold;
+        }
+
+        .change-absolute-container {
+            text-align: center;
+        }
+
+        .change-absolute-label {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .change-absolute {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .trend-explanation {
+            background: #fefce8;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid #eab308;
+            margin-top: 16px;
+        }
+
+        .trend-explanation .text {
+            font-size: 14px;
+        }
+
+        .positive {
+            color: #16a34a;
+        }
+
+        .negative {
+            color: #dc2626;
+        }
+
+        .disclaimer {
+            margin-top: 32px;
+            font-size: 12px;
+            color: #6b7280;
+            text-align: center;
+            background: #fefce8;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 16px;
+            }
+
+            .result-from {
+                font-size: 24px;
+            }
+
+            .result-to {
+                font-size: 36px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 頁面標題 -->
+        <div class="header">
+            <i class="fas fa-chart-line"></i>
+            <h1>匯率計算工具</h1>
         </div>
-      )}
 
-      {/* 匯率變化分析頁面 */}
-      {activeTab === 'analysis' && (
-        <div className="space-y-6">
-          <div className="text-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-700">匯率變化分析</h2>
-            <p className="text-sm text-gray-500 mt-1">分析指定期間內的匯率變化趨勢</p>
-          </div>
+        <!-- 分頁導航 -->
+        <div class="tabs">
+            <button class="tab active" data-tab="converter">
+                <i class="fas fa-calculator"></i>
+                即時匯率轉換
+            </button>
+            <button class="tab" data-tab="analysis">
+                <i class="fas fa-chart-bar"></i>
+                匯率變化分析
+            </button>
+        </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 左側：參數設置 */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-700">分析參數設置</h3>
-              
-              {/* 貨幣對選擇 */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">基準貨幣</label>
-                  <select
-                    value={fromCurrency}
-                    onChange={(e) => setFromCurrency(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    {currencies.map(currency => (
-                      <option key={currency.code} value={currency.code}>
-                        {currency.code}
-                      </option>
-                    ))}
-                  </select>
+        <!-- 即時匯率轉換頁面 -->
+        <div id="converter" class="tab-content active">
+            <div class="converter-container">
+                <div class="converter-header">
+                    <h2>即時匯率轉換</h2>
+                    <p>選擇日期查看歷史匯率並進行轉換</p>
                 </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">目標貨幣</label>
-                  <select
-                    value={toCurrency}
-                    onChange={(e) => setToCurrency(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    {currencies.map(currency => (
-                      <option key={currency.code} value={currency.code}>
-                        {currency.code}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
 
-              {/* 日期範圍選擇 */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">開始日期</label>
-                  <select
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    {availableDates.map(date => (
-                      <option key={date} value={date}>{date}</option>
-                    ))}
-                  </select>
+                <!-- 金額輸入 -->
+                <div class="form-group">
+                    <label class="form-label">輸入金額</label>
+                    <input type="number" id="amount" class="form-input" value="100" min="0" step="0.01" placeholder="輸入金額">
                 </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">結束日期</label>
-                  <select
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    {availableDates.map(date => (
-                      <option key={date} value={date}>{date}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
 
-              {/* 簡易圖表顯示 */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">匯率走勢</h4>
-                <div className="space-y-2">
-                  {chartData.map((point, index) => (
-                    <div key={point.date} className="flex justify-between items-center text-xs">
-                      <span className="text-gray-600">{point.date}</span>
-                      <span className="font-mono">{point.formattedRate}</span>
-                      {index > 0 && (
-                        <span className={`text-xs ${
-                          point.rate > chartData[index - 1].rate ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {point.rate > chartData[index - 1].rate ? '↗' : '↘'}
-                        </span>
-                      )}
-                    </div>
-                  ))}
+                <!-- 源貨幣 -->
+                <div class="form-group">
+                    <label class="form-label">從</label>
+                    <select id="fromCurrency" class="form-select">
+                        <option value="TWD">TWD - 新台幣</option>
+                        <option value="USD" selected>USD - 美元</option>
+                        <option value="EUR">EUR - 歐元</option>
+                        <option value="PHP">PHP - 菲律賓比索</option>
+                        <option value="MYR">MYR - 馬來西亞令吉</option>
+                        <option value="CAD">CAD - 加拿大元</option>
+                        <option value="KRW">KRW - 韓元</option>
+                        <option value="CNY">CNY - 人民幣</option>
+                    </select>
                 </div>
-              </div>
-            </div>
 
-            {/* 右側：分析結果 */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-700">分析結果</h3>
-              
-              {change && (
-                <div className="bg-white border rounded-lg p-6">
-                  <div className="flex items-center mb-4">
-                    {change.isPositive ? (
-                      <TrendingUp className="w-6 h-6 text-green-600 mr-2" />
-                    ) : (
-                      <TrendingDown className="w-6 h-6 text-red-600 mr-2" />
-                    )}
-                    <h4 className="text-lg font-semibold text-gray-700">
-                      {fromCurrency}/{toCurrency} 匯率變化
+                <!-- 交換按鈕 -->
+                <div class="swap-button-container">
+                    <button class="swap-button" id="swapButton">
+                        <i class="fas fa-exchange-alt"></i>
+                    </button>
+                </div>
+
+                <!-- 目標貨幣 -->
+                <div class="form-group">
+                    <label class="form-label">到</label>
+                    <select id="toCurrency" class="form-select">
+                        <option value="TWD" selected>TWD - 新台幣</option>
+                        <option value="USD">USD - 美元</option>
+                        <option value="EUR">EUR - 歐元</option>
+                        <option value="PHP">PHP - 菲律賓比索</option>
+                        <option value="MYR">MYR - 馬來西亞令吉</option>
+                        <option value="CAD">CAD - 加拿大元</option>
+                        <option value="KRW">KRW - 韓元</option>
+                        <option value="CNY">CNY - 人民幣</option>
+                    </select>
+                </div>
+
+                <!-- 日期選擇 -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-calendar-alt"></i>
+                        選擇日期
+                    </label>
+                    <select id="selectedDate" class="form-select">
+                        <!-- 動態生成日期選項 -->
+                    </select>
+                </div>
+
+                <!-- 轉換結果 -->
+                <div class="result-card">
+                    <div class="result-label">轉換結果</div>
+                    <div class="result-from" id="resultFrom">$ 100.00</div>
+                    <div class="result-equals">=</div>
+                    <div class="result-to" id="resultTo">NT$ 2,800.00</div>
+                    <div class="result-date" id="resultDate">匯率日期: 2021/05/24</div>
+                </div>
+
+                <!-- 匯率信息 -->
+                <div class="info-card">
+                    <h4>
+                        <i class="fas fa-trending-up"></i>
+                        匯率信息
                     </h4>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    {/* 期間信息 */}
-                    <div className="bg-blue-50 p-3 rounded">
-                      <div className="text-sm text-gray-600">分析期間</div>
-                      <div className="font-medium">{startDate} 至 {endDate}</div>
+                    <div class="info-row">
+                        <span id="rateInfo1">1 USD =</span>
+                        <span class="value" id="rateValue1">28.000000 TWD</span>
                     </div>
-                    
-                    {/* 匯率變化 */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center">
-                        <div className="text-sm text-gray-600">起始匯率</div>
-                        <div className="text-lg font-bold">{formatNumber(change.startRate, 6)}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm text-gray-600">結束匯率</div>
-                        <div className="text-lg font-bold">{formatNumber(change.endRate, 6)}</div>
-                      </div>
+                    <div class="info-row">
+                        <span id="rateInfo2">1 TWD =</span>
+                        <span class="value" id="rateValue2">0.035714 USD</span>
                     </div>
-                    
-                    {/* 變化幅度 */}
-                    <div className="border-t pt-4">
-                      <div className="text-center mb-3">
-                        <div className="text-sm text-gray-600">總變化幅度</div>
-                        <div className={`text-3xl font-bold ${change.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                          {change.isPositive ? '+' : ''}{formatNumber(change.percentChange, 2)}%
-                        </div>
-                      </div>
-                      
-                      <div className="text-center">
-                        <div className="text-sm text-gray-600">絕對變化</div>
-                        <div className={`text-lg font-medium ${change.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                          {change.isPositive ? '+' : ''}{formatNumber(change.absoluteChange, 6)}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* 趨勢說明 */}
-                    <div className="bg-yellow-50 p-3 rounded border-l-4 border-yellow-400">
-                      <div className="text-sm">
-                        <strong>趨勢解讀：</strong>
-                        {change.isPositive ? (
-                          <span className="text-green-700">
-                            {fromCurrency} 相對於 {toCurrency} 在此期間 <strong>升值</strong> {formatNumber(Math.abs(change.percentChange), 2)}%
-                          </span>
-                        ) : (
-                          <span className="text-red-700">
-                            {fromCurrency} 相對於 {toCurrency} 在此期間 <strong>貶值</strong> {formatNumber(Math.abs(change.percentChange), 2)}%
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
                 </div>
-              )}
             </div>
-          </div>
         </div>
-      )}
 
-      {/* 免責聲明 */}
-      <div className="mt-8 text-xs text-gray-500 text-center bg-yellow-50 p-3 rounded border">
-        ⚠️ 此為2021年歷史匯率數據，僅供參考和學習使用，不得用於實際交易決策
-      </div>
+        <!-- 匯率變化分析頁面 -->
+        <div id="analysis" class="tab-content">
+            <div class="analysis-header">
+                <h2>匯率變化分析</h2>
+                <p>分析指定期間內的匯率變化趨勢</p>
+            </div>
+
+            <div class="analysis-grid">
+                <!-- 左側：參數設置 -->
+                <div class="analysis-section">
+                    <h3>分析參數設置</h3>
+                    
+                    <!-- 貨幣對選擇 -->
+                    <div class="form-grid">
+                        <div>
+                            <label class="form-label">基準貨幣</label>
+                            <select id="analysisFromCurrency" class="form-select">
+                                <option value="TWD">TWD</option>
+                                <option value="USD" selected>USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="PHP">PHP</option>
+                                <option value="MYR">MYR</option>
+                                <option value="CAD">CAD</option>
+                                <option value="KRW">KRW</option>
+                                <option value="CNY">CNY</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="form-label">目標貨幣</label>
+                            <select id="analysisToCurrency" class="form-select">
+                                <option value="TWD" selected>TWD</option>
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="PHP">PHP</option>
+                                <option value="MYR">MYR</option>
+                                <option value="CAD">CAD</option>
+                                <option value="KRW">KRW</option>
+                                <option value="CNY">CNY</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 日期範圍選擇 -->
+                    <div class="form-grid">
+                        <div>
+                            <label class="form-label">開始日期</label>
+                            <select id="startDate" class="form-select">
+                                <!-- 動態生成日期選項 -->
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="form-label">結束日期</label>
+                            <select id="endDate" class="form-select">
+                                <!-- 動態生成日期選項 -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 簡易圖表顯示 -->
+                    <div class="chart-card">
+                        <h4>匯率走勢</h4>
+                        <div id="chartData">
+                            <!-- 動態生成圖表數據 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右側：分析結果 -->
+                <div class="analysis-section">
+                    <h3>分析結果</h3>
+                    
+                    <div class="change-card" id="changeCard" style="display: none;">
+                        <div class="change-header">
+                            <i class="fas fa-trending-up" id="changeIcon"></i>
+                            <h4 id="changeTitle">USD/TWD 匯率變化</h4>
+                        </div>
+                        
+                        <!-- 期間信息 -->
+                        <div class="period-info">
+                            <div class="period-label">分析期間</div>
+                            <div class="period-value" id="periodValue">2021/02/01 至 2021/05/24</div>
+                        </div>
+                        
+                        <!-- 匯率變化 -->
+                        <div class="rate-grid">
+                            <div class="rate-item">
+                                <div class="rate-label">起始匯率</div>
+                                <div class="rate-value" id="startRateValue">28.000000</div>
+                            </div>
+                            <div class="rate-item">
+                                <div class="rate-label">結束匯率</div>
+                                <div class="rate-value" id="endRateValue">28.000000</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 變化幅度 -->
+                        <div class="change-summary">
+                            <div class="change-percent-container">
+                                <div class="change-percent-label">總變化幅度</div>
+                                <div class="change-percent" id="changePercent">+0.00%</div>
+                            </div>
+                            
+                            <div class="change-absolute-container">
+                                <div class="change-absolute-label">絕對變化</div>
+                                <div class="change-absolute" id="changeAbsolute">+0.000000</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 趨勢說明 -->
+                        <div class="trend-explanation">
+                            <div class="text" id="trendExplanation">
+                                <strong>趨勢解讀：</strong>
+                                <span id="trendText">USD 相對於 TWD 在此期間保持穩定</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 免責聲明 -->
+        <div class="disclaimer">
+            ⚠️ 此為2021年歷史匯率數據，僅供參考和學習使用，不得用於實際交易決策
+        </div>
     </div>
-  );
-};
 
-export default CurrencyConverter;
+    <script>
+        // 匯率數據
+        const exchangeRates = {
+            '2021/02/01': { TWD: 1, USD: 0.0357, USDTWD: 28.001, EUR: 0.0294, PHP: 1.72, MYR: 0.148, CAD: 0.0433, KRW: 40.0, CNY: 0.23 },
+            '2021/02/08': { TWD: 1, USD: 0.0359, USDTWD: 27.881, EUR: 0.0295, PHP: 1.71, MYR: 0.147, CAD: 0.0435, KRW: 39.8, CNY: 0.232 },
+            '2021/02/15': { TWD: 1, USD: 0.0357, USDTWD: 27.994, EUR: 0.0293, PHP: 1.72, MYR: 0.148, CAD: 0.0432, KRW: 40.1, CNY: 0.229 },
+            '2021/02/22': { TWD: 1, USD: 0.0359, USDTWD: 27.809, EUR: 0.0295, PHP: 1.73, MYR: 0.149, CAD: 0.0434, KRW: 39.7, CNY: 0.231 },
+            '2021/03/01': { TWD: 1, USD: 0.0359, USDTWD: 27.819, EUR: 0.0296, PHP: 1.74, MYR: 0.150, CAD: 0.0435, KRW: 39.5, CNY: 0.233 },
+            '2021/03/08': { TWD: 1, USD: 0.0354, USDTWD: 28.283, EUR: 0.0292, PHP: 1.70, MYR: 0.146, CAD: 0.0431, KRW: 40.2, CNY: 0.227 },
+            '2021/03/15': { TWD: 1, USD: 0.0355, USDTWD: 28.177, EUR: 0.0293, PHP: 1.71, MYR: 0.147, CAD: 0.0432, KRW: 40.0, CNY: 0.228 },
+            '2021/03/22': { TWD: 1, USD: 0.0356, USDTWD: 28.309, EUR: 0.0294, PHP: 1.72, MYR: 0.148, CAD: 0.0433, KRW: 39.8, CNY: 0.230 },
+            '2021/03/29': { TWD: 1, USD: 0.0354, USDTWD: 28.528, EUR: 0.0291, PHP: 1.69, MYR: 0.145, CAD: 0.0430, KRW: 40.3, CNY: 0.225 },
+            '2021/04/05': { TWD: 1, USD: 0.0352, USDTWD: 28.387, EUR: 0.0290, PHP: 1.68, MYR: 0.144, CAD: 0.0428, KRW: 40.5, CNY: 0.223 },
+            '2021/04/12': { TWD: 1, USD: 0.0354, USDTWD: 28.394, EUR: 0.0291, PHP: 1.69, MYR: 0.145, CAD: 0.0430, KRW: 40.2, CNY: 0.225 },
+            '2021/04/19': { TWD: 1, USD: 0.0356, USDTWD: 28.127, EUR: 0.0293, PHP: 1.71, MYR: 0.147, CAD: 0.0432, KRW: 39.9, CNY: 0.228 },
+            '2021/04/26': { TWD: 1, USD: 0.0354, USDTWD: 28.503, EUR: 0.0290, PHP: 1.68, MYR: 0.144, CAD: 0.0429, KRW: 40.4, CNY: 0.224 },
+            '2021/05/03': { TWD: 1, USD: 0.0352, USDTWD: 28.531, EUR: 0.0289, PHP: 1.67, MYR: 0.143, CAD: 0.0427, KRW: 40.6, CNY: 0.222 },
+            '2021/05/10': { TWD: 1, USD: 0.0352, USDTWD: 28.441, EUR: 0.0290, PHP: 1.68, MYR: 0.144, CAD: 0.0428, KRW: 40.4, CNY: 0.223 },
+            '2021/05/17': { TWD: 1, USD: 0.0354, USDTWD: 28.245, EUR: 0.0291, PHP: 1.69, MYR: 0.145, CAD: 0.0430, KRW: 40.1, CNY: 0.225 },
+            '2021/05/24': { TWD: 1, USD: 0.0357, USDTWD: 28.000, EUR: 0.0294, PHP: 1.72, MYR: 0.148, CAD: 0.0433, KRW: 39.7, CNY: 0.229 }
+        };
+
+        const currencies = {
+            TWD: { name: '新台幣', symbol: 'NT$' },
+            USD: { name: '美元', symbol: '$' },
+            EUR: { name: '歐元', symbol: '€' },
+            PHP: { name: '菲律賓比索', symbol: '₱' },
+            MYR: { name: '馬來西亞令吉', symbol: 'RM' },
+            CAD: { name: '加拿大元', symbol: 'C$' },
+            KRW: { name: '韓元', symbol: '₩' },
+            CNY: { name: '人民幣', symbol: '¥' }
+        };
+
+        const availableDates = Object.keys(exchangeRates).sort();
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDateSelects();
+            initializeEventListeners();
+            calculateConversion();
+            calculateAnalysis();
+        });
+
+        // 初始化日期選擇器
+        function initializeDateSelects() {
+            const selectedDateSelect = document.getElementById('selectedDate');
+            const startDateSelect = document.getElementById('startDate');
+            const endDateSelect = document.getElementById('endDate');
+
+            availableDates.forEach(date => {
+                const option1 = new Option(date, date);
+                const option2 = new Option(date, date);
+                const option3 = new Option(date, date);
+                
+                selectedDateSelect.add(option1);
+                startDateSelect.add(option2);
+                endDateSelect.add(option3);
+            });
+
+            selectedDateSelect.value = '2021/05/24';
+            startDateSelect.value
