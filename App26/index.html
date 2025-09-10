@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>增強版員工班表管理系統（雲端＋假日＋工時＋班別CRUD）</title>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:'Microsoft YaHei','Arial',sans-serif;margin:0;padding:10px;background:#f8f9fa;min-height:100vh}
+    .container{max-width:1200px;min-width:380px;margin:0 auto;background:#fff;border-radius:15px;padding:15px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+    .header{text-align:center;margin-bottom:20px;position:relative}
+    .header h1{color:#333;font-size:2.2rem;margin:0 0 10px;background:linear-gradient(45deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .role-switcher{position:absolute;top:0;right:0;display:flex;align-items:center;gap:10px;background:#f8f9fa;padding:8px 12px;border-radius:20px;border:2px solid #667eea}
+    .role-badge{background:linear-gradient(45deg,#667eea,#764ba2);color:#fff;padding:4px 12px;border-radius:15px;font-size:.8rem;font-weight:600}
+    .role-badge.employee{background:linear-gradient(45deg,#28a745,#20c997)}
+    .admin-only{display:none}
+    .admin-mode .admin-only{display:inline-block}
+    .nav-tabs{display:flex;background:#f8f9fa;border-radius:10px;padding:5px;margin-bottom:20px;gap:5px}
+    .nav-tab{flex:1;padding:10px;background:transparent;border:none;border-radius:6px;cursor:pointer;font-weight:600;transition:.2s}
+    .nav-tab.active{background:linear-gradient(45deg,#667eea,#764ba2);color:#fff}
+    .tab-content{display:none}
+    .tab-content.active{display:block}
+    .schedule-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding:16px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:14px;color:#fff;box-shadow:0 4px 15px rgba(102,126,234,.3)}
+    .schedule-header h3{margin:0;font-weight:600;font-size:1.2rem}
+    .main-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .date-control-group{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.2);padding:8px 12px;border-radius:10px}
+    .date-control-group select,.date-control-group input,.date-control-group button{padding:8px 10px;border:none;border-radius:8px;font-size:.9rem}
+    .control-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border:none;border-radius:10px;background:linear-gradient(45deg,#667eea,#764ba2);color:#fff;font-weight:600;cursor:pointer;transition:.2s;box-shadow:0 2px 8px rgba(102,126,234,.3)}
+    .control-btn:hover{transform:translateY(-1px)}
+    .control-btn.success{background:linear-gradient(45deg,#28a745,#20c997)}
+    .control-btn.danger{background:linear-gradient(45deg,#dc3545,#c82333)}
+    .control-btn.secondary{background:#6c757d}
+    .function-panel{background:#fff;border:2px solid #e0e6ff;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 4px 12px rgba(0,0,0,.06)}
+    .function-group{margin-bottom:16px}
+    .group-label{display:inline-block;font-weight:700;color:#333;margin-bottom:12px;font-size:1rem;border-bottom:3px solid #667eea;padding-bottom:6px}
+    .function-buttons{display:flex;gap:10px;flex-wrap:wrap}
+    .export-options{display:flex;gap:10px;flex-wrap:wrap}
+    .option-item{display:flex;align-items:center;gap:8px;padding:10px 12px;background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%);border:2px solid transparent;border-radius:10px;user-select:none}
+    .legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+    .legend .tag{padding:4px 8px;border-radius:8px;font-size:.8rem;color:#fff}
+    .tag.work{background:#28a745}.tag.night{background:#0d6efd}.tag.holiday{background:#dc3545}.tag.off{background:#6c757d}
+    .calendar-container{background:#f8f9fa;border-radius:14px;padding:16px}
+    .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;background:#e9ecef;border-radius:12px;padding:8px;min-width:350px;overflow-x:auto}
+    .day-header{background:linear-gradient(45deg,#667eea,#764ba2);color:#fff;padding:10px;text-align:center;font-weight:600;border-radius:6px;font-size:.9rem}
+    .weekend-header{background:linear-gradient(45deg,#ff6b6b,#ee5a52)!important}
+    .day-cell{background:#fff;border-radius:6px;padding:8px;min-height:120px;position:relative}
+    .day-number{font-weight:600;font-size:1rem;color:#333;margin-bottom:8px}
+    .holiday-name{font-size:.7rem;color:#dc3545;font-weight:600;text-align:right;line-height:1.2;max-width:72px}
+    .staff-schedule{display:flex;flex-direction:column;gap:2px}
+    .staff-item{padding:3px 5px;border-radius:4px;font-size:.75rem;font-weight:500;text-align:center;position:relative}
+    .staff-item.editable{cursor:pointer;border:1px dashed #0d6efd}
+    .work-day{background:#d4edda;color:#155724}
+    .night-shift{background:#cce7ff;color:#004085}
+    .holiday{background:#f8d7da;color:#721c24}
+    .off-day{background:#f1f3f5;color:#6c757d}
+    .edit-dropdown{position:absolute;top:100%;left:0;right:0;background:#fff;border:2px solid #0d6efd;border-radius:6px;z-index:1000;box-shadow:0 4px 8px rgba(0,0,0,.2);max-height:220px;overflow:auto}
+    .edit-option{padding:8px;cursor:pointer;border-bottom:1px solid #eee}
+    .edit-option:last-child{border-bottom:none}
+    .employee-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:12px}
+    .employee-card{background:#f8f9fa;border-radius:12px;padding:16px;border-left:4px solid #667eea;position:relative}
+    .employee-name{font-size:1.1rem;font-weight:600;color:#333;margin-bottom:6px}
+    .shift-card{background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:12px;margin-bottom:10px;position:relative}
+    .shift-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+    .shift-title{font-weight:600;font-size:1.05rem;color:#333}
+    .shift-code{background:#667eea;color:#fff;padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:600}
+    .shift-details{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.85rem;color:#555;margin-bottom:8px}
+    .shift-actions{display:flex;gap:8px}
+    .form-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    .form-group{margin-bottom:10px}
+    .form-group label{display:block;margin-bottom:4px;font-weight:600;color:#333}
+    .form-group input,.form-group select{width:100%;padding:8px;border:2px solid #e9ecef;border-radius:6px;font-size:.9rem}
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px}
+    .stat-card{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:14px;border-radius:12px;text-align:center}
+    .stat-number{font-size:1.6rem;font-weight:700;margin-bottom:2px}
+    table.table{width:100%;border-collapse:collapse;margin-top:10px}
+    .table th,.table td{border:1px solid #e9ecef;padding:8px;text-align:center}
+    .table th{background:#f1f3ff}
+    #editHint{display:none;color:#0d6efd;margin-left:8px;font-size:.9rem}
+    @media (max-width:768px){
+      .schedule-header{flex-direction:column;align-items:stretch;gap:10px}
+      .form-row{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="mainContainer">
+    <div class="header">
+      <h1>增強版員工班表管理系統</h1>
+      <div class="role-switcher">
+        <span>當前身份：</span>
+        <span class="role-badge" id="roleBadge">管理者</span>
+        <button class="control-btn" onclick="toggleRole()">切換身份</button>
+      </div>
+    </div>
+
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showTab(event,'schedule')">查看班表</button>
+      <button class="nav-tab admin-only" onclick="showTab(event,'employee')">員工管理</button>
+      <button class="nav-tab admin-only" onclick="showTab(event,'shift')">班別設定</button>
+      <button class="nav-tab" onclick="showTab(event,'stats')">統計報表</button>
+      <button class="nav-tab admin-only" onclick="showTab(event,'settings')">設定</button>
+    </div>
+
+    <!-- 班表查看 -->
+    <div id="scheduleTab" class="tab-content active">
+      <div class="schedule-header">
+        <h3>📊 班表查看 <span id="editHint">（點員工膠囊可切換班別；點空白處可收起選單）</span></h3>
+        <div class="main-controls">
+          <div class="date-control-group">
+            <label>選擇年月：</label>
+            <select id="yearSelect" onchange="changeYearMonth()"></select>
+            <select id="monthSelect" onchange="changeYearMonth()"></select>
+          </div>
+          <button class="control-btn success admin-only" id="editModeBtn" onclick="toggleEditMode()">✏️ 編輯模式</button>
+          <button class="control-btn" onclick="refreshHolidays()">🗓️ 重新載入假日</button>
+        </div>
+      </div>
+
+      <div class="function-panel">
+        <div class="function-group">
+          <span class="group-label">📋 班表操作</span>
+          <div class="function-buttons">
+            <input type="file" id="importFile" accept=".csv" style="display:none" onchange="importSchedule(event)"/>
+            <button class="control-btn admin-only" onclick="document.getElementById('importFile').click()">📁 匯入班表</button>
+            <button class="control-btn admin-only" onclick="exportSchedule()">💾 匯出班表</button>
+            <button class="control-btn danger admin-only" onclick="clearAllSchedule()">🗑️ 清空班表</button>
+            <button class="control-btn admin-only" onclick="saveToCloud()">☁️ 儲存至雲端</button>
+            <button class="control-btn" onclick="loadFromCloud()">☁️ 從雲端載入</button>
+          </div>
+        </div>
+
+        <div class="function-group">
+          <span class="group-label">⚙️ 匯出設定</span>
+          <div class="export-options">
+            <label class="option-item"><input type="checkbox" id="filterDefaults" checked> 過濾預設班別（正職上班/兼職休息）</label>
+            <label class="option-item"><input type="checkbox" id="hideTypeArea" checked> 隱藏類型與區域欄</label>
+          </div>
+          <div class="legend">
+            <span class="tag work">工作</span>
+            <span class="tag night">夜班</span>
+            <span class="tag holiday">休假/節日</span>
+            <span class="tag off">休息</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="calendar-container">
+        <div id="calendar" class="calendar-grid"></div>
+      </div>
+    </div>
+
+    <!-- 員工管理 -->
+    <div id="employeeTab" class="tab-content">
+      <div class="function-panel">
+        <div class="function-buttons">
+          <button class="control-btn admin-only" onclick="showAddEmployeeModal()">➕ 新增員工</button>
+        </div>
+        <div id="employeeGrid" class="employee-grid"></div>
+      </div>
+    </div>
+
+    <!-- 班別設定 -->
+    <div id="shiftTab" class="tab-content">
+      <div class="function-panel">
+        <div class="function-buttons">
+          <button class="control-btn admin-only" onclick="showAddShiftForm()">➕ 新增班別</button>
+        </div>
+        <div id="shiftsList"></div>
+
+        <!-- 新增/編輯 班別表單 -->
+        <div id="addShiftForm" style="display:none;margin-top:12px">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="shiftCode">班別代碼</label>
+              <input id="shiftCode" placeholder="如 DAY01"/>
+            </div>
+            <div class="form-group">
+              <label for="shiftName">班別名稱</label>
+              <input id="shiftName" placeholder="如 早班"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="startTime">開始時間</label>
+              <input id="startTime" type="time" value="09:00"/>
+            </div>
+            <div class="form-group">
+              <label for="endTime">結束時間</label>
+              <input id="endTime" type="time" value="18:00"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="shiftType">類型</label>
+              <select id="shiftType">
+                <option value="fullTime">正職</option>
+                <option value="partTime">兼職</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="shiftArea">區域</label>
+              <select id="shiftArea">
+                <option value="front">外場</option>
+                <option value="back">內場</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="shiftColor">顏色</label>
+              <input id="shiftColor" type="color" value="#667eea"/>
+            </div>
+            <div class="form-group">
+              <label for="abbreviation">簡稱（顯示於月曆）</label>
+              <input id="abbreviation" placeholder="如：早、晚、17-23"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="category">分類</label>
+              <select id="category">
+                <option value="work">工作</option>
+                <option value="night">夜班</option>
+                <option value="holiday">休假</option>
+                <option value="off">休息</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>顯示設定</label>
+              <div style="display:flex;gap:10px">
+                <select id="showTime">
+                  <option value="true">顯示時間</option>
+                  <option value="false">不顯示時間</option>
+                </select>
+                <select id="showInCalendar">
+                  <option value="true">顯示於月曆</option>
+                  <option value="false">不顯示於月曆</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="function-buttons" style="margin-top:8px">
+            <button class="control-btn success admin-only" onclick="submitShiftForm()">💾 儲存班別</button>
+            <button class="control-btn secondary admin-only" onclick="hideAddShiftForm()">取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 統計報表 -->
+    <div id="statsTab" class="tab-content">
+      <div class="function-panel">
+        <span class="group-label">📈 本月統計</span>
+        <div id="statsCards" class="stats"></div>
+      </div>
+      <div class="function-panel">
+        <span class="group-label">⏱️ 個人工時（小時）</span>
+        <table class="table" id="hoursTable">
+          <thead>
+            <tr><th>姓名</th><th>年月</th><th>總工時</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 設定 -->
+    <div id="settingsTab" class="tab-content">
+      <div class="function-panel">
+        <span class="group-label">🗓️ 假日來源</span>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="holidaySourceMode">來源模式</label>
+            <select id="holidaySourceMode">
+              <option value="builtin">內建台灣假日</option>
+              <option value="ics">ICS（自訂 iCal）</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="icsUrlInput">ICS 連結（公開可取）</label>
+            <input id="icsUrlInput" placeholder="https://.../calendar.ics"/>
+          </div>
+        </div>
+        <div class="function-buttons">
+          <button class="control-btn" onclick="saveHolidaySettings()">💾 儲存假日設定</button>
+          <button class="control-btn" onclick="refreshHolidays()">🔄 立即重新載入</button>
+        </div>
+      </div>
+
+      <div class="function-panel">
+        <span class="group-label">☁️ 雲端（Google Apps Script Web App）</span>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="gasUrlInput">Web App URL</label>
+            <input id="gasUrlInput" placeholder="https://script.google.com/macros/s/....../exec"/>
+          </div>
+        </div>
+        <div class="function-buttons">
+          <button class="control-btn" onclick="saveCloudSettings()">💾 儲存雲端設定</button>
+          <button class="control-btn admin-only" onclick="saveToCloud()">☁️ 立即上傳</button>
+          <button class="control-btn" onclick="loadFromCloud()">☁️ 立即下載</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+/**********************
+ * Config & State
+ **********************/
+const YEARS = [2024, 2025, 2026, 2027, 2028];
+const DEFAULT_FULLTIME_NULL_HOURS = 8;
+
+let currentRole = 'admin';
+let currentYear = new Date().getFullYear();
+let currentMonth = new Date().getMonth() + 1;
+let isEditMode = false;
+let currentEditElement = null;
+
+const settings = {
+  holidaySource: { mode: 'builtin', icsUrl: '' },
+  cloud: { gasUrl: 'YOUR_GAS_WEBAPP_URL' },
+};
+
+// 主資料
+let scheduleData = { employees: [], schedules: {} };
+let enhancedShiftSettings = {
+  allShifts: [
+    { code:'DAY01', name:'早班', startTime:'09:00', endTime:'18:00', type:'fullTime', area:'front', color:'#28a745', category:'work', displaySettings:{showInCalendar:true, showTime:true, abbreviation:'早'} },
+    { code:'LATE01', name:'晚班', startTime:'14:00', endTime:'23:00', type:'fullTime', area:'front', color:'#6f42c1', category:'work', displaySettings:{showInCalendar:true, showTime:true, abbreviation:'晚'} },
+    { code:'HOL01', name:'休假', startTime:'00:00', endTime:'00:00', type:'fullTime', area:'front', color:'#dc3545', category:'holiday', displaySettings:{showInCalendar:true, showTime:false, abbreviation:'休'} },
+    { code:'PT01', name:'17:00-23:00', startTime:'17:00', endTime:'23:00', type:'partTime', area:'front', color:'#0d6efd', category:'night', displaySettings:{showInCalendar:true, showTime:true, abbreviation:'17-23'} },
+    { code:'PT02', name:'18:00-24:00', startTime:'18:00', endTime:'24:00', type:'partTime', area:'front', color:'#17a2b8', category:'night', displaySettings:{showInCalendar:true, showTime:true, abbreviation:'18-24'} }
+  ]
+};
+
+// 內建台灣假日
+const holidays = { 2024:{}, 2025:{}, 2026:{} };
+const taiwanHolidaysData = {
+  2024:{'1/1':'元旦','2/10':'除夕','2/11':'春節','2/12':'初二','2/13':'初三','2/14':'初四','2/28':'和平紀念日','4/4':'兒童節','4/5':'清明節','5/1':'勞動節','6/10':'端午節','9/17':'中秋節','10/10':'國慶日'},
+  2025:{'1/1':'元旦','1/28':'除夕','1/29':'春節','1/30':'初二','1/31':'初三','2/1':'初四','2/28':'和平紀念日','4/4':'兒童節','4/5':'清明節','5/31':'端午節','10/6':'中秋節','10/10':'國慶日'},
+  2026:{'1/1':'元旦','2/16':'除夕','2/17':'春節','2/18':'初二','2/19':'初三','2/20':'初四','2/28':'和平紀念日','4/4':'兒童節','4/5':'清明節','5/1':'勞動節','6/19':'端午節','9/25':'中秋節','10/10':'國慶日'}
+};
+const weekdays = ['日','一','二','三','四','五','六'];
+
+/**********************
+ * Init
+ **********************/
+(function init(){
+  const ySel = document.getElementById('yearSelect');
+  YEARS.forEach(y=>{const o=document.createElement('option');o.value=y;o.textContent=y+'年';ySel.appendChild(o)});
+  const mSel = document.getElementById('monthSelect');
+  for(let m=1;m<=12;m++){const o=document.createElement('option');o.value=m;o.textContent=m+'月';mSel.appendChild(o)}
+  if(!YEARS.includes(currentYear)) currentYear = YEARS[0];
+  ySel.value=currentYear; mSel.value=currentMonth;
+
+  loadLocal();
+  updateRoleDisplay();
+  loadTaiwanHolidaysBuiltin();
+  refreshHolidays();
+
+  ensureScheduleData(currentYear,currentMonth);
+  updateCalendar();
+  updateEmployeeGrid();
+  updateShiftsList();
+  updateStats();
+
+  // 點空白處可收起下拉
+  document.addEventListener('click', (e)=>{
+    if(!currentEditElement) return;
+    if(!currentEditElement.contains(e.target)) closeEditDropdown();
+  }, true);
+})();
+
+function loadLocal(){
+  try{
+    const s = localStorage.getItem('scheduleData'); if(s) scheduleData = JSON.parse(s);
+    const sh = localStorage.getItem('enhancedShiftSettings'); if(sh) enhancedShiftSettings = JSON.parse(sh);
+    const cfg = localStorage.getItem('settings'); if(cfg) Object.assign(settings, JSON.parse(cfg));
+    // render settings
+    const modeEl=document.getElementById('holidaySourceMode');
+    const icsEl=document.getElementById('icsUrlInput');
+    const gasEl=document.getElementById('gasUrlInput');
+    if(modeEl) modeEl.value=settings.holidaySource.mode;
+    if(icsEl) icsEl.value=settings.holidaySource.icsUrl||'';
+    if(gasEl) gasEl.value=settings.cloud.gasUrl||'';
+  }catch(e){ console.warn('loadLocal error',e); }
+}
+function saveLocal(){
+  localStorage.setItem('scheduleData', JSON.stringify(scheduleData));
+  localStorage.setItem('enhancedShiftSettings', JSON.stringify(enhancedShiftSettings));
+  localStorage.setItem('settings', JSON.stringify(settings));
+}
+
+/**********************
+ * Role & Tabs
+ **********************/
+function toggleRole(){
+  currentRole = currentRole==='admin' ? 'employee' : 'admin';
+  updateRoleDisplay();
+}
+function updateRoleDisplay(){
+  const container=document.getElementById('mainContainer');
+  const badge=document.getElementById('roleBadge');
+  if(currentRole==='admin'){
+    if(container) container.className='container admin-mode';
+    if(badge){badge.textContent='管理者';badge.className='role-badge'}
+    document.querySelectorAll('.admin-only').forEach(el=>el.style.display='inline-block');
+  }else{
+    if(container) container.className='container employee-mode';
+    if(badge){badge.textContent='員工';badge.className='role-badge employee'}
+    document.querySelectorAll('.admin-only').forEach(el=>el.style.display='none');
+    if(isEditMode){ isEditMode=false; const btn=document.getElementById('editModeBtn'); if(btn){btn.textContent='✏️ 編輯模式'; btn.classList.remove('success')} document.getElementById('editHint').style.display='none'; }
+  }
+}
+function showTab(ev,name){
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById(name+'Tab').classList.add('active');
+  ev.target.classList.add('active');
+  if(name==='schedule') updateCalendar();
+  if(name==='employee') updateEmployeeGrid();
+  if(name==='shift') updateShiftsList();
+  if(name==='stats') updateStats();
+}
+
+/**********************
+ * Holidays
+ **********************/
+function loadTaiwanHolidaysBuiltin(){
+  holidays[2024] = {...taiwanHolidaysData[2024]};
+  holidays[2025] = {...taiwanHolidaysData[2025]};
+  holidays[2026] = {...taiwanHolidaysData[2026]};
+}
+function saveHolidaySettings(){
+  settings.holidaySource.mode = document.getElementById('holidaySourceMode').value;
+  settings.holidaySource.icsUrl = document.getElementById('icsUrlInput').value.trim();
+  saveLocal();
+  alert('假日設定已儲存');
+}
+async function refreshHolidays(){
+  if(settings.holidaySource.mode==='ics' && settings.holidaySource.icsUrl){
+    try{
+      const text = await (await fetch(settings.holidaySource.icsUrl)).text();
+      parseICSAndApply(text);
+      updateCalendar();
+      alert('ICS 假日已重新載入');
+    }catch(err){
+      console.error(err);
+      alert('載入 ICS 失敗，已使用內建假日');
+      loadTaiwanHolidaysBuiltin();
+      updateCalendar();
+    }
+  }else{
+    loadTaiwanHolidaysBuiltin();
+    updateCalendar();
+  }
+}
+function parseICSAndApply(icsText){
+  const lines = icsText.replace(/\r/g,'').split('\n');
+  let cur=null; const events=[];
+  for(const raw of lines){
+    const line=raw.trim();
+    if(line==='BEGIN:VEVENT'){cur={};continue;}
+    if(line==='END:VEVENT'){ if(cur) events.push(cur); cur=null; continue;}
+    if(!cur) continue;
+    const idx=line.indexOf(':'); if(idx<0) continue;
+    const key=line.slice(0,idx).toUpperCase();
+    const val=line.slice(idx+1);
+    if(key.startsWith('DTSTART')) cur.DTSTART=val;
+    if(key.startsWith('SUMMARY')) cur.SUMMARY=decodeURIComponent(val);
+  }
+  for(const y of YEARS){ holidays[y]={}; }
+  for(const ev of events){
+    const dt=(ev.DTSTART||'').replace(/T.*$/,'');
+    if(/^[0-9]{8}$/.test(dt)){
+      const y=+dt.slice(0,4), m=+dt.slice(4,6), d=+dt.slice(6,8);
+      const label=(ev.SUMMARY||'假日').replace(/\\,/,',');
+      if(holidays[y]) holidays[y][`${m}/${d}`]=label;
+    }
+  }
+}
+function getHolidayName(year,m,d){
+  const key=`${m}/${d}`;
+  return holidays[year] && holidays[year][key] ? holidays[year][key] : null;
+}
+
+/**********************
+ * Calendar & Edit
+ **********************/
+function changeYearMonth(){
+  currentYear = parseInt(document.getElementById('yearSelect').value);
+  currentMonth = parseInt(document.getElementById('monthSelect').value);
+  updateCalendar();
+}
+function getDaysInMonth(y,m){ return new Date(y,m,0).getDate(); }
+function getFirstDayOfWeek(y,m){ return new Date(y,m-1,1).getDay(); }
+
+function ensureScheduleData(y,m){
+  const key=`${y}-${m}`;
+  if(!scheduleData.schedules[key]) scheduleData.schedules[key]={};
+  const days=getDaysInMonth(y,m);
+  scheduleData.employees.forEach(emp=>{
+    if(!scheduleData.schedules[key][emp.姓名]) scheduleData.schedules[key][emp.姓名]={};
+    for(let d=1; d<=days; d++) if(!(d in scheduleData.schedules[key][emp.姓名])) scheduleData.schedules[key][emp.姓名][d]=null;
+  });
+}
+function updateCalendar(){ ensureScheduleData(currentYear,currentMonth); generateCalendar(); }
+
+function generateCalendar(){
+  const calendar=document.getElementById('calendar');
+  calendar.innerHTML='';
+  ['日','一','二','三','四','五','六'].forEach((day,idx)=>{
+    const h=document.createElement('div');
+    h.className='day-header'+((idx===0||idx===6)?' weekend-header':'');
+    h.textContent=day; calendar.appendChild(h);
+  });
+  const days=getDaysInMonth(currentYear,currentMonth);
+  const firstDow=getFirstDayOfWeek(currentYear,currentMonth);
+  for(let i=0;i<firstDow;i++){ const e=document.createElement('div'); e.className='day-cell'; e.style.opacity='.4'; calendar.appendChild(e); }
+
+  const scheduleKey=`${currentYear}-${currentMonth}`;
+  for(let day=1; day<=days; day++){
+    const cell=document.createElement('div'); cell.className='day-cell';
+    const head=document.createElement('div'); head.style.cssText='display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;';
+    const dn=document.createElement('div'); dn.className='day-number'; dn.textContent=day; head.appendChild(dn);
+    const hname=getHolidayName(currentYear,currentMonth,day);
+    if(hname){ const he=document.createElement('div'); he.className='holiday-name'; he.textContent=hname; head.appendChild(he); }
+    cell.appendChild(head);
+
+    const wrap=document.createElement('div'); wrap.className='staff-schedule';
+    scheduleData.employees.forEach(emp=>{
+      const val=scheduleData.schedules[scheduleKey]?.[emp.姓名]?.[day];
+      const item=document.createElement('div'); item.className=`staff-item ${getStaffClass(val, emp.類型)}`;
+      item.textContent=getStaffDisplay(emp.姓名, val, emp.類型);
+      if(isEditMode && currentRole==='admin'){
+        item.classList.add('editable');
+        item.addEventListener('click',(e)=>{ e.stopPropagation(); editSchedule(e.currentTarget, emp.姓名, day); });
+      }
+      wrap.appendChild(item);
+    });
+    cell.appendChild(wrap);
+    calendar.appendChild(cell);
+  }
+}
+function toggleEditMode(){
+  if(currentRole!=='admin'){ alert('只有管理者可以編輯班表'); return; }
+  isEditMode=!isEditMode;
+  const btn=document.getElementById('editModeBtn');
+  const hint=document.getElementById('editHint');
+  closeEditDropdown();
+  if(isEditMode){ if(btn){btn.textContent='✅ 完成編輯'; btn.classList.add('success')} if(hint) hint.style.display='block'; }
+  else{ if(btn){btn.textContent='✏️ 編輯模式'; btn.classList.remove('success')} if(hint) hint.style.display='none'; }
+  generateCalendar();
+}
+function editSchedule(element, employeeName, day){
+  closeEditDropdown();
+  const emp=scheduleData.employees.find(e=>e.姓名===employeeName); if(!emp) return;
+  const dropdown=document.createElement('div'); dropdown.className='edit-dropdown';
+
+  const def=document.createElement('div'); def.className='edit-option';
+  def.textContent=(emp.類型==='fullTime'?'上班(預設)':'休息(預設)');
+  def.onclick=(e)=>{ e.stopPropagation(); updateSchedule(employeeName,day,null); closeEditDropdown(); };
+  dropdown.appendChild(def);
+
+  const options=getScheduleOptions(emp.類型, emp.區域);
+  if(options.length===0){
+    const no=document.createElement('div'); no.className='edit-option'; no.textContent='沒有可用的班別'; dropdown.appendChild(no);
+  }else{
+    options.forEach(op=>{
+      const d=document.createElement('div'); d.className='edit-option'; d.textContent=op.label;
+      d.onclick=(e)=>{ e.stopPropagation(); updateSchedule(employeeName,day,op.value); closeEditDropdown(); };
+      dropdown.appendChild(d);
+    });
+  }
+  element.style.position='relative';
+  element.appendChild(dropdown);
+  currentEditElement=element;
+  element.style.outline='2px solid #0d6efd'; element.style.outlineOffset='1px';
+}
+function closeEditDropdown(){
+  if(currentEditElement){
+    const dd=currentEditElement.querySelector('.edit-dropdown'); if(dd) dd.remove();
+    currentEditElement.style.outline=''; currentEditElement=null;
+  }
+}
+function updateSchedule(name,day,value){
+  const key=`${currentYear}-${currentMonth}`;
+  if(!scheduleData.schedules[key]) scheduleData.schedules[key]={};
+  if(!scheduleData.schedules[key][name]) scheduleData.schedules[key][name]={};
+  scheduleData.schedules[key][name][day]=value;
+  saveLocal();
+  generateCalendar();
+}
+function getScheduleOptions(type,area){
+  return enhancedShiftSettings.allShifts
+    .filter(s=>s.type===type && s.area===area && s.displaySettings?.showInCalendar!==false)
+    .map(s=>{
+      const timeDisp = s.displaySettings?.showTime ? ` ${s.startTime}-${s.endTime}` : '';
+      return {label:`${s.name}${timeDisp}`, value:s.name};
+    });
+}
+function getStaffClass(schedule, employeeType){
+  if(schedule===null) return employeeType==='fullTime' ? 'work-day' : 'off-day';
+  const sh=enhancedShiftSettings.allShifts.find(s=>s.name===schedule);
+  if(sh){ return ({work:'work-day', night:'night-shift', holiday:'holiday', off:'off-day'})[sh.category] || 'work-day'; }
+  if(/休|假/.test(schedule)) return 'holiday';
+  if(/:|-|夜|晚/.test(schedule)) return 'night-shift';
+  return 'work-day';
+}
+function getStaffDisplay(name, schedule, employeeType){
+  if(schedule===null) return `${name} ${employeeType==='fullTime'?'班':''}`;
+  const sh=enhancedShiftSettings.allShifts.find(s=>s.name===schedule);
+  const abbr=sh?.displaySettings?.abbreviation || (schedule.length>4 ? schedule.slice(0,4) : schedule);
+  return `${name} ${abbr}`;
+}
+
+/**********************
+ * Import/Export CSV
+ **********************/
+function exportSchedule(){
+  const csv = generateCSV(
+    document.getElementById('filterDefaults')?.checked ?? true,
+    document.getElementById('hideTypeArea')?.checked ?? true
+  );
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`班表_${currentYear}年${currentMonth}月_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+}
+function generateCSV(filterDefaults=false, hideTypeArea=false){
+  if(scheduleData.employees.length===0) return '';
+  const headers=['姓名'];
+  if(!hideTypeArea){ headers.push('類型','區域'); }
+  const days=getDaysInMonth(currentYear,currentMonth);
+  for(let d=1; d<=days; d++) headers.push(`${currentMonth}/${d}`);
+  let csv=headers.join(',')+'\n';
+  const key=`${currentYear}-${currentMonth}`;
+  scheduleData.employees.forEach(emp=>{
+    const typeText=emp.類型==='fullTime'?'正職':'兼職';
+    const areaText=emp.區域==='front'?'外場':'內場';
+    const row=[emp.姓名];
+    if(!hideTypeArea){ row.push(typeText, areaText); }
+    for(let d=1; d<=days; d++){
+      let val = scheduleData.schedules[key]?.[emp.姓名]?.[d] ?? null;
+      if(filterDefaults){
+        if(emp.類型==='fullTime' && (val===null || val==='上班')) val='';
+        else if(emp.類型==='partTime' && (val===null || val==='休息')) val='';
+      }else{
+        if(val===null) val=(emp.類型==='fullTime'?'上班':'休息');
+      }
+      row.push(val ?? '');
+    }
+    csv += row.join(',')+'\n';
+  });
+  return csv;
+}
+function importSchedule(ev){
+  const file=ev.target.files[0]; if(!file) return;
+  if(!file.name.endsWith('.csv')){ alert('請選擇CSV檔案'); return; }
+  const fr=new FileReader();
+  fr.onload=(e)=>{ try{ parseAndImportCSV(e.target.result); }catch(err){ alert('讀取失敗：'+err.message); } };
+  fr.readAsText(file,'utf-8'); ev.target.value='';
+}
+function parseAndImportCSV(text){
+  const lines=text.split('\n').filter(x=>x.trim());
+  if(lines.length<2){ alert('CSV 格式不正確'); return; }
+  const headers=lines[0].split(',').map(h=>h.trim());
+  const hasTypeArea=(headers[1]==='類型' && headers[2]==='區域');
+  const startIdx=hasTypeArea?3:1;
+  const dateCols=headers.slice(startIdx);
+  let targetMonth=null;
+  if(dateCols.length>0){
+    const m=dateCols[0].match(/(\d+)\/(\d+)/);
+    if(m) targetMonth=parseInt(m[1]); else { alert('日期格式不正確'); return; }
+  }
+  const targetYear=currentYear;
+  const key=`${targetYear}-${targetMonth}`;
+  if(!scheduleData.schedules[key]) scheduleData.schedules[key]={};
+  const newEmployees=[];
+  for(let i=1;i<lines.length;i++){
+    const cells=lines[i].split(',').map(c=>c.trim());
+    if(cells.length<startIdx+1) continue;
+    const name=cells[0]; if(!name) continue;
+    const exist=scheduleData.employees.find(e=>e.姓名===name);
+    const type=hasTypeArea ? (cells[1]==='兼職'?'partTime':'fullTime') : (exist?.類型||'fullTime');
+    const area=hasTypeArea ? (cells[2]==='內場'?'back':'front') : (exist?.區域||'front');
+    if(!exist){ scheduleData.employees.push({姓名:name, 類型:type, 區域:area}); newEmployees.push(name); }
+    if(!scheduleData.schedules[key][name]) scheduleData.schedules[key][name]={};
+    for(let j=startIdx;j<cells.length && j<headers.length;j++){
+      const m=headers[j].match(/\d+\/(\d+)/); if(!m) continue;
+      const d=parseInt(m[1]);
+      const v=cells[j];
+      let val=null;
+      if(v && !['上班','休息'].includes(v)) val=v;
+      scheduleData.schedules[key][name][d]=val;
+    }
+  }
+  currentMonth=targetMonth; const ms=document.getElementById('monthSelect'); if(ms) ms.value=currentMonth;
+  saveLocal();
+  ensureScheduleData(currentYear,currentMonth);
+  updateCalendar(); updateEmployeeGrid();
+  alert(`匯入成功！新員工 ${newEmployees.length} 位`);
+}
+
+/**********************
+ * Employees
+ **********************/
+function showAddEmployeeModal(){
+  if(currentRole!=='admin'){ alert('只有管理者可以新增員工'); return; }
+  const name=prompt('輸入員工姓名'); if(!name) return;
+  const type=confirm('正職請按「確定」，兼職按「取消」') ? 'fullTime' : 'partTime';
+  const area=confirm('外場請按「確定」，內場按「取消」') ? 'front' : 'back';
+  addEmployee(name.trim(), type, area);
+}
+function addEmployee(name,type,area){
+  if(!name){ alert('姓名必填'); return; }
+  if(scheduleData.employees.find(e=>e.姓名===name)){ alert('員工姓名已存在'); return; }
+  scheduleData.employees.push({姓名:name, 類型:type, 區域:area});
+  Object.keys(scheduleData.schedules).forEach(k=>{
+    const [y,m]=k.split('-').map(Number);
+    const days=getDaysInMonth(y,m);
+    scheduleData.schedules[k][name]={};
+    for(let d=1; d<=days; d++) scheduleData.schedules[k][name][d]=null;
+  });
+  saveLocal(); updateEmployeeGrid(); alert(`已新增：${name}`);
+}
+function updateEmployeeGrid(){
+  const grid=document.getElementById('employeeGrid'); if(!grid) return;
+  grid.innerHTML='';
+  if(scheduleData.employees.length===0){
+    grid.innerHTML='<p style="text-align:center;color:#666;grid-column:1/-1;">目前沒有員工資料</p>';
+    return;
+  }
+  scheduleData.employees.forEach((emp,idx)=>{
+    const card=document.createElement('div'); card.className='employee-card';
+    const typeText=emp.類型==='fullTime'?'正職':'兼職';
+    const areaText=emp.區域==='front'?'外場':'內場';
+    card.innerHTML=`<div class="employee-name">${emp.姓名}</div><div>類型：${typeText}</div><div>區域：${areaText}</div>`;
+    if(currentRole==='admin'){
+      const del=document.createElement('button');
+      del.className='control-btn danger admin-only';
+      del.style.position='absolute'; del.style.top='10px'; del.style.right='10px';
+      del.textContent='刪除';
+      del.onclick=()=>removeEmployee(idx);
+      card.appendChild(del);
+    }
+    grid.appendChild(card);
+  });
+}
+function removeEmployee(index){
+  if(currentRole!=='admin'){ alert('只有管理者可以刪除員工'); return; }
+  const e=scheduleData.employees[index];
+  if(!confirm(`確定刪除 ${e.姓名}？`)) return;
+  scheduleData.employees.splice(index,1);
+  Object.keys(scheduleData.schedules).forEach(k=>{ delete scheduleData.schedules[k][e.姓名]; });
+  saveLocal(); updateEmployeeGrid(); updateCalendar();
+}
+
+/**********************
+ * Shifts CRUD
+ **********************/
+let editingShiftIndex=null;
+function showAddShiftForm(shIdx=null){
+  if(currentRole!=='admin'){ alert('只有管理者可以設定班別'); return; }
+  document.getElementById('addShiftForm').style.display='block';
+  if(shIdx===null){
+    editingShiftIndex=null; clearShiftForm();
+  }else{
+    editingShiftIndex=shIdx;
+    const s=enhancedShiftSettings.allShifts[shIdx];
+    document.getElementById('shiftCode').value=s.code;
+    document.getElementById('shiftName').value=s.name;
+    document.getElementById('startTime').value=s.startTime;
+    document.getElementById('endTime').value=s.endTime;
+    document.getElementById('shiftType').value=s.type;
+    document.getElementById('shiftArea').value=s.area;
+    document.getElementById('shiftColor').value=s.color;
+    document.getElementById('abbreviation').value=s.displaySettings?.abbreviation||'';
+    document.getElementById('showTime').value=String(!!s.displaySettings?.showTime);
+    document.getElementById('showInCalendar').value=String(!!s.displaySettings?.showInCalendar);
+    document.getElementById('category').value=s.category;
+  }
+}
+function hideAddShiftForm(){ document.getElementById('addShiftForm').style.display='none'; clearShiftForm(); editingShiftIndex=null; }
+function clearShiftForm(){
+  ['shiftCode','shiftName','abbreviation'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('startTime').value='09:00';
+  document.getElementById('endTime').value='18:00';
+  document.getElementById('shiftType').value='fullTime';
+  document.getElementById('shiftArea').value='front';
+  document.getElementById('shiftColor').value='#667eea';
+  document.getElementById('showTime').value='true';
+  document.getElementById('showInCalendar').value='true';
+  document.getElementById('category').value='work';
+}
+function $(id){ return document.getElementById(id).value.trim(); }
+function submitShiftForm(){
+  const code=$('shiftCode'), name=$('shiftName');
+  const start=$('startTime'), end=$('endTime'), type=$('shiftType'), area=$('shiftArea'), color=$('shiftColor');
+  const abbr=$('abbreviation'), showTime=(document.getElementById('showTime').value==='true'), showIn=(document.getElementById('showInCalendar').value==='true'), category=$('category');
+  if(!code || !name){ alert('請輸入班別代碼與名稱'); return; }
+  const obj={code,name,startTime:start,endTime:end,type,area,color,category,displaySettings:{showInCalendar:showIn, showTime, abbreviation:abbr||name.charAt(0)}};
+  const existsIdx=enhancedShiftSettings.allShifts.findIndex(s=>s.code===code);
+  if(editingShiftIndex===null){
+    if(existsIdx>=0){ alert('班別代碼已存在'); return; }
+    enhancedShiftSettings.allShifts.push(obj);
+  }else{
+    if(existsIdx>=0 && existsIdx!==editingShiftIndex){ alert('新代碼與現有重複'); return; }
+    enhancedShiftSettings.allShifts[editingShiftIndex]=obj;
+  }
+  saveLocal(); updateShiftsList(); hideAddShiftForm(); alert('班別已儲存');
+}
+function updateShiftsList(){
+  const cont=document.getElementById('shiftsList'); if(!cont) return;
+  cont.innerHTML='';
+  enhancedShiftSettings.allShifts.forEach((s,idx)=>{
+    const card=document.createElement('div'); card.className='shift-card'; card.style.borderLeft=`4px solid ${s.color}`;
+    const timeDisp=s.displaySettings.showTime ? `${s.startTime} - ${s.endTime}` : '無時間顯示';
+    card.innerHTML =
+      `<div class='shift-card-header'>
+        <div class='shift-title'>${s.name}</div>
+        <span class='shift-code'>${s.code}</span>
+      </div>
+      <div class='shift-details'>
+        <div><b>時間：</b>${timeDisp}</div>
+        <div><b>類型：</b>${s.type==='fullTime'?'正職':'兼職'}</div>
+        <div><b>區域：</b>${s.area==='front'?'外場':'內場'}</div>
+        <div><b>簡稱：</b>${s.displaySettings.abbreviation||''}</div>
+        <div><b>分類：</b>${({work:'工作',night:'夜班',holiday:'休假',off:'休息'})[s.category]||s.category}</div>
+      </div>`;
+    const actions=document.createElement('div'); actions.className='shift-actions';
+    const editBtn=document.createElement('button'); editBtn.className='control-btn'; editBtn.textContent='編輯'; editBtn.onclick=()=>showAddShiftForm(idx);
+    const delBtn=document.createElement('button'); delBtn.className='control-btn danger'; delBtn.textContent='刪除'; delBtn.onclick=()=>deleteShift(idx);
+    actions.appendChild(editBtn); actions.appendChild(delBtn); card.appendChild(actions); cont.appendChild(card);
+  });
+}
+function deleteShift(index){
+  if(currentRole!=='admin'){ alert('只有管理者可以刪除班別'); return; }
+  const s=enhancedShiftSettings.allShifts[index];
+  if(!confirm(`確定刪除班別「${s.name}」？`)) return;
+  enhancedShiftSettings.allShifts.splice(index,1);
+  saveLocal(); updateShiftsList();
+}
+
+/**********************
+ * Stats
+ **********************/
+function updateStats(){
+  const cont=document.getElementById('statsCards'); if(!cont){ return; }
+  cont.innerHTML='';
+  if(scheduleData.employees.length===0){ cont.innerHTML='<p style="text-align:center;color:#666;">目前沒有員工資料</p>'; return; }
+
+  const key=`${currentYear}-${currentMonth}`;
+  const days=getDaysInMonth(currentYear,currentMonth);
+  let totalWork=0, totalNight=0, totalHoliday=0, totalOff=0;
+
+  scheduleData.employees.forEach(emp=>{
+    for(let d=1; d<=days; d++){
+      const sch=scheduleData.schedules[key]?.[emp.姓名]?.[d];
+      if(sch===null){
+        if(emp.類型==='fullTime') totalWork++;
+        else totalOff++;
+      }else{
+        const sh=enhancedShiftSettings.allShifts.find(x=>x.name===sch);
+        if(sh){
+          if(sh.category==='work') totalWork++;
+          else if(sh.category==='night') totalNight++;
+          else if(sh.category==='holiday') totalHoliday++;
+          else if(sh.category==='off') totalOff++;
+        }
+      }
+    }
+  });
+
+  const stats=[
+    {label:'總員工數', value:scheduleData.employees.length},
+    {label:'總工作天數', value:totalWork+totalNight},
+    {label:'總夜班天數', value:totalNight},
+    {label:'總休假天數', value:totalHoliday},
+    {label:'總休息天數', value:totalOff},
+  ];
+  stats.forEach(st=>{
+    const c=document.createElement('div'); c.className='stat-card';
+    c.innerHTML=`<div class='stat-number'>${st.value}</div><div>${st.label}</div>`;
+    cont.appendChild(c);
+  });
+
+  const tbody=document.querySelector('#hoursTable tbody');
+  if(tbody){
+    tbody.innerHTML='';
+    scheduleData.employees.forEach(emp=>{
+      const hours=calcMonthlyHours(emp,currentYear,currentMonth);
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${emp.姓名}</td><td>${currentYear}/${currentMonth}</td><td>${hours.toFixed(1)}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+}
+function calcMonthlyHours(emp,y,m){
+  const key=`${y}-${m}`; const days=getDaysInMonth(y,m); let sum=0;
+  for(let d=1; d<=days; d++){
+    const sch=scheduleData.schedules[key]?.[emp.姓名]?.[d];
+    if(sch===null){ if(emp.類型==='fullTime') sum+=DEFAULT_FULLTIME_NULL_HOURS; continue; }
+    const sh=enhancedShiftSettings.allShifts.find(x=>x.name===sch);
+    if(!sh){
+      const mm=sch.match(/(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})/);
+      if(mm){
+        const sH=+mm[1], sM=+mm[2], eH=+mm[3], eM=+mm[4];
+        let h=eH+eM/60 - (sH+sM/60);
+        if(h<0) h+=24;
+        sum+=h;
+      }
+      continue;
+    }
+    sum+=diffHours(sh.startTime, sh.endTime);
+  }
+  return sum;
+}
+function diffHours(t1,t2){
+  const [h1,m1]=t1.split(':').map(Number);
+  const [h2,m2]=t2.split(':').map(Number);
+  let h=h2+m2/60 - (h1+m1/60);
+  if(h<0) h+=24;
+  return h;
+}
+
+/**********************
+ * Cloud (GAS)
+ **********************/
+function saveCloudSettings(){
+  const v=document.getElementById('gasUrlInput').value.trim();
+  if(v) settings.cloud.gasUrl=v;
+  saveLocal();
+  alert('雲端設定已儲存');
+}
+async function saveToCloud(){
+  if(currentRole!=='admin'){ alert('只有管理者可以儲存雲端'); return; }
+  const url=settings.cloud.gasUrl;
+  if(!url || url==='YOUR_GAS_WEBAPP_URL'){ alert('請先於「設定」填入 GAS Web App URL'); return; }
+  const payload={ scheduleData, enhancedShiftSettings, settings };
+  try{
+    const res=await fetch(url,{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+    if(!res.ok) throw new Error(await res.text());
+    alert('已儲存至雲端');
+  }catch(err){
+    console.error(err);
+    alert('雲端儲存失敗：'+err.message);
+  }
+}
+async function loadFromCloud(){
+  const url=settings.cloud.gasUrl;
+  if(!url || url==='YOUR_GAS_WEBAPP_URL'){ alert('請先於「設定」填入 GAS Web App URL'); return; }
+  try{
+    const res=await fetch(url); // doGet 直接回傳 JSON
+    if(!res.ok) throw new Error(await res.text());
+    const data=await res.json();
+    if(data.scheduleData) scheduleData=data.scheduleData;
+    if(data.enhancedShiftSettings) enhancedShiftSettings=data.enhancedShiftSettings;
+    if(data.settings) Object.assign(settings, data.settings);
+    saveLocal();
+    ensureScheduleData(currentYear,currentMonth);
+    updateCalendar(); updateEmployeeGrid(); updateShiftsList(); updateStats();
+    // 同步設定 UI
+    const modeEl=document.getElementById('holidaySourceMode'); if(modeEl) modeEl.value=settings.holidaySource.mode;
+    const icsEl=document.getElementById('icsUrlInput'); if(icsEl) icsEl.value=settings.holidaySource.icsUrl||'';
+    const gasEl=document.getElementById('gasUrlInput'); if(gasEl) gasEl.value=settings.cloud.gasUrl||'';
+    alert('雲端資料已載入');
+  }catch(err){
+    console.error(err);
+    alert('雲端載入失敗：'+err.message);
+  }
+}
+
+/**********************
+ * Clear current month
+ **********************/
+function clearAllSchedule(){
+  if(currentRole!=='admin'){ alert('只有管理者可以清空班表'); return; }
+  if(!confirm('確定要清空當月所有班表資料嗎？')) return;
+  const key=`${currentYear}-${currentMonth}`;
+  const days=getDaysInMonth(currentYear,currentMonth);
+  if(scheduleData.schedules[key] && scheduleData.employees){
+    scheduleData.employees.forEach(emp=>{
+      for(let d=1; d<=days; d++){
+        if(scheduleData.schedules[key][emp.姓名]){
+          scheduleData.schedules[key][emp.姓名][d]=null;
+        }
+      }
+    });
+  }
+  saveLocal(); updateCalendar(); alert('班表已清空');
+}
+  </script>
+</body>
+</html>
