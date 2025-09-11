@@ -158,57 +158,6 @@
 
         <div id="diag" class="diag" style="display:none"></div>
     </div>
-    <div class="card">
-        <h1>美甲預約 Demo</h1>
-        <p class="muted">測試你的 Google Apps Script Web App 端點</p>
-
-        <div class="row">
-            <div style="flex:1;min-width:160px">
-                <label>部署 URL</label>
-                <input id="baseUrl" placeholder="貼上你的 Web App URL"
-                    value="https://script.google.com/macros/s/AKfycbwSPkniXGyquWCJoQxUXrmJISz4kdwon8GHJMd8D7N_tOHNkHaZ6Tz7K7jSys_09MhO/exec" />
-            </div>
-            <div>
-                <label>日期 (YYYY-MM-DD)</label>
-                <input id="date" value="2025-09-12" />
-            </div>
-            <div style="align-self:end">
-                <button id="checkBtn">查詢名額</button>
-            </div>
-        </div>
-
-        <div id="slots"></div>
-
-        <hr style="margin:16px 0;border:none;border-top:1px solid #eee" />
-
-        <div class="row">
-            <div style="flex:1;min-width:160px">
-                <label>姓名</label>
-                <input id="name" placeholder="你的稱呼" />
-            </div>
-            <div>
-                <label>時段</label>
-                <select id="time">
-                    <option value="10:00">10:00</option>
-                    <option value="13:30">13:30</option>
-                    <option value="16:00">16:00</option>
-                </select>
-            </div>
-            <div>
-                <label>美甲師</label>
-                <input id="artist" placeholder="例如 Amy" />
-            </div>
-            <div>
-                <label>服務內容</label>
-                <input id="service" placeholder="例如 日式手繪" />
-            </div>
-            <div style="align-self:end">
-                <button id="bookBtn">預約</button>
-            </div>
-        </div>
-
-        <div id="msg" class="muted"></div>
-    </div>
 
     <script>
         const $ = (id) => document.getElementById(id);
@@ -388,3 +337,4 @@
 </body>
 
 </html>
+
