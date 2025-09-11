@@ -14,7 +14,7 @@
         }
 
         .card {
-            max-width: 720px;
+            max-width: 920px;
             margin: 0 auto;
             background: #fff;
             border-radius: 16px;
@@ -61,16 +61,6 @@
             cursor: not-allowed
         }
 
-        .slot {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            border: 1px solid #e6e6e6;
-            border-radius: 999px;
-            margin: 6px 6px 0 0
-        }
-
         .muted {
             color: #888
         }
@@ -90,6 +80,17 @@
             gap: 8px
         }
 
+        .slot {
+            display: inline-flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 8px 12px;
+            border: 1px solid #e6e6e6;
+            border-radius: 12px;
+            margin: 6px 6px 0 0;
+            flex-direction: column
+        }
+
         .badge {
             display: inline-block;
             padding: 2px 8px;
@@ -98,23 +99,56 @@
             margin-left: 6px;
             font-size: 12px
         }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            overflow: hidden
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid #f0f0f0;
+            padding: 10px;
+            text-align: center
+        }
+
+        thead th {
+            background: #fafafa
+        }
+
+        .diag {
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            color: #7c2d12;
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 12px
+        }
+
+        code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 6px
+        }
     </style>
 </head>
 
 <body>
     <div class="card">
         <h1>美甲預約 Demo</h1>
-        <p class="muted">測試你的 Google Apps Script Web App 端點</p>
+        <p class="muted">測試你的 Google Apps Script Web App 端點（請使用 <code>/exec</code> 版本且開放任何人）</p>
 
         <div class="row">
-            <div style="flex:1;min-width:160px">
-                <label>部署 URL</label>
-                <input id="baseUrl" placeholder="貼上你的 Web App URL"
-                    value="https://script.google.com/macros/s/AKfycbx0r3FU917y44DWYAztuXK-gRXEV97SeiRdO7cOw_KCsNGMoPY9JxqRg_2AVqWLRNHq/exec" />
+            <div style="flex:1;min-width:260px">
+                <label>部署 URL（請使用 /exec，不要 /dev）</label>
+                <input id="baseUrl" placeholder="貼上你的 Web App /exec URL" />
             </div>
             <div>
                 <label>日期 (YYYY-MM-DD)</label>
-                <input id="date" value="2025-09-12" />
+                <input id="date" value="" placeholder="2025-09-12" />
             </div>
             <div style="align-self:end">
                 <button id="checkBtn">查詢名額</button>
@@ -139,8 +173,12 @@
                 </select>
             </div>
             <div>
-                <label>美甲師</label>
-                <input id="artist" placeholder="例如 Amy" />
+                <label>按摩師傅</label>
+                <select id="artist">
+                    <option value="Thomas">Thomas</option>
+                    <option value="Jim">Jim</option>
+                    <option value="Andy">Andy</option>
+                </select>
             </div>
             <div>
                 <label>服務內容</label>
@@ -152,10 +190,10 @@
         </div>
 
         <div id="msg" class="muted"></div>
+
+        <div id="diag" class="diag" style="display:none"></div>
     </div>
-    <div>
-        <iframe src="https://thomas-information.notion.site/ebd/193c06817f4580baaba1da8444bfc028" width="100%" height="600" frameborder="0" allowfullscreen />
-    </div>
+
     <script>
         const $ = (id) => document.getElementById(id);
         const el = {
@@ -169,39 +207,111 @@
             service: $('service'),
             bookBtn: $('bookBtn'),
             msg: $('msg'),
+            diag: $('diag'),
         };
 
+        // 預設填今日（本地）
+        (function initDate() {
+            const d = new Date();
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            if (!el.date.value) el.date.value = `${y}-${m}-${day}`;
+        })();
+
         function setBusy(b) { el.checkBtn.disabled = el.bookBtn.disabled = !!b; }
+
+        function showDiag(title, details) {
+            el.diag.style.display = 'block';
+            el.diag.innerHTML = `<strong>${title}</strong><br>${details}`;
+        }
+
+        function assertExecUrl(u) {
+            if (!u) throw new Error('請先填「部署 URL」。');
+            if (!/\/exec(\?|$)/.test(u)) throw new Error('URL 必須為 /exec（不是 /dev）。請到「部署→管理部署→網址」複製。');
+        }
+
+        function assertDate(s) {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) throw new Error('日期格式需為 YYYY-MM-DD。');
+        }
+
+        async function safeJson(res) {
+            // 嘗試以 JSON 解析；若失敗，回傳原始文字並標註
+            const txt = await res.text();
+            try { return { ok: true, json: JSON.parse(txt), raw: txt }; }
+            catch (e) { return { ok: false, raw: txt }; }
+        }
 
         async function fetchAvailability() {
             el.msg.textContent = '';
             el.slots.innerHTML = '';
+            el.diag.style.display = 'none';
+
             const BASE_URL = el.baseUrl.value.trim();
             const date = el.date.value.trim();
-            if (!BASE_URL || !date) { el.msg.textContent = '請先填「部署 URL」與「日期」'; return; }
+
+            try {
+                assertExecUrl(BASE_URL);
+                assertDate(date);
+            } catch (e) {
+                el.msg.innerHTML = `<span class="err">${e.message}</span>`;
+                return;
+            }
+
             setBusy(true);
             try {
                 const url = `${BASE_URL}?action=availability&date=${encodeURIComponent(date)}`;
-                const res = await fetch(url); // GET 為 simple request，不觸發預檢
-                const data = await res.json();
+                const res = await fetch(url, { method: 'GET' });
+
+                if (!res.ok) {
+                    const raw = await res.text();
+                    showDiag(`HTTP 狀態：${res.status}`, `伺服器回應（前 400 字）:\n${raw.slice(0, 400)}`);
+                    throw new Error(`查詢失敗（HTTP ${res.status}）。`);
+                }
+
+                const parsed = await safeJson(res);
+                if (!parsed.ok) {
+                    showDiag('回傳不是 JSON', `內容片段（前 400 字）:\n${parsed.raw.slice(0, 400)}\n\n通常是因為用了 /dev 或權限沒開放。`);
+                    throw new Error('伺服器未回傳 JSON。');
+                }
+
+                const data = parsed.json;
                 if (!data.ok) throw new Error(data.message || '查詢失敗');
+
                 const slots = data.slots || {};
-                const wrapper = document.createElement('div');
-                wrapper.className = 'grid';
-                Object.entries(slots).forEach(([t, remain]) => {
-                    const div = document.createElement('div');
-                    div.className = 'slot';
-                    div.innerHTML = `<strong>${t}</strong><span class="badge">${remain} 位</span>${remain > 0 ? '<span class="ok">可約</span>' : '<span class="muted">已滿</span>'}`;
-                    wrapper.appendChild(div);
+                const times = Object.keys(slots);
+                if (times.length === 0) {
+                    el.slots.innerHTML = '<div class="muted">此日無任何時段資料。</div>';
+                    return;
+                }
+
+                // 以表格呈現：時段 × 師父
+                const artists = Object.keys(slots[times[0]] || {});
+                let html = '<table><thead><tr><th>時段</th>';
+                artists.forEach(a => html += `<th>${a}</th>`);
+                html += '</tr></thead><tbody>';
+                times.forEach(t => {
+                    html += `<tr><td><strong>${t}</strong></td>`;
+                    artists.forEach(a => {
+                        const s = slots[t][a] || '可約';
+                        html += `<td>${s === '已預約' ? '<span class="err">已預約</span>' : '<span class="ok">可約</span>'}</td>`;
+                    });
+                    html += '</tr>';
                 });
-                el.slots.appendChild(wrapper);
+                html += '</tbody></table>';
+                el.slots.innerHTML = html;
+
             } catch (err) {
-                el.msg.innerHTML = `<span class="err">查詢錯誤：${err.message || err}</span>`;
-            } finally { setBusy(false); }
+                el.msg.innerHTML = `<span class="err">查詢錯誤：${err.message}</span>`;
+                console.error(err);
+            } finally {
+                setBusy(false);
+            }
         }
 
         async function book() {
             el.msg.textContent = '';
+            el.diag.style.display = 'none';
             const BASE_URL = el.baseUrl.value.trim();
             const payload = {
                 name: el.name.value.trim(),
@@ -210,82 +320,54 @@
                 artist: el.artist.value.trim(),
                 service: el.service.value.trim()
             };
-            if (!BASE_URL || !payload.name || !payload.date || !payload.time || !payload.artist || !payload.service) {
-                el.msg.textContent = '請把姓名/日期/時段/美甲師/服務內容補齊';
+
+            try {
+                assertExecUrl(BASE_URL);
+                assertDate(payload.date);
+                if (!payload.name || !payload.artist || !payload.service) {
+                    throw new Error('請把姓名/美甲師/服務內容補齊。');
+                }
+            } catch (e) {
+                el.msg.innerHTML = `<span class="err">${e.message}</span>`;
                 return;
             }
+
             setBusy(true);
             try {
                 const res = await fetch(`${BASE_URL}?action=book`, {
                     method: 'POST',
-                    // 關鍵：text/plain 避免預檢（CORS preflight）
                     headers: { 'Content-Type': 'text/plain; charset=utf-8' },
                     body: JSON.stringify(payload)
                 });
-                const data = await res.json();
+
+                if (!res.ok) {
+                    const raw = await res.text();
+                    showDiag(`HTTP 狀態：${res.status}`, `伺服器回應（前 400 字）:\n${raw.slice(0, 400)}`);
+                    throw new Error(`預約失敗（HTTP ${res.status}）。`);
+                }
+
+                const parsed = await safeJson(res);
+                if (!parsed.ok) {
+                    showDiag('回傳不是 JSON', `內容片段（前 400 字）:\n${parsed.raw.slice(0, 400)}`);
+                    throw new Error('伺服器未回傳 JSON。');
+                }
+
+                const data = parsed.json;
                 if (!data.ok) throw new Error(data.message || '預約失敗');
-                el.msg.innerHTML = `<span class="ok">預約成功！${data.date} ${data.time}；時段剩餘：${data.remain}</span>`;
-                // 同步刷新名額
-                await fetchAvailability();
+
+                el.msg.innerHTML = `<span class="ok">預約成功！${data.date} ${data.time}（${data.artist}）</span>`;
+                await fetchAvailability(); // 立即刷新畫面
             } catch (err) {
-                el.msg.innerHTML = `<span class="err">預約錯誤：${err.message || err}</span>`;
-            } finally { setBusy(false); }
+                el.msg.innerHTML = `<span class="err">${err.message}</span>`;
+                console.error(err);
+            } finally {
+                setBusy(false);
+            }
         }
 
         el.checkBtn.addEventListener('click', fetchAvailability);
         el.bookBtn.addEventListener('click', book);
-
-        // 預設進來就查一次（可關）
-        // fetchAvailability();
     </script>
-    <script>
-        const BASE_URL = "https://script.google.com/macros/s/你的部署ID/exec";
-
-        // GET 列表：查某日（可選某位美甲師）的預約
-        async function listAppointments(date, artist) {
-            const qs = new URLSearchParams({ action: "list", date });
-            if (artist) qs.set("artist", artist);
-            const res = await fetch(`${BASE_URL}?${qs.toString()}`);
-            const data = await res.json();
-            if (!data.ok) throw new Error(data.message || "list 失敗");
-            return data; // { ok, date, artist|null, count, appointments:[...] }
-        }
-
-        // POST 預約：用 text/plain 送 JSON 字串 → 避免 CORS 預檢
-        async function book({ name, date, time, artist, service }) {
-            const res = await fetch(`${BASE_URL}?action=book`, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain; charset=utf-8" },
-                body: JSON.stringify({ name, date, time, artist, service })
-            });
-            const data = await res.json();
-            if (!data.ok) throw new Error(data.message || data.code || "book 失敗");
-            return data; // { ok:true, appointment:{...} }
-        }
-
-        // Demo（你可刪）
-        (async () => {
-            try {
-                console.log("→ 試著新增一筆預約");
-                const booked = await book({
-                    name: "Lily",
-                    date: "2025-09-12",
-                    time: "13:30",
-                    artist: "Amy",
-                    service: "日式手繪"
-                });
-                console.log("book:", booked);
-
-                console.log("→ 查詢當日所有預約");
-                const list = await listAppointments("2025-09-12");
-                console.log("list:", list);
-            } catch (e) {
-                console.error(e);
-            }
-        })();
-    </script>
-
 </body>
-
 
 </html>
