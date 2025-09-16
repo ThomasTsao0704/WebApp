@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>公告欄日誌</title>
     <style>
         * {
@@ -42,30 +43,20 @@
         }
 
         .card {
-            background: white;
-            border-radius: 0.75rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            background: #fff;
+            border-radius: .75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, .1);
             margin-bottom: 1.5rem;
             padding: 1.5rem;
+            transition: box-shadow .3s ease;
         }
 
         .card:hover {
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-            transition: box-shadow 0.3s ease;
-        }
-
-        .connection-section h3 {
-            font-size: 1.125rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #1f2937;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, .1);
         }
 
         .status-indicator {
-            font-size: 0.875rem;
+            font-size: .875rem;
         }
 
         .status-connected {
@@ -82,35 +73,35 @@
 
         .input-group label {
             display: block;
-            font-size: 0.875rem;
+            font-size: .875rem;
             font-weight: 500;
             color: #374151;
-            margin-bottom: 0.5rem;
+            margin-bottom: .5rem;
         }
 
         .input-field {
             width: 100%;
-            padding: 0.75rem;
+            padding: .75rem;
             border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
+            border-radius: .5rem;
             font-size: 1rem;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: border-color .2s, box-shadow .2s;
         }
 
         .input-field:focus {
             outline: none;
             border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, .1);
         }
 
         .input-field:disabled {
-            background-color: #f9fafb;
+            background: #f9fafb;
             cursor: not-allowed;
         }
 
         .flex-row {
             display: flex;
-            gap: 0.75rem;
+            gap: .75rem;
             align-items: center;
         }
 
@@ -119,68 +110,68 @@
         }
 
         .btn {
-            padding: 0.75rem 1.5rem;
+            padding: .75rem 1.5rem;
             border: none;
-            border-radius: 0.5rem;
+            border-radius: .5rem;
             font-weight: 500;
             cursor: pointer;
-            transition: background-color 0.2s;
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: .5rem;
+            transition: background-color .2s, opacity .2s;
         }
 
         .btn:disabled {
-            opacity: 0.5;
+            opacity: .5;
             cursor: not-allowed;
         }
 
         .btn-primary {
-            background-color: #3b82f6;
-            color: white;
+            background: #3b82f6;
+            color: #fff;
         }
 
         .btn-primary:hover:not(:disabled) {
-            background-color: #2563eb;
+            background: #2563eb;
         }
 
         .btn-success {
-            background-color: #10b981;
-            color: white;
+            background: #10b981;
+            color: #fff;
         }
 
         .btn-success:hover:not(:disabled) {
-            background-color: #059669;
+            background: #059669;
         }
 
         .btn-danger {
-            background-color: #ef4444;
-            color: white;
+            background: #ef4444;
+            color: #fff;
         }
 
         .btn-danger:hover:not(:disabled) {
-            background-color: #dc2626;
+            background: #dc2626;
         }
 
         .btn-secondary {
-            background-color: #6b7280;
-            color: white;
+            background: #6b7280;
+            color: #fff;
         }
 
         .btn-secondary:hover:not(:disabled) {
-            background-color: #4b5563;
+            background: #4b5563;
         }
 
         .info-box {
-            background-color: #eff6ff;
+            background: #eff6ff;
             border: 1px solid #bfdbfe;
-            border-radius: 0.5rem;
+            border-radius: .5rem;
             padding: 1rem;
             margin-top: 1rem;
         }
 
         .info-box p {
-            font-size: 0.875rem;
+            font-size: .875rem;
             color: #1e40af;
             line-height: 1.5;
         }
@@ -188,32 +179,31 @@
         .filter-buttons {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.5rem;
+            gap: .5rem;
             margin-bottom: 1rem;
         }
 
         .filter-btn {
-            padding: 0.5rem 1rem;
+            padding: .5rem 1rem;
             border: none;
-            border-radius: 0.5rem;
+            border-radius: .5rem;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s;
         }
 
         .filter-btn.active {
-            background-color: #3b82f6;
-            color: white;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            background: #3b82f6;
+            color: #fff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, .1);
         }
 
         .filter-btn:not(.active) {
-            background-color: #f3f4f6;
+            background: #f3f4f6;
             color: #374151;
         }
 
         .filter-btn:not(.active):hover {
-            background-color: #e5e7eb;
+            background: #e5e7eb;
         }
 
         .operations-section {
@@ -235,16 +225,15 @@
         }
 
         .log-item {
-            background: white;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            background: #fff;
+            border-radius: .75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, .1);
             padding: 1.5rem;
             margin-bottom: 1rem;
-            transition: box-shadow 0.3s ease;
         }
 
         .log-item:hover {
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, .1);
         }
 
         .log-header {
@@ -258,93 +247,83 @@
             font-size: 1.25rem;
             font-weight: 600;
             color: #1f2937;
-            margin-bottom: 0.5rem;
+            margin-bottom: .5rem;
         }
 
         .log-meta {
             display: flex;
             align-items: center;
             gap: 1rem;
-            font-size: 0.875rem;
+            font-size: .875rem;
             color: #6b7280;
-            margin-bottom: 0.75rem;
+            margin-bottom: .75rem;
         }
 
         .meta-item {
             display: flex;
             align-items: center;
-            gap: 0.25rem;
+            gap: .25rem;
         }
 
         .category-badge {
-            padding: 0.25rem 0.75rem;
+            padding: .25rem .75rem;
             border-radius: 9999px;
-            font-size: 0.75rem;
+            font-size: .75rem;
             font-weight: 500;
             border: 1px solid;
         }
 
         .category-important {
-            background-color: #fef2f2;
+            background: #fef2f2;
             color: #991b1b;
             border-color: #fecaca;
         }
 
         .category-general {
-            background-color: #eff6ff;
+            background: #eff6ff;
             color: #1e40af;
             border-color: #bfdbfe;
         }
 
         .category-meeting {
-            background-color: #f0fdf4;
+            background: #f0fdf4;
             color: #166534;
             border-color: #bbf7d0;
         }
 
         .category-feature {
-            background-color: #faf5ff;
+            background: #faf5ff;
             color: #7c2d12;
             border-color: #e9d5ff;
         }
 
         .category-other {
-            background-color: #f9fafb;
+            background: #f9fafb;
             color: #374151;
             border-color: #e5e7eb;
         }
 
         .log-actions {
             display: flex;
-            gap: 0.5rem;
+            gap: .5rem;
             margin-left: 1rem;
         }
 
         .action-btn {
-            padding: 0.5rem;
+            padding: .5rem;
             border: none;
-            border-radius: 0.5rem;
+            border-radius: .5rem;
             cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .action-btn:hover {
-            opacity: 0.8;
         }
 
         .edit-btn {
             color: #3b82f6;
-            background-color: #eff6ff;
+            background: #eff6ff;
         }
 
         .delete-btn {
             color: #ef4444;
-            background-color: #fef2f2;
-        }
-
-        .log-content {
-            color: #4b5563;
-            line-height: 1.6;
+            background: #fef2f2;
         }
 
         .empty-state {
@@ -367,21 +346,32 @@
         .stat-number {
             font-size: 2rem;
             font-weight: bold;
-            margin-bottom: 0.25rem;
+            margin-bottom: .25rem;
         }
 
         .stat-label {
-            font-size: 0.875rem;
+            font-size: .875rem;
             color: #6b7280;
         }
 
-        .stat-blue { color: #3b82f6; }
-        .stat-green { color: #10b981; }
-        .stat-red { color: #ef4444; }
-        .stat-purple { color: #8b5cf6; }
+        .stat-blue {
+            color: #3b82f6;
+        }
+
+        .stat-green {
+            color: #10b981;
+        }
+
+        .stat-red {
+            color: #ef4444;
+        }
+
+        .stat-purple {
+            color: #8b5cf6;
+        }
 
         .loading {
-            opacity: 0.6;
+            opacity: .6;
             pointer-events: none;
         }
 
@@ -389,10 +379,9 @@
             display: none;
         }
 
-        /* 響應式設計 */
         @media (max-width: 768px) {
             .container {
-                padding: 1rem 0.5rem;
+                padding: 1rem .5rem;
             }
 
             .title-section h1 {
@@ -429,6 +418,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <!-- 標題區域 -->
@@ -442,31 +432,21 @@
             <h3>📊 Google Sheets 連接設定
                 <span id="connectionStatus" class="status-indicator status-disconnected">● 未連接</span>
             </h3>
-            
             <div class="input-group">
-                <label for="gasUrl">Google Apps Script URL</label>
+                <label for="gasUrl">Google Apps Script URL:'https://script.google.com/macros/s/AKfycbyvQrXrrbOzA5s_tppnR17H6b9dlcjcbGIqTHEVAGWKy6BTAeIo_PxhzQj-ZuvvkMze/exec'</label>
                 <div class="flex-row">
-                    <input type="text" id="gasUrl" class="input-field flex-1" 
-                           placeholder="請輸入您的 Google Apps Script Web App URL">
+                    <input type="text" id="gasUrl" class="input-field flex-1" placeholder="請輸入 /exec 結尾的 Web App URL">
                     <button id="connectBtn" class="btn btn-primary">連接</button>
                     <button id="disconnectBtn" class="btn btn-secondary hidden">中斷連接</button>
                 </div>
             </div>
-            
             <div id="setupInfo" class="info-box">
-                <p><strong>設定說明：</strong><br>
-                1. 建立一個新的 Google Apps Script 專案<br>
-                2. 複製提供的代碼到專案中<br>
-                3. 部署為 Web 應用程式<br>
-                4. 複製 Web 應用程式 URL 並貼上此處</p>
-                
-                <div style="margin-top: 1rem;">
-                    <button id="diagnosisBtn" class="btn btn-secondary" style="font-size: 0.875rem;">
-                        🔍 運行診斷測試
-                    </button>
-                    <button id="urlHelpBtn" class="btn btn-secondary" style="font-size: 0.875rem; margin-left: 0.5rem;">
-                        ❓ URL格式說明
-                    </button>
+                <p><strong>設定說明：</strong><br>1. 建立/打開 GAS 專案 → 貼上 Code.gs<br>2. 部署為 Web 應用程式 → 權限「任何人」<br>3. 複製 /exec
+                    URL 貼到上方輸入框</p>
+                <div style="margin-top:1rem;">
+                    <button id="diagnosisBtn" class="btn btn-secondary" style="font-size:.875rem;">🔍 運行診斷測試</button>
+                    <button id="urlHelpBtn" class="btn btn-secondary" style="font-size:.875rem; margin-left:.5rem;">❓
+                        URL格式說明</button>
                 </div>
             </div>
         </div>
@@ -475,7 +455,6 @@
         <div class="card">
             <div class="operations-section">
                 <div class="operations-row">
-                    <!-- 分類篩選 -->
                     <div class="filter-buttons" id="filterButtons">
                         <button class="filter-btn active" data-filter="全部">全部</button>
                         <button class="filter-btn" data-filter="重要">重要</button>
@@ -484,11 +463,7 @@
                         <button class="filter-btn" data-filter="功能">功能</button>
                         <button class="filter-btn" data-filter="其他">其他</button>
                     </div>
-                    
-                    <!-- 新增按鈕 -->
-                    <button id="addLogBtn" class="btn btn-success">
-                        <span>➕</span> 新增日誌
-                    </button>
+                    <button id="addLogBtn" class="btn btn-success"><span>➕</span> 新增日誌</button>
                 </div>
             </div>
         </div>
@@ -515,12 +490,8 @@
                 </select>
             </div>
             <div class="flex-row">
-                <button id="saveLogBtn" class="btn btn-primary">
-                    <span>💾</span> 儲存
-                </button>
-                <button id="cancelAddBtn" class="btn btn-secondary">
-                    <span>❌</span> 取消
-                </button>
+                <button id="saveLogBtn" class="btn btn-primary"><span>💾</span> 儲存</button>
+                <button id="cancelAddBtn" class="btn btn-secondary"><span>❌</span> 取消</button>
             </div>
         </div>
 
@@ -552,15 +523,15 @@
     </div>
 
     <script>
-        // 全域變數
+        /* ===================== 全域狀態 ===================== */
         let logs = [];
         let currentFilter = '全部';
         let isConnected = false;
         let gasUrl = '';
         let editingId = null;
 
-        // 初始化
-        document.addEventListener('DOMContentLoaded', function() {
+        /* ===================== 初始化 ===================== */
+        document.addEventListener('DOMContentLoaded', () => {
             initializeApp();
             bindEvents();
             loadSampleData();
@@ -572,176 +543,200 @@
         }
 
         function bindEvents() {
-            // 連接相關事件
             document.getElementById('connectBtn').addEventListener('click', connectToGoogleSheets);
             document.getElementById('disconnectBtn').addEventListener('click', disconnectFromGoogleSheets);
-            
-            // 診斷工具事件
+
             document.getElementById('diagnosisBtn').addEventListener('click', runDiagnosisTest);
             document.getElementById('urlHelpBtn').addEventListener('click', showUrlHelp);
-            
-            // 篩選按鈕事件
-            document.getElementById('filterButtons').addEventListener('click', function(e) {
-                if (e.target.classList.contains('filter-btn')) {
-                    setFilter(e.target.dataset.filter);
-                }
+
+            document.getElementById('filterButtons').addEventListener('click', (e) => {
+                if (e.target.classList.contains('filter-btn')) setFilter(e.target.dataset.filter);
             });
-            
-            // 新增日誌相關事件
+
             document.getElementById('addLogBtn').addEventListener('click', showAddForm);
             document.getElementById('saveLogBtn').addEventListener('click', saveNewLog);
             document.getElementById('cancelAddBtn').addEventListener('click', hideAddForm);
         }
 
+        /* ===================== 範例資料（可移除） ===================== */
         function loadSampleData() {
             const sampleLogs = [
-                {
-                    id: Date.now() - 1000,
-                    title: '系統維護通知',
-                    content: '今晚10:00-11:00將進行系統維護，期間可能會影響服務使用。',
-                    category: '重要',
-                    date: new Date().toISOString().split('T')[0],
-                    time: '09:30'
-                },
-                {
-                    id: Date.now() - 2000,
-                    title: '會議室預約提醒',
-                    content: '明天下午2:00在A會議室舉行月度工作會議，請相關同事準時參加。',
-                    category: '會議',
-                    date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
-                    time: '15:20'
-                },
-                {
-                    id: Date.now() - 3000,
-                    title: '新功能上線',
-                    content: '用戶反饋系統已正式上線，歡迎大家使用並提供寶貴意見。',
-                    category: '功能',
-                    date: new Date(Date.now() - 172800000).toISOString().split('T')[0],
-                    time: '11:45'
-                }
+                { id: Date.now() - 1000, title: '系統維護通知', content: '今晚10:00-11:00系統維護。', category: '重要', date: todayStr(), time: '09:30' },
+                { id: Date.now() - 2000, title: '會議室預約提醒', content: '明日14:00 A會議室月會。', category: '會議', date: dayOffsetStr(-1), time: '15:20' },
+                { id: Date.now() - 3000, title: '新功能上線', content: '用戶反饋系統正式上線。', category: '功能', date: dayOffsetStr(-2), time: '11:45' }
             ];
             logs = sampleLogs;
-            updateLogsList();
-            updateStats();
+            updateLogsList(); updateStats();
         }
 
-       // Google Sheets 相關功能（嚴謹版）
+        /* ===================== Google Sheets（嚴謹版） ===================== */
+        async function connectToGoogleSheets() {
+            const urlInput = document.getElementById('gasUrl');
+            gasUrl = urlInput.value.trim();
 
-async function connectToGoogleSheets() {
-    const urlInput = document.getElementById('gasUrl');
-    gasUrl = urlInput.value.trim();
+            if (!gasUrl) { alert('請先輸入 Google Apps Script URL'); return; }
+            if (!/script\.google\.com\/macros\/s\/.+\/exec$/.test(gasUrl)) {
+                const go = confirm('看起來不是 /exec 結尾的 Web App URL，仍要嘗試連線嗎？');
+                if (!go) return;
+            }
 
-    if (!gasUrl) {
-        alert('請先輸入 Google Apps Script URL');
-        return;
-    }
-    // 可選的基本格式檢查：/exec 結尾
-    if (!/script\.google\.com\/macros\/s\/.+\/exec$/.test(gasUrl)) {
-        if (!confirm('看起來不是 /exec 結尾的 Web App URL，仍要嘗試連線嗎？')) return;
-    }
+            setLoading(true);
+            try {
+                const response = await fetch(`${gasUrl}?action=test`, { method: 'GET', mode: 'cors' });
 
-    setLoading(true);
-    try {
-        const response = await fetch(`${gasUrl}?action=test`, {
-            method: 'GET',
-            mode: 'cors'
-        });
+                if (!response.ok) {
+                    const text = await response.text().catch(() => '');
+                    throw new Error(`HTTP 非 2xx（${response.status} ${response.statusText}）：${text.slice(0, 120)}`);
+                }
 
-        if (!response.ok) {
-            const text = await response.text().catch(() => '');
-            throw new Error(`HTTP 非 2xx（${response.status} ${response.statusText}）：${text.slice(0,120)}`);
+                const data = await response.json().catch(() => ({}));
+                if (data && data.success) {
+                    isConnected = true;
+                    updateConnectionStatus();
+                    await loadLogsFromSheet(); // 首次連線立即同步
+                    alert('成功連接到 Google Sheets！');
+                } else {
+                    const msg = data && (data.message || data.error) ? `（${data.message || data.error}）` : '';
+                    throw new Error(`GAS 回應非 success ${msg}`);
+                }
+            } catch (error) {
+                console.error('連接錯誤:', error);
+                alert(`連接失敗：${error.message}\n\n請檢查：\n1) 部署是否為「Web 應用程式」且權限「任何人」\n2) 使用 /exec URL（不是 /dev）\n3) 重新部署後複製最新 URL`);
+                isConnected = false;
+                updateConnectionStatus();
+            } finally {
+                setLoading(false);
+            }
         }
 
-        const data = await response.json().catch(() => ({}));
-        if (data && data.success) {
-            isConnected = true;
+        function disconnectFromGoogleSheets() {
+            isConnected = false; gasUrl = '';
+            document.getElementById('gasUrl').value = '';
             updateConnectionStatus();
-            await loadLogsFromSheet(); // 連線成功後立即拉雲端資料
-            alert('成功連接到 Google Sheets！');
-        } else {
-            const msg = data && (data.message || data.error) ? `（${data.message || data.error}）` : '';
-            throw new Error(`GAS 回應非 success ${msg}`);
-        }
-    } catch (error) {
-        console.error('連接錯誤:', error);
-        alert(`連接失敗：${error.message}\n\n請檢查：\n1) 部署是否為「Web 應用程式」且權限「任何人」\n2) 使用 /exec URL（不是 /dev）\n3) 重新部署後複製最新 URL`);
-        isConnected = false;
-        updateConnectionStatus();
-    } finally {
-        setLoading(false);
-    }
-}
-
-async function loadLogsFromSheet() {
-    if (!isConnected) return;
-
-    setLoading(true);
-    try {
-        const response = await fetch(`${gasUrl}?action=getLogs`, {
-            method: 'GET',
-            mode: 'cors'
-        });
-
-        if (!response.ok) {
-            const text = await response.text().catch(() => '');
-            throw new Error(`HTTP 非 2xx（${response.status} ${response.statusText}）：${text.slice(0,120)}`);
         }
 
-        const data = await response.json().catch(() => ({}));
-        if (data && data.success) {
-            logs = Array.isArray(data.logs) ? data.logs : [];
-            updateLogsList();
-            updateStats();
-        } else {
-            const msg = data && (data.message || data.error) ? `（${data.message || data.error}）` : '';
-            console.error('載入錯誤: 後端回傳失敗', data);
-            alert(`從 Google Sheets 載入失敗：GAS 回應非 success ${msg}`);
+        function updateConnectionStatus() {
+            const statusElement = document.getElementById('connectionStatus');
+            const setupInfo = document.getElementById('setupInfo');
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            const gasUrlInput = document.getElementById('gasUrl');
+
+            if (isConnected) {
+                statusElement.textContent = '● 已連接';
+                statusElement.className = 'status-indicator status-connected';
+                setupInfo.classList.add('hidden');
+                connectBtn.textContent = '重新載入';
+                disconnectBtn.classList.remove('hidden');
+                gasUrlInput.disabled = true;
+            } else {
+                statusElement.textContent = '● 未連接';
+                statusElement.className = 'status-indicator status-disconnected';
+                setupInfo.classList.remove('hidden');
+                connectBtn.textContent = '連接';
+                disconnectBtn.classList.add('hidden');
+                gasUrlInput.disabled = false;
+            }
         }
-    } catch (error) {
-        console.error('載入錯誤:', error);
-        alert(`從 Google Sheets 載入失敗：${error.message}`);
-    } finally {
-        setLoading(false);
-    }
-}
 
+        async function saveLogToSheet(logData) {
+            if (!isConnected) return false;
+            try {
+                const response = await fetch(gasUrl, {
+                    method: 'POST', mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain' }, // 避免預檢
+                    body: JSON.stringify({ action: 'addLog', data: logData })
+                });
+                const resJson = await response.json().catch(() => ({}));
+                return response.ok && resJson.success === true;
+            } catch (error) {
+                console.error('保存錯誤:', error);
+                return false;
+            }
+        }
 
-        
+        async function loadLogsFromSheet() {
+            if (!isConnected) return;
+            setLoading(true);
+            try {
+                const response = await fetch(`${gasUrl}?action=getLogs`, { method: 'GET', mode: 'cors' });
 
-        // 診斷和幫助工具
+                if (!response.ok) {
+                    const text = await response.text().catch(() => '');
+                    throw new Error(`HTTP 非 2xx（${response.status} ${response.statusText}）：${text.slice(0, 120)}`);
+                }
+
+                const data = await response.json().catch(() => ({}));
+                if (data && data.success) {
+                    logs = Array.isArray(data.logs) ? data.logs : [];
+                    updateLogsList(); updateStats();
+                } else {
+                    const msg = data && (data.message || data.error) ? `（${data.message || data.error}）` : '';
+                    console.error('載入錯誤: 後端回傳失敗', data);
+                    alert(`從 Google Sheets 載入失敗：GAS 回應非 success ${msg}`);
+                }
+            } catch (error) {
+                console.error('載入錯誤:', error);
+                alert(`從 Google Sheets 載入失敗：${error.message}`);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function updateLogInSheet(logData) {
+            if (!isConnected) return false;
+            try {
+                const response = await fetch(gasUrl, {
+                    method: 'POST', mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'updateLog', data: logData })
+                });
+                const resJson = await response.json().catch(() => ({}));
+                return response.ok && resJson.success === true;
+            } catch (error) {
+                console.error('更新錯誤:', error);
+                return false;
+            }
+        }
+
+        async function deleteLogFromSheet(logId) {
+            if (!isConnected) return false;
+            try {
+                const response = await fetch(gasUrl, {
+                    method: 'POST', mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'deleteLog', data: { id: logId } })
+                });
+                const resJson = await response.json().catch(() => ({}));
+                return response.ok && resJson.success === true;
+            } catch (error) {
+                console.error('刪除錯誤:', error);
+                return false;
+            }
+        }
+
+        /* ===================== 診斷 & 小工具 ===================== */
         const runDiagnosisTest = async () => {
             const urlInput = document.getElementById('gasUrl');
             const testUrl = urlInput.value.trim();
-            
-            if (!testUrl) {
-                alert('請先輸入 Google Apps Script URL');
-                return;
-            }
-            
+            if (!testUrl) { alert('請先輸入 Google Apps Script URL'); return; }
+
             const results = [];
-            
-            // 測試1：URL格式檢查
             results.push('🔍 診斷測試開始...\n');
-            
+
             if (testUrl.includes('script.google.com/macros/s/') && testUrl.endsWith('/exec')) {
                 results.push('✅ URL格式正確');
             } else {
                 results.push('❌ URL格式不正確');
                 results.push('   正確格式：https://script.google.com/macros/s/[ID]/exec');
             }
-            
-            // 測試2：網路連接
+
             results.push('\n🌐 測試網路連接...');
             try {
-                const response = await fetch(testUrl + '?action=test', {
-                    method: 'GET',
-                    mode: 'cors'
-                });
-                
+                const response = await fetch(testUrl + '?action=test', { method: 'GET', mode: 'cors' });
                 results.push(`✅ HTTP狀態：${response.status} ${response.statusText}`);
-                
                 if (response.ok) {
-                    const data = await response.json();
+                    const data = await response.json().catch(() => ({}));
                     if (data.success) {
                         results.push('✅ Apps Script回應正常');
                         results.push(`✅ 版本：${data.version || 'unknown'}`);
@@ -753,82 +748,51 @@ async function loadLogsFromSheet() {
                 }
             } catch (error) {
                 results.push('❌ 連接失敗：' + error.message);
-                
-                if (error.message.includes('CORS')) {
-                    results.push('   💡 可能是CORS問題，請檢查Apps Script部署設定');
-                } else if (error.message.includes('fetch')) {
-                    results.push('   💡 可能是網路問題或URL不正確');
-                }
+                if (error.message.includes('CORS')) results.push('   💡 可能是CORS問題，請檢查Apps Script部署設定');
             }
-            
-            // 測試3：POST請求
+
             if (testUrl) {
                 results.push('\n📤 測試POST請求...');
                 try {
                     const response = await fetch(testUrl, {
-                        method: 'POST',
-                        mode: 'cors',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            action: 'test',
-                            data: { test: true }
-                        })
+                        method: 'POST', mode: 'cors',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify({ action: 'test', data: { test: true } })
                     });
-                    
-                    if (response.ok) {
-                        results.push('✅ POST請求成功');
-                    } else {
-                        results.push(`❌ POST請求失敗：${response.status}`);
-                    }
+                    const ok = response.ok;
+                    results.push(ok ? '✅ POST請求成功' : `❌ POST請求失敗：${response.status}`);
                 } catch (error) {
                     results.push('❌ POST請求錯誤：' + error.message);
                 }
             }
-            
+
             results.push('\n📋 診斷完成！');
-            results.push('\n如果看到❌，請檢查：');
-            results.push('1. Apps Script是否正確部署為Web應用程式');
-            results.push('2. 存取權限是否設為「任何人」');
-            results.push('3. URL是否正確複製');
-            
+            results.push('\n如遇 ❌ 請檢查：\n1) Web 應用程式部署與權限\n2) URL 是否以 /exec 結尾\n3) 重新部署後更新最新 URL');
             alert(results.join('\n'));
         };
-        
+
         const showUrlHelp = () => {
             const helpText = `
 📚 Google Apps Script URL 格式說明
 
-✅ 正確的URL格式：
-https://script.google.com/macros/s/AKfycby...很長的ID.../exec
+✅ 正確： https://script.google.com/macros/s/AKfycby.../exec
+❌ 錯誤：
+• https://script.google.com/d/[ID]/edit（編輯頁）
+• https://script.google.com/home/projects/[ID]（專案頁）
 
-❌ 錯誤的URL格式：
-• https://script.google.com/d/[ID]/edit (這是編輯頁面)
-• https://script.google.com/home/projects/[ID] (這是專案頁面)
-
-📍 如何取得正確的URL：
-1. 在Google Apps Script中點選「部署」→「管理部署」
-2. 複製「Web應用程式」欄位中的URL
-3. 確認URL以/exec結尾
-
-🔧 如果URL不正確：
-1. 重新部署Apps Script專案
-2. 確認選擇「Web應用程式」類型
-3. 設定存取權限為「任何人」
-            `;
-            
+取得方式：
+1. GAS → 部署 → 管理部署
+2. 複製「Web 應用程式」URL（/exec 結尾）
+3. 權限選「任何人」
+`;
             alert(helpText);
         };
+
+        /* ===================== UI：列表 & 表單 ===================== */
         function setFilter(filter) {
             currentFilter = filter;
-            
-            // 更新按鈕狀態
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
-            
             updateLogsList();
         }
 
@@ -836,12 +800,7 @@ https://script.google.com/macros/s/AKfycby...很長的ID.../exec
             document.getElementById('addForm').classList.remove('hidden');
             document.getElementById('newTitle').focus();
         }
-
-        function hideAddForm() {
-            document.getElementById('addForm').classList.add('hidden');
-            clearAddForm();
-        }
-
+        function hideAddForm() { document.getElementById('addForm').classList.add('hidden'); clearAddForm(); }
         function clearAddForm() {
             document.getElementById('newTitle').value = '';
             document.getElementById('newContent').value = '';
@@ -852,35 +811,22 @@ https://script.google.com/macros/s/AKfycby...很長的ID.../exec
             const title = document.getElementById('newTitle').value.trim();
             const content = document.getElementById('newContent').value.trim();
             const category = document.getElementById('newCategory').value;
-            
-            if (!title || !content) {
-                alert('請填寫標題和內容');
-                return;
-            }
-            
+            if (!title || !content) { alert('請填寫標題和內容'); return; }
+
             const now = new Date();
             const log = {
                 id: Date.now(),
-                title,
-                content,
-                category,
-                date: now.toISOString().split('T')[0],
+                title, content, category,
+                date: todayStr(),
                 time: now.toTimeString().split(' ')[0].slice(0, 5)
             };
-            
-            // 先更新本地狀態
-            logs.unshift(log);
-            updateLogsList();
-            updateStats();
-            hideAddForm();
-            
-            // 如果連接到Google Sheets，保存到雲端
+
+            logs.unshift(log); updateLogsList(); updateStats(); hideAddForm();
+
             if (isConnected) {
                 setLoading(true);
                 const success = await saveLogToSheet(log);
-                if (!success) {
-                    alert('保存到 Google Sheets 失敗，但本地已保存');
-                }
+                if (!success) alert('保存到 Google Sheets 失敗，但本地已保存');
                 setLoading(false);
             }
         }
@@ -889,217 +835,147 @@ https://script.google.com/macros/s/AKfycby...很長的ID.../exec
             editingId = logId;
             const log = logs.find(l => l.id === logId);
             if (!log) return;
-            
-            const logElement = document.querySelector(`[data-log-id="${logId}"]`);
-            logElement.innerHTML = createEditForm(log);
-            
-            // 綁定編輯表單事件
-            logElement.querySelector('.save-edit-btn').addEventListener('click', () => saveEdit(logId));
-            logElement.querySelector('.cancel-edit-btn').addEventListener('click', () => cancelEdit(logId));
+            const el = document.querySelector(`[data-log-id="${logId}"]`);
+            el.innerHTML = createEditForm(log);
+            el.querySelector('.save-edit-btn').addEventListener('click', () => saveEdit(logId));
+            el.querySelector('.cancel-edit-btn').addEventListener('click', () => cancelEdit(logId));
         }
 
         async function saveEdit(logId) {
-            const logElement = document.querySelector(`[data-log-id="${logId}"]`);
-            const title = logElement.querySelector('.edit-title').value.trim();
-            const content = logElement.querySelector('.edit-content').value.trim();
-            const category = logElement.querySelector('.edit-category').value;
-            
-            if (!title || !content) {
-                alert('請填寫標題和內容');
-                return;
-            }
-            
-            // 更新本地資料
-            const logIndex = logs.findIndex(l => l.id === logId);
-            if (logIndex !== -1) {
-                logs[logIndex] = { ...logs[logIndex], title, content, category };
-            }
-            
-            editingId = null;
-            updateLogsList();
-            updateStats();
-            
-            // 如果連接到Google Sheets，更新雲端
+            const el = document.querySelector(`[data-log-id="${logId}"]`);
+            const title = el.querySelector('.edit-title').value.trim();
+            const content = el.querySelector('.edit-content').value.trim();
+            const category = el.querySelector('.edit-category').value;
+            if (!title || !content) { alert('請填寫標題和內容'); return; }
+
+            const idx = logs.findIndex(l => l.id === logId);
+            if (idx !== -1) logs[idx] = { ...logs[idx], title, content, category };
+
+            editingId = null; updateLogsList(); updateStats();
+
             if (isConnected) {
                 setLoading(true);
-                const success = await updateLogInSheet(logs[logIndex]);
-                if (!success) {
-                    alert('更新到 Google Sheets 失敗，但本地已更新');
-                }
+                const success = await updateLogInSheet(logs[idx]);
+                if (!success) alert('更新到 Google Sheets 失敗，但本地已更新');
                 setLoading(false);
             }
         }
 
-        function cancelEdit(logId) {
-            editingId = null;
-            updateLogsList();
-        }
+        function cancelEdit() { editingId = null; updateLogsList(); }
 
         async function deleteLog(logId) {
             if (!confirm('確定要刪除這個日誌嗎？')) return;
-            
-            // 先更新本地狀態
-            logs = logs.filter(log => log.id !== logId);
-            updateLogsList();
-            updateStats();
-            
-            // 如果連接到Google Sheets，從雲端刪除
+            logs = logs.filter(l => l.id !== logId);
+            updateLogsList(); updateStats();
             if (isConnected) {
                 setLoading(true);
                 const success = await deleteLogFromSheet(logId);
-                if (!success) {
-                    alert('從 Google Sheets 刪除失敗，但本地已刪除');
-                }
+                if (!success) alert('從 Google Sheets 刪除失敗，但本地已刪除');
                 setLoading(false);
             }
         }
 
-        // UI 更新功能
+        /* ===================== UI：渲染 ===================== */
         function updateLogsList() {
             const container = document.getElementById('logsList');
-            const filteredLogs = currentFilter === '全部' ? logs : logs.filter(log => log.category === currentFilter);
-            
-            if (filteredLogs.length === 0) {
-                container.innerHTML = `
-                    <div class="card">
-                        <div class="empty-state">
-                            目前沒有日誌條目
-                        </div>
-                    </div>
-                `;
+            const filtered = currentFilter === '全部' ? logs : logs.filter(l => l.category === currentFilter);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="card"><div class="empty-state">目前沒有日誌條目</div></div>`;
                 return;
             }
-            
-            container.innerHTML = filteredLogs.map(log => 
+            container.innerHTML = filtered.map(log =>
                 editingId === log.id ? createEditForm(log) : createLogItem(log)
             ).join('');
-            
-            // 綁定事件
+
             container.querySelectorAll('.edit-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const logId = parseInt(e.target.closest('[data-log-id]').dataset.logId);
-                    startEdit(logId);
+                    const id = parseInt(e.target.closest('[data-log-id]').dataset.logId);
+                    startEdit(id);
                 });
             });
-            
             container.querySelectorAll('.delete-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const logId = parseInt(e.target.closest('[data-log-id]').dataset.logId);
-                    deleteLog(logId);
+                    const id = parseInt(e.target.closest('[data-log-id]').dataset.logId);
+                    deleteLog(id);
                 });
             });
         }
 
         function createLogItem(log) {
-            const categoryClass = `category-${log.category === '重要' ? 'important' : 
-                                                 log.category === '一般' ? 'general' : 
-                                                 log.category === '會議' ? 'meeting' : 
-                                                 log.category === '功能' ? 'feature' : 'other'}`;
-            
+            const categoryClass = `category-${log.category === '重要' ? 'important' :
+                    log.category === '一般' ? 'general' :
+                        log.category === '會議' ? 'meeting' :
+                            log.category === '功能' ? 'feature' : 'other'
+                }`;
             return `
-                <div class="log-item" data-log-id="${log.id}">
-                    <div class="log-header">
-                        <div class="flex-1">
-                            <h3 class="log-title">${escapeHtml(log.title)}</h3>
-                            <div class="log-meta">
-                                <div class="meta-item">
-                                    <span>📅</span>
-                                    <span>${formatDate(log.date)}</span>
-                                </div>
-                                <div class="meta-item">
-                                    <span>🕐</span>
-                                    <span>${log.time}</span>
-                                </div>
-                                <span class="category-badge ${categoryClass}">
-                                    ${log.category}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="log-actions">
-                            <button class="action-btn edit-btn" title="編輯">
-                                ✏️
-                            </button>
-                            <button class="action-btn delete-btn" title="刪除">
-                                🗑️
-                            </button>
-                        </div>
-                    </div>
-                    <p class="log-content">${escapeHtml(log.content)}</p>
+    <div class="log-item" data-log-id="${log.id}">
+        <div class="log-header">
+            <div class="flex-1">
+                <h3 class="log-title">${escapeHtml(log.title)}</h3>
+                <div class="log-meta">
+                    <div class="meta-item"><span>📅</span><span>${formatDate(log.date)}</span></div>
+                    <div class="meta-item"><span>🕐</span><span>${log.time}</span></div>
+                    <span class="category-badge ${categoryClass}">${log.category}</span>
                 </div>
-            `;
+            </div>
+            <div class="log-actions">
+                <button class="action-btn edit-btn" title="編輯">✏️</button>
+                <button class="action-btn delete-btn" title="刪除">🗑️</button>
+            </div>
+        </div>
+        <p class="log-content">${escapeHtml(log.content)}</p>
+    </div>`;
         }
 
         function createEditForm(log) {
             return `
-                <div class="log-item" data-log-id="${log.id}">
-                    <div class="input-group">
-                        <input type="text" class="input-field edit-title" value="${escapeHtml(log.title)}">
-                    </div>
-                    <div class="input-group">
-                        <textarea class="input-field textarea edit-content">${escapeHtml(log.content)}</textarea>
-                    </div>
-                    <div class="input-group">
-                        <select class="input-field edit-category">
-                            <option value="重要" ${log.category === '重要' ? 'selected' : ''}>重要</option>
-                            <option value="一般" ${log.category === '一般' ? 'selected' : ''}>一般</option>
-                            <option value="會議" ${log.category === '會議' ? 'selected' : ''}>會議</option>
-                            <option value="功能" ${log.category === '功能' ? 'selected' : ''}>功能</option>
-                            <option value="其他" ${log.category === '其他' ? 'selected' : ''}>其他</option>
-                        </select>
-                    </div>
-                    <div class="flex-row">
-                        <button class="btn btn-success save-edit-btn">
-                            <span>💾</span> 儲存
-                        </button>
-                        <button class="btn btn-secondary cancel-edit-btn">
-                            <span>❌</span> 取消
-                        </button>
-                    </div>
-                </div>
-            `;
+    <div class="log-item" data-log-id="${log.id}">
+        <div class="input-group"><input type="text" class="input-field edit-title" value="${escapeHtml(log.title)}"></div>
+        <div class="input-group"><textarea class="input-field textarea edit-content">${escapeHtml(log.content)}</textarea></div>
+        <div class="input-group">
+            <select class="input-field edit-category">
+                <option value="重要" ${log.category === '重要' ? 'selected' : ''}>重要</option>
+                <option value="一般" ${log.category === '一般' ? 'selected' : ''}>一般</option>
+                <option value="會議" ${log.category === '會議' ? 'selected' : ''}>會議</option>
+                <option value="功能" ${log.category === '功能' ? 'selected' : ''}>功能</option>
+                <option value="其他" ${log.category === '其他' ? 'selected' : ''}>其他</option>
+            </select>
+        </div>
+        <div class="flex-row">
+            <button class="btn btn-success save-edit-btn"><span>💾</span> 儲存</button>
+            <button class="btn btn-secondary cancel-edit-btn"><span>❌</span> 取消</button>
+        </div>
+    </div>`;
         }
 
         function updateStats() {
-            const today = new Date().toISOString().split('T')[0];
-            
+            const today = todayStr();
             document.getElementById('totalLogs').textContent = logs.length;
-            document.getElementById('todayLogs').textContent = 
-                logs.filter(log => log.date === today).length;
-            document.getElementById('importantLogs').textContent = 
-                logs.filter(log => log.category === '重要').length;
+            document.getElementById('todayLogs').textContent = logs.filter(l => l.date === today).length;
+            document.getElementById('importantLogs').textContent = logs.filter(l => l.category === '重要').length;
         }
 
+        /* ===================== 輔助工具 ===================== */
         function setLoading(loading) {
             const syncStatus = document.getElementById('syncStatus');
-            if (loading) {
-                syncStatus.classList.remove('hidden');
-                document.body.classList.add('loading');
-            } else {
-                syncStatus.classList.add('hidden');
-                document.body.classList.remove('loading');
-            }
+            if (loading) { syncStatus.classList.remove('hidden'); document.body.classList.add('loading'); }
+            else { syncStatus.classList.add('hidden'); document.body.classList.remove('loading'); }
         }
 
-        // 工具函數
         function formatDate(dateStr) {
             const date = new Date(dateStr);
             const today = new Date();
-            const yesterday = new Date(today.getTime() - 86400000);
-            
-            if (dateStr === today.toISOString().split('T')[0]) {
-                return '今天';
-            } else if (dateStr === yesterday.toISOString().split('T')[0]) {
-                return '昨天';
-            } else {
-                return `${date.getMonth() + 1}/${date.getDate()}`;
-            }
+            const yd = new Date(today.getTime() - 86400000);
+            if (dateStr === todayStr()) return '今天';
+            if (dateStr === dayOffsetStr(-1)) return '昨天';
+            return `${date.getMonth() + 1}/${date.getDate()}`;
         }
+        function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+        function todayStr() { return new Date().toISOString().split('T')[0]; }
+        function dayOffsetStr(d) { const dt = new Date(Date.now() + d * 86400000); return dt.toISOString().split('T')[0]; }
     </script>
 </body>
+
 </html>
