@@ -625,159 +625,88 @@
             updateStats();
         }
 
-        // Google Sheets 相關功能
-        async function connectToGoogleSheets() {
-            const urlInput = document.getElementById('gasUrl');
-            gasUrl = urlInput.value.trim();
-            
-            if (!gasUrl) {
-                alert('請先輸入 Google Apps Script URL');
-                return;
-            }
-            
-            setLoading(true);
-            try {
-                const response = await fetch(`${gasUrl}?action=test`, {
-                    method: 'GET',
-                    mode: 'cors'
-                });
-                
-                if (response.ok) {
-                    isConnected = true;
-                    updateConnectionStatus();
-                    await loadLogsFromSheet();
-                    alert('成功連接到 Google Sheets！');
-                } else {
-                    throw new Error('連接失敗');
-                }
-            } catch (error) {
-                console.error('連接錯誤:', error);
-                alert('連接失敗，請檢查 URL 是否正確');
-            }
-            setLoading(false);
+       // Google Sheets 相關功能（嚴謹版）
+
+async function connectToGoogleSheets() {
+    const urlInput = document.getElementById('gasUrl');
+    gasUrl = urlInput.value.trim();
+
+    if (!gasUrl) {
+        alert('請先輸入 Google Apps Script URL');
+        return;
+    }
+    // 可選的基本格式檢查：/exec 結尾
+    if (!/script\.google\.com\/macros\/s\/.+\/exec$/.test(gasUrl)) {
+        if (!confirm('看起來不是 /exec 結尾的 Web App URL，仍要嘗試連線嗎？')) return;
+    }
+
+    setLoading(true);
+    try {
+        const response = await fetch(`${gasUrl}?action=test`, {
+            method: 'GET',
+            mode: 'cors'
+        });
+
+        if (!response.ok) {
+            const text = await response.text().catch(() => '');
+            throw new Error(`HTTP 非 2xx（${response.status} ${response.statusText}）：${text.slice(0,120)}`);
         }
 
-        function disconnectFromGoogleSheets() {
-            isConnected = false;
-            gasUrl = '';
-            document.getElementById('gasUrl').value = '';
+        const data = await response.json().catch(() => ({}));
+        if (data && data.success) {
+            isConnected = true;
             updateConnectionStatus();
+            await loadLogsFromSheet(); // 連線成功後立即拉雲端資料
+            alert('成功連接到 Google Sheets！');
+        } else {
+            const msg = data && (data.message || data.error) ? `（${data.message || data.error}）` : '';
+            throw new Error(`GAS 回應非 success ${msg}`);
+        }
+    } catch (error) {
+        console.error('連接錯誤:', error);
+        alert(`連接失敗：${error.message}\n\n請檢查：\n1) 部署是否為「Web 應用程式」且權限「任何人」\n2) 使用 /exec URL（不是 /dev）\n3) 重新部署後複製最新 URL`);
+        isConnected = false;
+        updateConnectionStatus();
+    } finally {
+        setLoading(false);
+    }
+}
+
+async function loadLogsFromSheet() {
+    if (!isConnected) return;
+
+    setLoading(true);
+    try {
+        const response = await fetch(`${gasUrl}?action=getLogs`, {
+            method: 'GET',
+            mode: 'cors'
+        });
+
+        if (!response.ok) {
+            const text = await response.text().catch(() => '');
+            throw new Error(`HTTP 非 2xx（${response.status} ${response.statusText}）：${text.slice(0,120)}`);
         }
 
-        function updateConnectionStatus() {
-            const statusElement = document.getElementById('connectionStatus');
-            const setupInfo = document.getElementById('setupInfo');
-            const connectBtn = document.getElementById('connectBtn');
-            const disconnectBtn = document.getElementById('disconnectBtn');
-            const gasUrlInput = document.getElementById('gasUrl');
-            
-            if (isConnected) {
-                statusElement.textContent = '● 已連接';
-                statusElement.className = 'status-indicator status-connected';
-                setupInfo.classList.add('hidden');
-                connectBtn.textContent = '重新載入';
-                disconnectBtn.classList.remove('hidden');
-                gasUrlInput.disabled = true;
-            } else {
-                statusElement.textContent = '● 未連接';
-                statusElement.className = 'status-indicator status-disconnected';
-                setupInfo.classList.remove('hidden');
-                connectBtn.textContent = '連接';
-                disconnectBtn.classList.add('hidden');
-                gasUrlInput.disabled = false;
-            }
+        const data = await response.json().catch(() => ({}));
+        if (data && data.success) {
+            logs = Array.isArray(data.logs) ? data.logs : [];
+            updateLogsList();
+            updateStats();
+        } else {
+            const msg = data && (data.message || data.error) ? `（${data.message || data.error}）` : '';
+            console.error('載入錯誤: 後端回傳失敗', data);
+            alert(`從 Google Sheets 載入失敗：GAS 回應非 success ${msg}`);
         }
+    } catch (error) {
+        console.error('載入錯誤:', error);
+        alert(`從 Google Sheets 載入失敗：${error.message}`);
+    } finally {
+        setLoading(false);
+    }
+}
 
-        async function saveLogToSheet(logData) {
-            if (!isConnected) return false;
-            
-            try {
-                const response = await fetch(gasUrl, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'addLog',
-                        data: logData
-                    })
-                });
-                
-                return response.ok;
-            } catch (error) {
-                console.error('保存錯誤:', error);
-                return false;
-            }
-        }
 
-        async function loadLogsFromSheet() {
-            if (!isConnected) return;
-            
-            setLoading(true);
-            try {
-                const response = await fetch(`${gasUrl}?action=getLogs`, {
-                    method: 'GET',
-                    mode: 'cors'
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    logs = data.logs || [];
-                    updateLogsList();
-                    updateStats();
-                }
-            } catch (error) {
-                console.error('載入錯誤:', error);
-            }
-            setLoading(false);
-        }
-
-        async function updateLogInSheet(logData) {
-            if (!isConnected) return false;
-            
-            try {
-                const response = await fetch(gasUrl, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'updateLog',
-                        data: logData
-                    })
-                });
-                
-                return response.ok;
-            } catch (error) {
-                console.error('更新錯誤:', error);
-                return false;
-            }
-        }
-
-        async function deleteLogFromSheet(logId) {
-            if (!isConnected) return false;
-            
-            try {
-                const response = await fetch(gasUrl, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'deleteLog',
-                        data: { id: logId }
-                    })
-                });
-                
-                return response.ok;
-            } catch (error) {
-                console.error('刪除錯誤:', error);
-                return false;
-            }
-        }
+        
 
         // 診斷和幫助工具
         const runDiagnosisTest = async () => {
