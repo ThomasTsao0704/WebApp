@@ -108,8 +108,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .loading-message {
@@ -138,9 +143,17 @@
             cursor: pointer;
         }
 
-        .notification.success { border-left-color: var(--success-color); }
-        .notification.warning { border-left-color: var(--warning-color); }
-        .notification.error { border-left-color: var(--danger-color); }
+        .notification.success {
+            border-left-color: var(--success-color);
+        }
+
+        .notification.warning {
+            border-left-color: var(--warning-color);
+        }
+
+        .notification.error {
+            border-left-color: var(--danger-color);
+        }
 
         .notification-close {
             position: absolute;
@@ -154,8 +167,15 @@
         }
 
         @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
         /* 標題區域 */
@@ -286,8 +306,15 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* 班表標題區域 */
@@ -402,7 +429,7 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
             transition: left 0.5s;
         }
 
@@ -696,8 +723,15 @@
         }
 
         @keyframes modalSlideIn {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         .form-group {
@@ -927,6 +961,7 @@
 
         /* 列印樣式 */
         @media print {
+
             .role-switcher,
             .function-panel,
             .nav-tabs,
@@ -1067,7 +1102,7 @@
             <div id="editHint" class="edit-hint">
                 <span class="btn-icon">✏️</span> 編輯模式開啟：點選員工排班進行修改
             </div>
-            
+
             <div class="calendar-container">
                 <div class="calendar-grid" id="calendar"></div>
             </div>
@@ -1201,15 +1236,13 @@
     <script>
         /* ========= 設定與配置 ========= */
         const CONFIG = {
-            // 請替換為您的 Google Apps Script 部署 URL
-            GAS_URL: 'https://script.google.com/macros/s/AKfycbz0fOrHTZSIZhCquU1-PJSRQzojlHrvazwcE8ccVOYc2QKInnadW1toPBJ5JHlKKYiq/exec',
-            API_KEY: '1300E8N6COIZYJ97YJFFD2A5L1IC4SZ7', // 請確保與後端一致
-            FETCH_TIMEOUT_MS: 15000, // 增加超時時間
-            RETRIES: 3, // 增加重試次數
+            GAS_URL: 'https://script.google.com/macros/s/AKfycbyvhZYxJeXMCuxuqycS5oJxrK8LX48I-YMmXgzhBKBkm56hDDbCK8h5a1TWgkOx6q4m/exec',
+            API_KEY: '1300E8N6COIZYJ97YJFFD2A5L1IC4SZ7',
+            FETCH_TIMEOUT_MS: 15000,
+            RETRIES: 2,
             AUTO_SAVE_DELAY: 3000,
-            CACHE_DURATION: 300000 // 5分鐘
+            CACHE_DURATION: 300000
         };
-
         /* ========= 全域狀態管理 ========= */
         class StateManager {
             constructor() {
@@ -1226,7 +1259,7 @@
                     this.isOnline = true;
                     this.syncPendingOperations();
                 });
-                
+
                 window.addEventListener('offline', () => {
                     this.isOnline = false;
                 });
@@ -1253,7 +1286,7 @@
                 if (this.pendingOperations.length === 0) return;
 
                 showNotification('正在同步離線操作...', 'info');
-                
+
                 for (const op of [...this.pendingOperations]) {
                     try {
                         await callApi(op.action, op.data);
@@ -1265,7 +1298,7 @@
                 }
 
                 localStorage.setItem('pendingOps', JSON.stringify(this.pendingOperations));
-                
+
                 if (this.pendingOperations.length === 0) {
                     showNotification('所有離線操作已同步完成', 'success');
                 }
@@ -1330,7 +1363,7 @@
             const container = document.getElementById('notificationContainer');
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
-            
+
             notification.innerHTML = `
                 <button class="notification-close" onclick="this.parentElement.remove()">×</button>
                 <div>${message}</div>
@@ -1398,7 +1431,7 @@
             const pill = document.getElementById('connPill');
             pill.textContent = msg || (state === 'ok' ? '已連線' : state === 'bad' ? '連線不穩' : '未連線');
             pill.className = 'conn-pill ' + (state === 'ok' ? 'conn-ok' : state === 'bad' ? 'conn-bad' : 'conn-off');
-            
+
             // 更新診斷面板
             document.getElementById('debugConnStatus').textContent = msg || '未知';
         }
@@ -1406,124 +1439,55 @@
         async function callApi(action, data = {}, method = 'POST', retry = 0) {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), CONFIG.FETCH_TIMEOUT_MS);
-            
             try {
                 loadingManager.show(`執行 ${action}...`);
-                
-                // 檢查快取
+
+
+                // GET 快取
                 if (method === 'GET') {
                     const cacheKey = `${action}_${JSON.stringify(data)}`;
                     const cached = stateManager.getCache(cacheKey);
-                    if (cached) {
-                        loadingManager.hide();
-                        return cached;
-                    }
+                    if (cached) { loadingManager.hide(); return cached; }
                 }
 
-                let url;
-                let requestOptions;
 
+                let url, requestOptions;
                 if (method === 'GET') {
-                    // GET 請求：將參數放在 URL 中
-                    const params = new URLSearchParams({
-                        action: action,
-                        apikey: CONFIG.API_KEY,
-                        ...data
-                    });
+                    const params = new URLSearchParams({ action, apikey: CONFIG.API_KEY, ...data });
                     url = `${CONFIG.GAS_URL}?${params.toString()}`;
-                    
-                    requestOptions = {
-                        method: 'GET',
-                        mode: 'cors',
-                        credentials: 'omit',
-                        signal: controller.signal,
-                        headers: {
-                            'Accept': 'application/json',
-                        }
-                    };
+                    requestOptions = { method: 'GET', mode: 'cors', credentials: 'omit', signal: controller.signal, headers: { 'Accept': 'application/json' } };
                 } else {
-                    // POST 請求
                     url = CONFIG.GAS_URL;
-                    const requestData = {
-                        action,
-                        data,
-                        apikey: CONFIG.API_KEY,
-                        user: currentRole,
-                        timestamp: Date.now()
-                    };
-
+                    const requestData = { action, data, apikey: CONFIG.API_KEY, user: currentRole, timestamp: Date.now() };
                     requestOptions = {
-                        method: 'POST',
-                        mode: 'cors',
-                        credentials: 'omit',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                        },
+                        method: 'POST', mode: 'cors', credentials: 'omit',
+                        headers: { 'Content-Type': 'text/plain', 'Accept': 'application/json' }, // ★ 改為 text/plain
                         body: JSON.stringify(requestData),
                         signal: controller.signal
                     };
                 }
 
-                console.log('發送請求:', { url, method, options: requestOptions });
 
-                const response = await fetch(url, requestOptions);
+                const resp = await fetch(url, requestOptions);
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${(await resp.text()).slice(0, 200)}`);
+                const result = await resp.json();
+                if (!result.ok) throw new Error(result.message || `API ${action} 失敗`);
 
-                console.log('回應狀態:', response.status, response.statusText);
 
-                if (!response.ok) {
-                    const errorText = await response.text().catch(() => '');
-                    throw new Error(`HTTP ${response.status}: ${errorText.slice(0, 200)}`);
-                }
-
-                const result = await response.json();
-                
-                if (!result.ok) {
-                    throw new Error(result.message || `API ${action} 失敗`);
-                }
-
-                // 更新連線狀態
                 setConnPill('ok', '已連線');
-
-                // 快取 GET 請求結果
-                if (method === 'GET') {
-                    const cacheKey = `${action}_${JSON.stringify(data)}`;
-                    stateManager.setCache(cacheKey, result);
-                }
-
+                if (method === 'GET') stateManager.setCache(`${action}_${JSON.stringify(data)}`, result);
                 return result;
-
-            } catch (error) {
-                console.error('API 呼叫錯誤:', error);
-
-                if (error.name === 'AbortError') {
-                    throw new Error('請求逾時，請檢查網路連線');
-                }
-
-                // 重試邏輯
-                if (retry < CONFIG.RETRIES && !error.message.includes('Unauthorized')) {
+            } catch (err) {
+                if (retry < CONFIG.RETRIES) {
                     setConnPill('bad', `重試中... (${retry + 1}/${CONFIG.RETRIES})`);
-                    await new Promise(resolve => setTimeout(resolve, 1000 * (retry + 1)));
+                    await new Promise(r => setTimeout(r, 800 * (retry + 1)));
                     return callApi(action, data, method, retry + 1);
                 }
-
-                // 離線處理
-                if (!stateManager.isOnline && method === 'POST') {
-                    stateManager.addPendingOperation({ action, data });
-                    showNotification('已儲存到離線佇列，將在連線後自動同步', 'warning');
-                    throw new Error('目前離線，操作已加入同步佇列');
-                }
-
                 setConnPill('off', '連線失敗');
-                ErrorTracker.track(error, { action, data, retry });
-                throw error;
-
-            } finally {
-                clearTimeout(timeout);
-                loadingManager.hide();
-            }
+                ErrorTracker.track(err, { action, data, method });
+                throw err;
+            } finally { clearTimeout(timeout); loadingManager.hide(); }
         }
-
         /* ========= 診斷和測試功能 ========= */
         async function testConnection() {
             try {
@@ -1548,10 +1512,10 @@
             console.log('網路狀態:', navigator.onLine ? '線上' : '離線');
             console.log('快取數量:', stateManager.cache.size);
             console.log('待同步操作:', stateManager.pendingOperations.length);
-            
+
             // 更新診斷面板
             updateDebugPanel();
-            
+
             // 測試基本連線
             testConnection();
         }
@@ -1605,28 +1569,28 @@
             return holidays[year] && holidays[year][key] ? holidays[year][key] : null;
         }
 
-        function getDaysInMonth(year, month) { 
-            return new Date(year, month, 0).getDate(); 
+        function getDaysInMonth(year, month) {
+            return new Date(year, month, 0).getDate();
         }
 
-        function getFirstDayOfWeek(year, month) { 
-            return new Date(year, month - 1, 1).getDay(); 
+        function getFirstDayOfWeek(year, month) {
+            return new Date(year, month - 1, 1).getDay();
         }
 
-        function isWeekend(year, month, day) { 
-            const date = new Date(year, month - 1, day); 
-            const dayOfWeek = date.getDay(); 
-            return dayOfWeek === 0 || dayOfWeek === 6; 
+        function isWeekend(year, month, day) {
+            const date = new Date(year, month - 1, day);
+            const dayOfWeek = date.getDay();
+            return dayOfWeek === 0 || dayOfWeek === 6;
         }
 
         function sortEmployees(employees) {
-            const order = { 
-                'front-fullTime': 1, 
-                'front-partTime': 2, 
-                'back-fullTime': 3, 
-                'back-partTime': 4 
+            const order = {
+                'front-fullTime': 1,
+                'front-partTime': 2,
+                'back-fullTime': 3,
+                'back-partTime': 4
             };
-            return employees.sort((a, b) => 
+            return employees.sort((a, b) =>
                 (order[`${a.區域}-${a.類型}`] || 9) - (order[`${b.區域}-${b.類型}`] || 9)
             );
         }
@@ -1645,12 +1609,12 @@
             if (schedule === null) {
                 return type === 'fullTime' ? 'work-day' : 'off-day';
             }
-            
+
             const shift = stateManager.shiftSettings.allShifts.find(s => s.name === schedule);
             if (shift) {
                 return getShiftTypeClass(shift.category);
             }
-            
+
             if (/休|假/.test(schedule)) return 'holiday';
             if (/:|-|夜|晚/.test(schedule)) return 'night-shift';
             return 'work-day';
@@ -1660,26 +1624,26 @@
             if (schedule === null) {
                 return `${name} ${type === 'fullTime' ? '班' : ''}`;
             }
-            
+
             const shift = stateManager.shiftSettings.allShifts.find(s => s.name === schedule);
             if (shift && shift.abbreviation) {
                 return `${name} ${shift.abbreviation}`;
             }
-            
+
             let displayText = schedule;
             if (displayText === '休假') displayText = '休';
             else if (displayText === '特休') displayText = '特';
             else if (displayText.includes('17:00-23:00')) displayText = '17-23';
             else if (displayText.includes('18:00-24:00')) displayText = '18-24';
             else if (displayText.length > 4) displayText = displayText.slice(0, 4);
-            
+
             return `${name} ${displayText}`;
         }
 
         /* ========= 自動保存功能 ========= */
         const debouncedAutoSave = debounce(async () => {
             if (!document.getElementById('autoSave').checked) return;
-            
+
             try {
                 await saveAllToCloud();
                 showNotification('自動保存成功', 'success', 3000);
@@ -1697,7 +1661,7 @@
         function updateRoleDisplay() {
             const container = document.getElementById('mainContainer');
             const badge = document.getElementById('roleBadge');
-            
+
             if (currentRole === 'admin') {
                 container.className = 'container admin-mode';
                 badge.textContent = '管理者';
@@ -1710,10 +1674,10 @@
         }
 
         function showTab(name, event) {
-            document.querySelectorAll('.tab-content').forEach(tab => 
+            document.querySelectorAll('.tab-content').forEach(tab =>
                 tab.classList.remove('active')
             );
-            document.querySelectorAll('.nav-tab').forEach(tab => 
+            document.querySelectorAll('.nav-tab').forEach(tab =>
                 tab.classList.remove('active')
             );
 
@@ -1745,20 +1709,20 @@
         async function loadMonth(year, month) {
             try {
                 const data = await callApi('getMonth', { year, month }, 'GET');
-                
+
                 stateManager.scheduleData = {
                     employees: data.employees || [],
                     schedules: { [`${year}-${month}`]: data.schedules || {} }
                 };
-                stateManager.shiftSettings = { 
-                    allShifts: data.shifts || [] 
+                stateManager.shiftSettings = {
+                    allShifts: data.shifts || []
                 };
-                
+
                 updateCalendar();
                 updateEmployeeGrid();
-                
+
                 showNotification(`已載入 ${year}年${month}月 資料`, 'success', 3000);
-                
+
             } catch (error) {
                 ErrorTracker.track(error, { year, month });
                 throw error;
@@ -1771,7 +1735,7 @@
             if (!stateManager.scheduleData.schedules[key]) {
                 stateManager.scheduleData.schedules[key] = {};
             }
-            
+
             const daysInMonth = getDaysInMonth(year, month);
             stateManager.scheduleData.employees.forEach(employee => {
                 if (!stateManager.scheduleData.schedules[key][employee.姓名]) {
@@ -1787,7 +1751,7 @@
 
         function updateCalendar() {
             ensureScheduleData(currentYear, currentMonth);
-            
+
             const calendar = document.getElementById('calendar');
             calendar.innerHTML = '';
 
@@ -1815,7 +1779,7 @@
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayCell = document.createElement('div');
                 dayCell.className = 'day-cell';
-                
+
                 if (isWeekend(currentYear, currentMonth, day)) {
                     dayCell.classList.add('weekend-cell');
                 }
@@ -1823,7 +1787,7 @@
                 // 日期標題區域
                 const headerDiv = document.createElement('div');
                 headerDiv.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;';
-                
+
                 const dayNumber = document.createElement('div');
                 dayNumber.className = 'day-number';
                 dayNumber.textContent = day;
@@ -1847,7 +1811,7 @@
                 const sortedEmployees = sortEmployees([...stateManager.scheduleData.employees]);
                 sortedEmployees.forEach(employee => {
                     const schedule = stateManager.scheduleData.schedules[scheduleKey]?.[employee.姓名]?.[day] ?? null;
-                    
+
                     const staffItem = document.createElement('div');
                     staffItem.className = `staff-item ${getStaffClass(schedule, employee.類型)}`;
                     staffItem.textContent = getStaffDisplay(employee.姓名, schedule, employee.類型);
@@ -1878,7 +1842,7 @@
             isEditMode = !isEditMode;
             const editButton = document.getElementById('editModeBtn');
             const editHint = document.getElementById('editHint');
-            
+
             closeEditDropdown();
 
             if (isEditMode) {
@@ -1895,7 +1859,7 @@
         }
 
         /* ========= 簡化的功能實作 ========= */
-        
+
         // 員工管理
         function showEmployeeModal() {
             if (currentRole !== 'admin') {
@@ -1957,12 +1921,12 @@
                 if (currentRole === 'admin') {
                     const actions = document.createElement('div');
                     actions.className = 'employee-actions';
-                    
+
                     const deleteButton = document.createElement('button');
                     deleteButton.className = 'control-btn small danger';
                     deleteButton.textContent = '刪除';
                     deleteButton.onclick = () => removeEmployeeConfirm(employee.姓名);
-                    
+
                     actions.appendChild(deleteButton);
                     card.appendChild(actions);
                 }
@@ -2078,8 +2042,8 @@
             modals.forEach(modalId => {
                 if (event.target.id === modalId) {
                     const closeFunction = modalId === 'confirmModal' ? closeModal :
-                                       modalId === 'employeeModal' ? closeEmployeeModal :
-                                       closeShiftSettingsModal;
+                        modalId === 'employeeModal' ? closeEmployeeModal :
+                            closeShiftSettingsModal;
                     closeFunction();
                 }
             });
@@ -2108,7 +2072,7 @@
 
                 // 載入初始資料
                 await loadMonth(currentYear, currentMonth);
-                
+
                 showNotification('系統初始化完成', 'success', 3000);
 
             } catch (error) {
@@ -2133,7 +2097,7 @@
         function setupEventListeners() {
             document.addEventListener('pointerdown', handleModalClick);
             document.addEventListener('keydown', handleKeyPress);
-            
+
             window.addEventListener('beforeunload', (event) => {
                 if (stateManager.pendingOperations.length > 0) {
                     event.preventDefault();
@@ -2150,11 +2114,182 @@
             });
         }
 
-        /* ========= DOM 內容載入完成 ========= */
-        document.addEventListener('DOMContentLoaded', () => {
-            setupEventListeners();
-            initializeApp();
-        });
+
+        /* ========= 功能實作：把之前「開發中」的都補上 ========= */
+
+
+        // 1) 單格編輯：點員工班別 → 顯示簡易選單（班別 + 常用項） → 呼叫 updateSchedule
+        async function editSchedule(element, employeeName, day) {
+            if (!isEditMode || currentRole !== 'admin') return;
+
+
+            const shiftNames = (stateManager.shiftSettings.allShifts || []).map(s => s.name);
+            const common = ['上班', '休息', '特休'];
+            const choices = [...common, ...shiftNames];
+
+
+            const choice = prompt(`請輸入/選擇班別\n（可直接輸入，或從下列其中一個）\n${choices.join(' / ')}`, '上班');
+            if (choice === null) return; // 取消
+
+
+            try {
+                await callApi('updateSchedule', { year: currentYear, month: currentMonth, name: employeeName, day, value: choice });
+                // 更新本地狀態後重繪
+                const key = `${currentYear}-${currentMonth}`;
+                if (!stateManager.scheduleData.schedules[key]) stateManager.scheduleData.schedules[key] = {};
+                if (!stateManager.scheduleData.schedules[key][employeeName]) stateManager.scheduleData.schedules[key][employeeName] = {};
+                stateManager.scheduleData.schedules[key][employeeName][day] = choice;
+                updateCalendar();
+                debouncedAutoSave();
+                showNotification('已更新班別', 'success');
+            } catch (_) { /* 已有統一錯誤提示 */ }
+        }
+
+
+        // 2) 匯出 CSV（當月所有員工 × 日期）
+        function exportSchedule() {
+            const key = `${currentYear}-${currentMonth}`;
+            const employees = stateManager.scheduleData.employees || [];
+            const schedules = (stateManager.scheduleData.schedules[key]) || {};
+            const days = getDaysInMonth(currentYear, currentMonth);
+
+
+            const header = ['姓名', ...Array.from({ length: days }, (_, i) => String(i + 1))];
+            const rows = [header];
+
+
+            employees.forEach(emp => {
+                const line = [emp.姓名];
+                for (let d = 1; d <= days; d++) {
+                    line.push(schedules[emp.姓名]?.[d] ?? '');
+                }
+                rows.push(line);
+            });
+
+
+            const csv = rows.map(r => r.map(v => /[",\n]/.test(v) ? '"' + String(v).replace(/"/g, '""') + '"' : String(v)).join(',')).join('\n');
+        }
+
+
+        // 3) 匯入 CSV（欄位：姓名, 1,2,3,...,N）
+        async function importSchedule(event) {
+            const file = event.target.files?.[0];
+            event.target.value = '';
+            if (!file) return;
+            const text = await file.text();
+            const lines = text.split(/\r?\n/).filter(Boolean);
+            if (lines.length === 0) return;
+
+
+            const header = lines[0].split(',').map(s => s.replace(/^\"|\"$/g, ''));
+            const dayCols = header.slice(1).map(h => parseInt(h, 10)).filter(n => Number.isFinite(n));
+            if (dayCols.length === 0) { showNotification('CSV 欄位格式不正確', 'error'); return; }
+
+
+            const key = `${currentYear}-${currentMonth}`;
+            ensureScheduleData(currentYear, currentMonth);
+
+
+            for (let i = 1; i < lines.length; i++) {
+                const cols = splitCsvLine(lines[i]);
+                if (cols.length === 0) continue;
+                const name = (cols[0] || '').replace(/^\"|\"$/g, '').trim();
+                if (!name) continue;
+                if (!stateManager.scheduleData.schedules[key][name]) stateManager.scheduleData.schedules[key][name] = {};
+                dayCols.forEach((d, idx) => {
+                    const v = (cols[idx + 1] || '').replace(/^\"|\"$/g, '').trim();
+                    stateManager.scheduleData.schedules[key][name][d] = v || null;
+                });
+            }
+
+
+            updateCalendar();
+            showNotification('已匯入 CSV（未上傳雲端）', 'success');
+        }
+        function splitCsvLine(line) {
+            const out = []; let cur = ''; let inQ = false;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (inQ) {
+                    if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else { inQ = false; } }
+                    else cur += ch;
+                } else {
+                    if (ch === '"') inQ = true;
+                    else if (ch === ',') { out.push(cur); cur = ''; }
+                    else cur += ch;
+                }
+            }
+            out.push(cur); return out;
+        }
+
+        // 4) 一鍵上傳（saveAll）
+        async function saveAllToCloud() {
+            const key = `${currentYear}-${currentMonth}`;
+            const payload = {
+                year: currentYear,
+                month: currentMonth,
+                employees: stateManager.scheduleData.employees,
+                shifts: stateManager.shiftSettings.allShifts,
+                schedules: stateManager.scheduleData.schedules[key] || {}
+            };
+            try {
+                await callApi('saveAll', payload, 'POST');
+                showNotification('已上傳雲端', 'success');
+            } catch (_) { }
+        }
+
+
+        // 5) 清空本月（clearMonth）
+        async function clearAllScheduleCloud() {
+            if (!confirm(`確定清空 ${currentYear}年${currentMonth}月 的雲端資料？`)) return;
+            try {
+                await callApi('clearMonth', { year: currentYear, month: currentMonth }, 'POST');
+                await loadMonth(currentYear, currentMonth);
+                showNotification('本月雲端資料已清空', 'success');
+            } catch (_) { }
+        }
+
+
+        // 6) 建立備份
+        async function backupData() {
+            try { await callApi('backup', {}, 'POST'); showNotification('已建立備份', 'success'); } catch (_) { }
+        }
+
+
+        // 7) 班別管理（新增 / 刪除）
+        async function addEnhancedShift() {
+            const code = document.getElementById('shiftCode').value.trim();
+            const name = document.getElementById('shiftName').value.trim();
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            const type = document.getElementById('shiftType').value;
+            const area = document.getElementById('shiftArea').value;
+            const color = document.getElementById('shiftColor').value;
+            const abbreviation = document.getElementById('abbreviation').value.trim();
+
+
+            if (!code || !name) { showNotification('請填寫代碼與名稱', 'warning'); return; }
+
+
+            try {
+                await callApi('addShift', { code, name, startTime, endTime, type, area, color, abbreviation }, 'POST');
+                await loadMonth(currentYear, currentMonth);
+                showNotification('班別已新增', 'success');
+            } catch (_) { }
+        }
+        function updateShiftDisplay() {
+            const list = document.getElementById('allShiftsList');
+            list.innerHTML = '';
+            (stateManager.shiftSettings.allShifts || []).forEach(s => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #eee;';
+                row.innerHTML = `<div><b>${s.code}</b> — ${s.name} <small>(${s.startTime}-${s.endTime}) [${s.type}/${s.area}]</small></div>`;
+                const del = document.createElement('button');
+                del.className = 'control-btn small danger'; del.textContent = '刪除';
+                del.onclick = async () => { if (!confirm(`刪除班別 ${s.code}?`)) return; try { await callApi('deleteShift', { code: s.code }, 'POST'); await loadMonth(currentYear, currentMonth); showNotification('已刪除班別', 'success'); } catch (_) { } };
+                row.appendChild(del); list.appendChild(row);
+            });
+        }
 
         /* ========= 全域錯誤處理 ========= */
         window.addEventListener('error', (event) => {
