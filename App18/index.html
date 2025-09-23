@@ -1,0 +1,1974 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>美食食譜瀏覽</title>
+
+    <!-- 外掛：PapaParse 供 CSV 解析 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" defer></script>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
+
+    <style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    color: white;
+    margin-bottom: 30px;
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 30px;
+}
+
+.filters {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 30px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.filter-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr auto;
+    gap: 15px;
+    align-items: center;
+}
+
+input[type="text"],
+select,
+input[type="number"],
+input[type="url"],
+input[type="file"],
+textarea {
+    padding: 12px 16px;
+    border: none;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.9);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+input[type="file"] {
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px dashed rgba(102, 126, 234, 0.3);
+    cursor: pointer;
+}
+
+input[type="file"]:hover {
+    border-color: rgba(102, 126, 234, 0.6);
+    background: white;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    background: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.view-toggle {
+    display: flex;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.view-btn {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.view-btn.active {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.stats {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 25px;
+    font-size: 0.9rem;
+}
+
+/* 總容器：多欄網格 */
+.recipes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+/* 列表模式：固定單欄 */
+.recipes-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+.recipe-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    animation: fadeIn 0.5s ease;
+}
+
+.recipe-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.recipe-image {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+.recipe-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.recipe-content {
+    padding: 20px;
+}
+
+.recipe-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #2d3748;
+    flex: 1;
+    margin: 0;
+}
+
+.recipe-meta {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+    color: #718096;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.recipe-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 15px;
+}
+
+.tag {
+    background: #e2e8f0;
+    color: #4a5568;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.recipe-details {
+    margin-top: 12px;
+}
+
+.recipe-video {
+    margin: 12px 0;
+}
+
+.recipe-video iframe {
+    width: 100%;
+    height: 200px;
+    border-radius: 8px;
+    border: none;
+}
+
+details {
+    margin-bottom: 8px;
+}
+
+summary {
+    cursor: pointer;
+    font-weight: 500;
+    color: #4299e1;
+    padding: 8px 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+summary:hover {
+    color: #313cce;
+}
+
+.ingredients-list,
+.steps-list {
+    padding: 12px 0;
+    line-height: 1.6;
+    color: #3182ce;
+}
+
+.step {
+    margin-bottom: 8px;
+    padding-left: 16px;
+    position: relative;
+}
+
+.step::before {
+    content: counter(step-counter);
+    counter-increment: step-counter;
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: #4299e1;
+    color: rgb(255, 255, 255);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+
+.steps-list {
+    counter-reset: step-counter;
+}
+
+/* 導覽分頁 */
+.nav-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.nav-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.nav-btn.active {
+    background: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.page {
+    display: none;
+}
+
+.page.active {
+    display: block;
+}
+
+/* 空狀態 */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.empty-state .icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.loading::after {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s linear infinite;
+    margin-left: 10px;
+}
+
+/* 表單樣式 */
+.add-recipe-form {
+    text-align: left;
+}
+
+.form-section {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px;
+    margin: 20px 0;
+    backdrop-filter: blur(10px);
+}
+
+.form-section h3 {
+    color: white;
+    margin-bottom: 16px;
+    font-size: 1.1rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group label {
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+    margin-bottom: 6px;
+}
+
+.tags-input {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tags-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.tag-chip {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #4a5568;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+}
+
+.tag-chip:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: translateY(-1px);
+}
+
+.ingredient-item,
+.step-item {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.ingredient-item input,
+.step-item input {
+    flex: 1;
+}
+
+.add-btn,
+.remove-btn,
+.btn {
+    cursor: pointer;
+    border: none;
+    border-radius: 12px;
+    padding: 8px 16px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.add-btn {
+    background: rgba(255, 255, 255, 0.9);
+    color: #2d3748;
+    margin-top: 8px;
+}
+
+.add-btn:hover {
+    background: white;
+    transform: translateY(-1px);
+}
+
+.remove-btn {
+    background: #fed7d7;
+    color: #822727;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+.remove-btn:hover {
+    background: #fbb6ce;
+}
+
+.btn-primary {
+    background: #4299e1;
+    color: #fff;
+    padding: 12px 24px;
+}
+
+.btn-primary:hover {
+    background: #3182ce;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 12px 24px;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.success-message {
+    display: none;
+    background: rgba(72, 187, 120, 0.9);
+    color: white;
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+}
+
+/* Topbar 樣式 */
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.brand {
+    font-weight: 600;
+    color: #2d3748;
+    font-size: 1.1rem;
+}
+
+.topbar .actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-accent {
+    background: #cde1ff;
+    color: #2d3748;
+}
+
+.btn-accent:hover {
+    background: #a3d2ff;
+}
+
+.btn-danger {
+    background: #ffd6d6;
+    color: #822727;
+}
+
+.btn-danger:hover {
+    background: #fbb6ce;
+}
+
+.btn-cancel {
+    background: #e2e8f0;
+    color: #4a5568;
+}
+
+.btn-cancel:hover {
+    background: #cbd5e0;
+}
+
+/* 編輯抽屜 */
+.drawer {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: min(420px, 95vw);
+    background: #fff;
+    box-shadow: -8px 0 30px rgba(0, 0, 0, 0.15);
+    padding: 20px;
+    overflow: auto;
+    z-index: 1001;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+}
+
+.drawer:not(.hidden) {
+    transform: translateX(0);
+}
+
+.drawer.hidden {
+    transform: translateX(100%);
+}
+
+.drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.drawer-header h3 {
+    margin: 0;
+    color: #2d3748;
+}
+
+.close-x-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #718096;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.close-x-btn:hover {
+    background: #f7fafc;
+    color: #2d3748;
+}
+
+.edit-form label {
+    display: block;
+    margin: 16px 0 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #4a5568;
+}
+
+.edit-form input,
+.edit-form textarea,
+.edit-form select {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: white;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.drawer-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+}
+
+/* 圖片預覽樣式 */
+#imagePreview img,
+#addImagePreview img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin-top: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+#addImagePreview {
+    padding: 8px 0;
+    text-align: center;
+}
+
+#imagePreview {
+    margin: 8px 0;
+}
+
+.image-upload-section {
+    border: 2px dashed rgba(102, 126, 234, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.image-upload-section:hover {
+    border-color: rgba(102, 126, 234, 0.6);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* 動畫 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    #recipesContainer.recipes-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .filter-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .view-toggle {
+        justify-self: center;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    .recipes-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .topbar {
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .topbar .actions {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .nav-tabs {
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .nav-btn {
+        width: 200px;
+    }
+
+    .drawer {
+        width: 100vw;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .drawer-actions {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 12px;
+    }
+
+    .filters {
+        padding: 16px;
+    }
+
+    .form-section {
+        padding: 16px;
+    }
+
+    .recipe-card {
+        margin: 0;
+    }
+}
+
+/* 實用類別 */
+.hidden {
+    display: none !important;
+}
+</style>
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="brand">食譜 WebApp</div>
+        <div class="actions">
+            <button id="btnPickFolder" class="btn btn-accent" type="button">選擇資料夾</button>
+            <button id="btnWriteCSV" class="btn btn-accent" type="button">寫入 recipes.csv</button>
+            <button id="btnExport" class="btn btn-accent" type="button">匯出 CSV</button>
+            <span id="saveStatus" style="margin-left:12px;font-size:0.85rem;color:#555;"></span>
+        </div>
+    </header>
+
+    <div class="container">
+        <header>
+            <h1>🍳 美食食譜瀏覽</h1>
+            <p class="subtitle">探索美味食譜，享受料理時光</p>
+            <nav class="nav-tabs">
+                <button class="nav-btn active" data-page="browse" type="button">📖 瀏覽食譜</button>
+                <button class="nav-btn" data-page="add" type="button">➕ 新增食譜</button>
+            </nav>
+        </header>
+
+        <!-- 瀏覽頁 -->
+        <div class="page active" id="browsePage">
+            <div class="filters">
+                <div class="filter-row">
+                    <input type="text" id="searchInput" placeholder="🔍 搜尋食譜、食材或標籤..." />
+                    <select id="categorySelect">
+                        <option value="">📋 全部分類</option>
+                    </select>
+                    <div class="view-toggle">
+                        <button class="view-btn active" data-view="grid" type="button">網格</button>
+                        <button class="view-btn" data-view="list" type="button">列表</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats" id="stats">載入中...</div>
+
+            <div id="recipesContainer" class="recipes-grid">
+                <div class="loading">正在載入食譜資料</div>
+            </div>
+        </div>
+
+        <!-- 新增頁 -->
+        <div class="page" id="addPage">
+            <div class="add-recipe-form">
+                <div class="success-message" id="successMessage">✅ 食譜新增成功！</div>
+
+                <form id="addRecipeForm">
+                    <div class="form-section">
+                        <h3>📝 基本資訊</h3>
+                        <div class="form-group">
+                            <label for="recipeTitle">食譜名稱 *</label>
+                            <input type="text" id="recipeTitle" required placeholder="例如：番茄肉醬義大利麵" />
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="recipeCategory">分類</label>
+                                <select id="recipeCategory">
+                                    <option value="">選擇分類</option>
+                                    <option value="主食">主食</option>
+                                    <option value="中式">中式</option>
+                                    <option value="日式">日式</option>
+                                    <option value="韓式">韓式</option>
+                                    <option value="西式">西式</option>
+                                    <option value="泰式">泰式</option>
+                                    <option value="湯品">湯品</option>
+                                    <option value="沙拉">沙拉</option>
+                                    <option value="甜點">甜點</option>
+                                    <option value="飲品">飲品</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="recipeServings">份量</label>
+                                <input type="number" id="recipeServings" min="1" placeholder="人份" />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="prepTime">準備時間（分鐘）</label>
+                                <input type="number" id="prepTime" min="0" placeholder="15" />
+                            </div>
+                            <div class="form-group">
+                                <label for="cookTime">烹飪時間（分鐘）</label>
+                                <input type="number" id="cookTime" min="0" placeholder="30" />
+                            </div>
+                            <div class="form-group">
+                                <label for="calories">熱量（卡路里）</label>
+                                <input type="number" id="calories" min="0" placeholder="500" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>🏷️ 標籤</h3>
+                        <div class="tags-input">
+                            <input type="text" id="tagsInput" placeholder="輸入標籤後按 Enter（例如：家常菜）" />
+                            <div class="tags-display" id="tagsDisplay"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>🎥 教學影片（選填）</h3>
+                        <input type="url" id="recipeYoutube" placeholder="貼 YouTube 連結，如 https://youtu.be/xxxx" />
+                    </div>
+
+                    <div class="form-section">
+                        <h3>🥬 食材清單</h3>
+                        <div class="ingredients-list" id="ingredientsList">
+                            <div class="ingredient-item">
+                                <input type="text" placeholder="例如：義大利麵 200g" required />
+                                <button type="button" class="remove-btn"
+                                    onclick="app.removeIngredient(this)">移除</button>
+                            </div>
+                        </div>
+                        <button type="button" class="add-btn" onclick="app.addIngredient()">➕ 新增食材</button>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>👨‍🍳 製作步驟</h3>
+                        <div class="steps-list" id="stepsList">
+                            <div class="step-item">
+                                <span style="font-weight: bold; min-width: 30px;">1.</span>
+                                <input type="text" placeholder="詳細描述第一個步驟" required />
+                                <button type="button" class="remove-btn" onclick="app.removeStep(this)">移除</button>
+                            </div>
+                        </div>
+                        <button type="button" class="add-btn" onclick="app.addStep()">➕ 新增步驟</button>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>🖼️ 上傳圖片（選填）</h3>
+                        <div class="form-group">
+                            <label for="recipeImageFile">選擇圖片檔案</label>
+                            <input type="file" id="recipeImageFile" accept="image/*" />
+                            <div id="addImagePreview" style="margin-top: 12px;"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="app.clearForm()">清空表單</button>
+                        <button type="submit" class="btn btn-primary">💾 儲存食譜</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <aside id="editDrawer" class="drawer hidden" aria-hidden="true">
+        <div class="drawer-header">
+            <h3>編輯食譜</h3>
+            <button id="closeDrawerX" class="close-x-btn" type="button">×</button>
+        </div>
+        <form id="editForm" class="edit-form">
+            <label>標題</label>
+            <input name="title" type="text" required>
+            
+            <label>分類</label>
+            <input name="category" type="text">
+            
+            <label>標籤（分號分隔）</label>
+            <input name="tags" type="text">
+            
+            <label>🎥 YouTube 連結</label>
+            <input name="youtube_url" type="url" placeholder="https://youtu.be/xxxx">
+            
+            <label>食材（每項以 | 分隔）</label>
+            <textarea name="ingredients" rows="3"></textarea>
+            
+            <label>步驟（多行）</label>
+            <textarea name="steps" rows="5"></textarea>
+            
+            <div class="grid-2">
+                <div>
+                    <label>準備（分鐘）</label>
+                    <input name="prep_minutes" type="number" min="0">
+                </div>
+                <div>
+                    <label>烹調（分鐘）</label>
+                    <input name="cook_minutes" type="number" min="0">
+                </div>
+            </div>
+            
+            <div class="grid-2">
+                <div>
+                    <label>份量</label>
+                    <input name="servings" type="number" min="1">
+                </div>
+                <div>
+                    <label>卡路里</label>
+                    <input name="calories" type="number" min="0">
+                </div>
+            </div>
+            
+            <label>圖片網址或上傳新圖片</label>
+            <input name="image_url" type="text" placeholder="現有圖片網址或相對路徑">
+            <input id="imageFile" name="image_file" type="file" accept="image/*">
+            
+            <div id="imagePreview" style="margin:8px 0;"></div>
+            
+            <div class="drawer-actions">
+                <button id="cancelEdit" class="btn btn-cancel" type="button">取消</button>
+                <button id="saveRecipe" class="btn" type="button">儲存</button>
+                <button id="deleteRecipe" class="btn btn-danger" type="button">刪除</button>
+            </div>
+        </form>
+    </aside>
+
+    <script>
+// data.js - 範例資料
+window.SAMPLE_CSV = `id,title,category,tags,ingredients,steps,prep_minutes,cook_minutes,servings,calories,image_url,youtube_url
+R001,番茄肉醬義大利麵,主食,義大利麵;家常;牛肉,義大利麵 200g|牛絞肉 150g|番茄罐頭 1罐|蒜頭 3瓣|洋蔥 半顆|橄欖油 2大匙|鹽 適量|黑胡椒 適量,熱鍋下橄欖油>爆香蒜頭洋蔥>加入牛絞肉炒散>倒入番茄罐頭>調味燉煮15分鐘>煮好的麵條拌入醬汁,15,25,2,650,,
+R002,宮保雞丁,中式,川菜;雞肉;下飯,雞胸肉 300g|花生米 50g|乾辣椒 8根|花椒 1茶匙|蔥 2根|薑 1塊|蒜 3瓣|生抽 2大匙|老抽 1茶匙|糖 1茶匙|料酒 1大匙|太白粉 1大匙,雞肉切丁醃製>熱油炸花生米盛起>爆香辣椒花椒>下雞丁炒至變色>加調料炒勻>撒入花生米和蔥花,20,10,3,420,,
+R003,法式洋蔥湯,湯品,法式;素食;暖胃,洋蔥 4顆|奶油 30g|麵粉 2大匙|高湯 1000ml|白酒 100ml|百里香 適量|月桂葉 2片|鹽 適量|黑胡椒 適量|法式麵包 適量|起司絲 適量,洋蔥切絲>奶油炒洋蔥至焦糖色>撒麵粉炒勻>倒入高湯和白酒>加香料煮30分鐘>調味>盛碗放麵包和起司>烤箱烤至起司融化,10,45,4,280,,`;
+
+class RecipeApp {
+
+  // 統一字串標準化：去空白 + 小寫
+  norm(v) {
+    return (v == null ? "" : String(v)).trim().toLowerCase();
+  }
+
+  constructor() {
+    this.recipes = [];
+    this.filteredRecipes = [];
+    this.currentView = 'grid';
+    this.editTargetId = null;
+    this.updateViewClass?.();  // 初始就套上 grid
+    this.pages = {
+      browse: document.getElementById('browsePage'),
+      add: document.getElementById('addPage'),
+    };
+    this.navButtons = Array.from(document.querySelectorAll('.nav-btn'));
+    this.successMessage = null;
+
+    // 圖片 blob:ObjectURL 快取
+    this.imageURLCache = new Map();
+
+    this.init();
+  }
+
+  async init() {
+    this.setupEventListeners();
+    this.setupNavTabs();
+    this.setupAddForm();
+    this.setupEditDrawer();
+    
+    // 嘗試自動載入之前記住的資料夾
+    const remembered = await this.loadRememberedFolder();
+    if (!remembered) {
+      this.renderEmptyWithHint();
+    }
+
+    // 釋放 blob URL
+    window.addEventListener('beforeunload', () => {
+      for (const url of this.imageURLCache.values()) URL.revokeObjectURL(url);
+      this.imageURLCache.clear();
+    });
+  }
+
+  // ---------- 資料夾記憶與權限管理 ----------
+  async loadRememberedFolder() {
+    if (!window.showDirectoryPicker) return false;
+    
+    try {
+      // 嘗試使用 IndexedDB 儲存的 handle (Chrome 86+)
+      if ('storage' in navigator && 'getDirectory' in navigator.storage) {
+        const storedHandle = await this.getStoredDirectoryHandle();
+        if (storedHandle) {
+          try {
+            // 測試權限
+            const testPermission = await storedHandle.queryPermission({ mode: 'readwrite' });
+            if (testPermission === 'granted') {
+              __recipesDirHandle = storedHandle;
+              __imagesDirHandle = await __recipesDirHandle.getDirectoryHandle("images", { create: true });
+              await this.afterFolderPicked();
+              
+              const saveStatus = document.getElementById('saveStatus');
+              if (saveStatus) {
+                saveStatus.textContent = '✔ 自動載入已記住的資料夾';
+                saveStatus.style.color = '#059669';
+              }
+              return true;
+            }
+          } catch (e) {
+            console.warn('無法使用已儲存的資料夾權限:', e);
+          }
+        }
+      }
+      
+      // 備用：顯示上次使用的資料夾提示
+      const rememberedHandle = localStorage.getItem('recipe-folder-handle');
+      if (rememberedHandle) {
+        const folderInfo = JSON.parse(rememberedHandle);
+        if (folderInfo && folderInfo.name) {
+          const stats = document.getElementById('stats');
+          stats.innerHTML = `上次使用的資料夾：<strong>${folderInfo.name}</strong><br>請重新選擇同一個資料夾以開始使用。`;
+          return false;
+        }
+      }
+    } catch (error) {
+      console.warn('無法載入記住的資料夾:', error);
+    }
+    return false;
+  }
+
+  async getStoredDirectoryHandle() {
+    try {
+      return await new Promise((resolve, reject) => {
+        const request = indexedDB.open('RecipeAppDB', 1);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          const db = request.result;
+          const transaction = db.transaction(['folders'], 'readonly');
+          const store = transaction.objectStore('folders');
+          const getRequest = store.get('mainFolder');
+          getRequest.onsuccess = () => resolve(getRequest.result?.handle);
+          getRequest.onerror = () => resolve(null);
+        };
+        request.onupgradeneeded = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains('folders')) {
+            db.createObjectStore('folders');
+          }
+        };
+      });
+    } catch (error) {
+      console.warn('無法從 IndexedDB 取得資料夾:', error);
+      return null;
+    }
+  }
+
+  async storeDirectoryHandle(handle) {
+    try {
+      return await new Promise((resolve, reject) => {
+        const request = indexedDB.open('RecipeAppDB', 1);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          const db = request.result;
+          const transaction = db.transaction(['folders'], 'readwrite');
+          const store = transaction.objectStore('folders');
+          store.put({ handle: handle }, 'mainFolder');
+          transaction.oncomplete = () => resolve(true);
+          transaction.onerror = () => reject(transaction.error);
+        };
+        request.onupgradeneeded = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains('folders')) {
+            db.createObjectStore('folders');
+          }
+        };
+      });
+    } catch (error) {
+      console.warn('無法儲存資料夾到 IndexedDB:', error);
+      return false;
+    }
+  }
+
+  rememberFolder(handle) {
+    try {
+      // 儲存到 IndexedDB (較新瀏覽器)
+      this.storeDirectoryHandle(handle).catch(() => {
+        console.warn('無法將資料夾儲存到 IndexedDB');
+      });
+      
+      // 備用：記住資料夾名稱到 localStorage
+      const folderInfo = {
+        name: handle.name,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('recipe-folder-handle', JSON.stringify(folderInfo));
+    } catch (error) {
+      console.warn('無法記住資料夾:', error);
+    }
+  }
+
+  // ---------- 穩定 UI：避免重繪後「跳版」 ----------
+  captureUIState() {
+    return {
+      scrollY: window.scrollY,
+      search: document.getElementById('searchInput')?.value || '',
+      category: document.getElementById('categorySelect')?.value || '',
+      view: this.currentView
+    };
+  }
+  restoreUIState(state) {
+    if (!state) return;
+    const s = document.getElementById('searchInput');
+    const c = document.getElementById('categorySelect');
+    if (s && s.value !== state.search) s.value = state.search;
+    if (c && c.value !== state.category) c.value = state.category;
+    this.currentView = state.view || 'grid';
+    this.updateViewClass();
+    requestAnimationFrame(() => window.scrollTo({ top: state.scrollY, left: 0, behavior: 'auto' }));
+  }
+  async withStableUI(updaterFn) {
+    const ui = this.captureUIState();
+    await Promise.resolve(updaterFn?.());
+    this.render();
+    this.restoreUIState(ui);
+  }
+  // ---------------------------------------------------
+
+  renderEmptyWithHint() {
+    const stats = document.getElementById('stats');
+    stats.textContent = '請先按「選擇資料夾」以載入本地 recipes.csv';
+
+    const container = document.getElementById('recipesContainer');
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">📂</div>
+        <h3>尚未選擇資料夾</h3>
+        <p>請點上方「選擇資料夾」，本 App 將讀取該資料夾中的 <code>recipes.csv</code> 與 <code>images/</code> 圖片。</p>
+      </div>`;
+  }
+
+  // ====== File System Access：資料夾選擇與 CSV 載入 ======
+  async afterFolderPicked() {
+    await this.ensureCSVExists();     // 若沒有 recipes.csv 就建立
+    await this.loadCSVFromLocal();    // 讀入本地 CSV
+    this.filteredRecipes = [...this.recipes];
+    this.updateCategories();
+    this.render();
+  }
+
+  async ensureCSVExists() {
+    try {
+      await __recipesDirHandle.getFileHandle('recipes.csv'); // 存在就好
+    } catch {
+      // 不存在 → 建立 with header（含 BOM + CRLF）
+      const headers = ["id","title","category","tags","ingredients","steps","prep_minutes","cook_minutes","servings","calories","image_url","youtube_url"];
+      const bom = "\uFEFF";
+      const csvText = bom + headers.join(",") + "\r\n";
+      const fh = await __recipesDirHandle.getFileHandle("recipes.csv", { create: true });
+      await writeFile(fh, new Blob([csvText], { type: "text/csv;charset=utf-8" }));
+    }
+  }
+
+  async loadCSVFromLocal() {
+    try {
+      const fh = await __recipesDirHandle.getFileHandle('recipes.csv');
+      const file = await fh.getFile();
+      const text = await file.text();
+      const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+      // 確保每筆都有 id（若空檔就給新 id）
+      this.recipes = (parsed.data || []).map((x, i) => ({
+        ...x,
+        id: x.id && String(x.id).trim() ? x.id : this.makeId(i)
+      }));
+      if (!this.recipes.length) {
+        this.recipes = []; // 空表
+      }
+    } catch (e) {
+      console.error('讀取本地 recipes.csv 失敗：', e);
+      alert('讀取本地 recipes.csv 失敗，請確認權限或檔案是否存在。');
+      this.recipes = [];
+    }
+  }
+
+  makeId(idx = 0) {
+    // 以目前陣列長度 + idx 生成
+    return 'R' + String(this.recipes.length + idx + 1).padStart(3, '0');
+  }
+
+  setupEventListeners() {
+    const searchInput = document.getElementById('searchInput');
+    const categorySelect = document.getElementById('categorySelect');
+    const viewButtons = document.querySelectorAll('.view-btn');
+
+    // 搜尋輸入：input + compositionend（中文輸入法）
+    if (searchInput) {
+      const onSearch = () => this.filterRecipes();
+      searchInput.addEventListener('input', onSearch);
+      searchInput.addEventListener('compositionend', onSearch);
+    } else {
+      console.warn('[RecipeApp] 找不到 #searchInput，請確認 HTML id 是否正確');
+    }
+
+    // 類別篩選
+    if (categorySelect) {
+      categorySelect.addEventListener('change', () => this.filterRecipes());
+    } else {
+      console.warn('[RecipeApp] 找不到 #categorySelect');
+    }
+
+    // 檢視切換
+    viewButtons.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        viewButtons.forEach((b) => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        this.currentView = e.currentTarget.dataset.view;
+        this.updateViewClass();
+      });
+    });
+  }
+
+  setupNavTabs() {
+    this.navButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this.navButtons.forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const pageKey = btn.dataset.page; // "browse" | "add"
+        Object.values(this.pages).forEach((p) => p.classList.remove('active'));
+        if (this.pages[pageKey]) this.pages[pageKey].classList.add('active');
+
+        if (pageKey === 'add' && this.successMessage) {
+          this.successMessage.style.display = 'none';
+        }
+      });
+    });
+  }
+
+  setupAddForm() {
+    const form = document.getElementById('addRecipeForm');
+    this.successMessage = document.getElementById('successMessage');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!__recipesDirHandle || !__imagesDirHandle) {
+        alert('尚未選擇資料夾，請先按「選擇資料夾」。');
+        return;
+      }
+
+      const title = document.getElementById('recipeTitle').value.trim();
+      const category = document.getElementById('recipeCategory').value.trim();
+      const servings = document.getElementById('recipeServings').value.trim();
+      const prep = document.getElementById('prepTime').value.trim();
+      const cook = document.getElementById('cookTime').value.trim();
+      const calories = document.getElementById('calories').value.trim();
+      const youtube = document.getElementById('recipeYoutube')?.value?.trim() || '';
+
+      const tagsInput = document.getElementById('tagsInput').value.trim();
+      const chips = Array.from(document.querySelectorAll('#tagsDisplay .tag-chip')).map((x) => x.dataset.tag);
+      const tags = [...chips, ...(tagsInput ? [tagsInput] : [])].join(';');
+
+      const ingredients = Array.from(document.querySelectorAll('#ingredientsList .ingredient-item input'))
+        .map((i) => i.value.trim()).filter(Boolean).join('|');
+
+      const steps = Array.from(document.querySelectorAll('#stepsList .step-item input'))
+        .map((i) => i.value.trim()).filter(Boolean).join('>');
+
+      if (!title) { alert('請輸入食譜名稱'); return; }
+      if (!ingredients) { alert('請至少輸入一項食材'); return; }
+      if (!steps) { alert('請至少輸入一個步驟'); return; }
+
+      const newId = this.makeId();
+
+      // 僅本地：上傳圖片 → images/ 產生檔名 → CSV 存相對路徑
+      let imageUrl = '';
+      const imageFile = document.getElementById('recipeImageFile').files[0];
+      if (imageFile) {
+        try {
+          const result = await saveImageToLocalFolder(imageFile, newId);
+          if (result.ok) imageUrl = result.relativePath;
+        } catch (err) {
+          console.error('圖片上傳錯誤:', err);
+          alert('圖片上傳失敗；你仍可稍後在編輯中補上圖片。');
+        }
+      }
+
+      const newRecipe = {
+        id: newId,
+        title,
+        category,
+        tags,
+        ingredients,
+        steps,
+        prep_minutes: prep || '0',
+        cook_minutes: cook || '0',
+        servings: servings || '',
+        calories: calories || '',
+        image_url: imageUrl,
+        youtube_url: youtube,
+      };
+
+      await this.withStableUI(() => {
+        this.recipes.unshift(newRecipe);
+        this.filteredRecipes = this.recipes;
+      });
+
+      // 立刻寫回本地 CSV
+      await writeCSVToLocal();
+
+      this.successMessage.style.display = 'block';
+      const browseBtn = this.navButtons.find((b) => b.dataset.page === 'browse');
+      browseBtn?.click();
+      this.clearForm();
+    });
+
+    // 標籤 chip
+    const tagsInput = document.getElementById('tagsInput');
+    const tagsDisplay = document.getElementById('tagsDisplay');
+    tagsInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && tagsInput.value.trim()) {
+        e.preventDefault();
+        const tag = tagsInput.value.trim();
+        const chip = document.createElement('span');
+        chip.className = 'tag-chip';
+        chip.dataset.tag = tag;
+        chip.textContent = `#${tag} ×`;
+        chip.addEventListener('click', () => chip.remove());
+        tagsDisplay.appendChild(chip);
+        tagsInput.value = '';
+      }
+    });
+
+    // 新增頁：圖片預覽
+    const addImageInput = document.getElementById('recipeImageFile');
+    const addImagePreview = document.getElementById('addImagePreview');
+    addImageInput.addEventListener('change', (e) => {
+      addImagePreview.innerHTML = '';
+      const file = e.target.files[0];
+      if (file) {
+        const url = URL.createObjectURL(file);
+        const img = document.createElement('img');
+        img.src = url;
+        Object.assign(img.style, {
+          maxWidth: '200px', maxHeight: '150px', borderRadius: '8px', objectFit: 'cover'
+        });
+        addImagePreview.appendChild(img);
+      }
+    });
+  }
+
+  setupEditDrawer() {
+    const drawer = document.getElementById('editDrawer');
+    const closeBtn = document.getElementById('closeDrawer'); // 原本的關閉按鈕（可能不存在）
+    const closeXBtn = document.getElementById('closeDrawerX'); // 新的 X 按鈕
+    const cancelBtn = document.getElementById('cancelEdit'); // 新的取消按鈕
+    const saveBtn = document.getElementById('saveRecipe');
+    const deleteBtn = document.getElementById('deleteRecipe');
+
+    const closeDrawer = () => {
+      drawer.classList.add('hidden');
+      drawer.setAttribute('aria-hidden', 'true');
+      this.editTargetId = null;
+    };
+
+    // 綁定所有關閉按鈕
+    if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+    if (closeXBtn) closeXBtn.addEventListener('click', closeDrawer);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeDrawer);
+
+    saveBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (!__recipesDirHandle) { alert('尚未選擇資料夾'); return; }
+      await this.saveEditedRecipe();
+      await writeCSVToLocal(); // 儲存後立刻寫回
+    });
+
+    deleteBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (!__recipesDirHandle) { alert('尚未選擇資料夾'); return; }
+      if (confirm('確定要刪除這個食譜嗎？')) {
+        this.deleteRecipe();
+        await writeCSVToLocal(); // 刪除後立刻寫回
+      }
+    });
+  }
+
+  editRecipe(id) {
+    if (!__recipesDirHandle) { alert('尚未選擇資料夾'); return; }
+
+    const recipe = this.recipes.find(r => r.id === id);
+    if (!recipe) return;
+
+    this.editTargetId = id;
+    const drawer = document.getElementById('editDrawer');
+    const form = document.getElementById('editForm');
+
+    form.title.value = recipe.title || '';
+    form.category.value = recipe.category || '';
+    form.tags.value = recipe.tags || '';
+    form.youtube_url.value = recipe.youtube_url || '';
+    form.ingredients.value = (recipe.ingredients || '').replace(/\|/g, '\n');
+    form.steps.value = (recipe.steps || '').replace(/>/g, '\n');
+    form.prep_minutes.value = recipe.prep_minutes || '';
+    form.cook_minutes.value = recipe.cook_minutes || '';
+    form.servings.value = recipe.servings || '';
+    form.calories.value = recipe.calories || '';
+    form.image_url.value = recipe.image_url || '';
+
+    const preview = document.getElementById('imagePreview');
+    preview.innerHTML = '';
+    if (recipe.image_url) {
+      this.resolveImageURL(recipe.image_url).then(src => {
+        if (!src) return;
+        const img = document.createElement('img');
+        img.src = src;
+        Object.assign(img.style, { maxWidth: '100%', borderRadius: '8px', marginBottom: '8px' });
+        preview.appendChild(img);
+
+        const caption = document.createElement('div');
+        caption.textContent = '目前的圖片';
+        Object.assign(caption.style, { fontSize: '0.9rem', color: '#666' });
+        preview.appendChild(caption);
+      }).catch(() => { });
+    }
+
+    drawer.classList.remove('hidden');
+    drawer.setAttribute('aria-hidden', 'false');
+  }
+
+  async saveEditedRecipe() {
+    const form = document.getElementById('editForm');
+    const index = this.recipes.findIndex(r => r.id === this.editTargetId);
+    if (index === -1) return;
+
+    let imageUrl = form.image_url.value.trim();
+
+    // 新上傳圖片 → 覆蓋/新增
+    const imageFile = document.getElementById('imageFile').files[0];
+    if (imageFile) {
+      try {
+        const result = await saveImageToLocalFolder(imageFile, this.editTargetId);
+        if (result.ok) imageUrl = result.relativePath;
+      } catch (err) {
+        console.error('圖片上傳錯誤:', err);
+        alert('圖片上傳失敗；將沿用原圖片網址/路徑。');
+      }
+    }
+
+    this.recipes[index] = {
+      ...this.recipes[index],
+      title: form.title.value.trim(),
+      category: form.category.value.trim(),
+      tags: form.tags.value.trim(),
+      youtube_url: form.youtube_url.value.trim(),
+      ingredients: form.ingredients.value.trim().replace(/\n/g, '|'),
+      steps: form.steps.value.trim().replace(/\n/g, '>'),
+      prep_minutes: form.prep_minutes.value || '0',
+      cook_minutes: form.cook_minutes.value || '0',
+      servings: form.servings.value || '',
+      calories: form.calories.value || '',
+      image_url: imageUrl,
+    };
+
+    await this.withStableUI(() => {
+      this.filteredRecipes = this.recipes; // 不再呼叫 filterRecipes()，避免二次重繪
+    });
+
+    const drawer = document.getElementById('editDrawer');
+    drawer.classList.add('hidden');
+    drawer.setAttribute('aria-hidden', 'true');
+    this.editTargetId = null;
+  }
+
+  deleteRecipe() {
+    const index = this.recipes.findIndex(r => r.id === this.editTargetId);
+    if (index !== -1) {
+      this.withStableUI(() => {
+        this.recipes.splice(index, 1);
+        this.filteredRecipes = this.recipes;
+      });
+      const drawer = document.getElementById('editDrawer');
+      drawer.classList.add('hidden');
+      drawer.setAttribute('aria-hidden', 'true');
+      this.editTargetId = null;
+    }
+  }
+
+  // ===== 動態欄位 =====
+  addIngredient() {
+    const wrap = document.getElementById('ingredientsList');
+    const div = document.createElement('div');
+    div.className = 'ingredient-item';
+    div.innerHTML = `
+      <input type="text" placeholder="例如：番茄 2顆" required />
+      <button type="button" class="remove-btn">移除</button>`;
+    div.querySelector('.remove-btn').addEventListener('click', () => div.remove());
+    wrap.appendChild(div);
+  }
+  removeIngredient(btn) {
+    btn.closest('.ingredient-item')?.remove();
+  }
+
+  addStep() {
+    const wrap = document.getElementById('stepsList');
+    const idx = wrap.querySelectorAll('.step-item').length + 1;
+    const div = document.createElement('div');
+    div.className = 'step-item';
+    div.innerHTML = `
+      <span style="font-weight:bold;min-width:30px;">${idx}.</span>
+      <input type="text" placeholder="詳細描述步驟" required />
+      <button type="button" class="remove-btn">移除</button>`;
+    div.querySelector('.remove-btn').addEventListener('click', () => {
+      div.remove();
+      Array.from(wrap.querySelectorAll('.step-item span')).forEach((s, i) => (s.textContent = (i + 1) + '.'));
+    });
+    wrap.appendChild(div);
+  }
+  removeStep(btn) {
+    btn.closest('.step-item')?.remove();
+  }
+
+  clearForm() {
+    document.getElementById('addRecipeForm').reset();
+    document.getElementById('tagsDisplay').innerHTML = '';
+    document.getElementById('addImagePreview').innerHTML = '';
+    document.getElementById('recipeYoutube').value = '';
+    document.getElementById('ingredientsList').innerHTML = `
+      <div class="ingredient-item">
+        <input type="text" placeholder="例如：義大利麵 200g" required />
+        <button type="button" class="remove-btn" onclick="app.removeIngredient(this)">移除</button>
+      </div>`;
+    document.getElementById('stepsList').innerHTML = `
+      <div class="step-item">
+        <span style="font-weight: bold; min-width: 30px;">1.</span>
+        <input type="text" placeholder="詳細描述第一個步驟" required />
+        <button type="button" class="remove-btn" onclick="app.removeStep(this)">移除</button>
+      </div>`;
+  }
+
+  updateCategories() {
+    const categorySelect = document.getElementById('categorySelect');
+    if (!categorySelect) return;
+    const categories = [...new Set(
+      this.recipes.map(r => (r.category || '').trim()).filter(Boolean)
+    )].sort();
+
+    // 清理舊選項（保留第一個「全部」）
+    categorySelect.querySelectorAll('option:not(:first-child)').forEach(o => o.remove());
+
+    categories.forEach((category) => {
+      const option = document.createElement('option');
+      option.value = category;
+      option.textContent = category;
+      categorySelect.appendChild(option);
+    });
+  }
+
+  filterRecipes() {
+    const ui = this.captureUIState();
+
+    const searchTerm = this.norm(document.getElementById('searchInput')?.value || '');
+    const selectedCategoryRaw = document.getElementById('categorySelect')?.value || '';
+    const selectedCategory = (selectedCategoryRaw || '').trim(); // 分類用嚴格等號，但先 trim
+
+    if (!Array.isArray(this.recipes)) this.recipes = [];
+
+    this.filteredRecipes = this.recipes.filter((r) => {
+      const title = this.norm(r?.title);
+      const tags = this.norm(r?.tags);
+      const ingredients = this.norm(r?.ingredients);
+      const category = (r?.category || '').trim();
+
+      const matchesSearch =
+        !searchTerm ||
+        title.includes(searchTerm) ||
+        tags.includes(searchTerm) ||
+        ingredients.includes(searchTerm);
+
+      const matchesCategory = !selectedCategory || category === selectedCategory;
+
+      return matchesSearch && matchesCategory;
+    });
+
+    this.render();
+    this.restoreUIState(ui);
+  }
+
+  updateViewClass() {
+    const container = document.getElementById('recipesContainer');
+    container.className = this.currentView === 'grid' ? 'recipes-grid' : 'recipes-list';
+  }
+
+  render() {
+    this.updateStats();
+    this.renderRecipes();
+    this.updateViewClass();
+  }
+
+  updateStats() {
+    const stats = document.getElementById('stats');
+    const total = this.recipes.length;
+    const showing = this.filteredRecipes.length;
+    stats.textContent = `顯示 ${showing} / ${total} 道食譜`;
+  }
+
+  // 只走本地資料夾：把 CSV 內的 image_url（images/檔名或 檔名）轉為 blob URL
+  async resolveImageURL(value) {
+    if (!value) return '';
+    const v = String(value).trim();
+    if (/^(data:|blob:)/i.test(v)) return v; // 仍允許 data/blob
+    if (!__imagesDirHandle) return ''; // 尚未選資料夾 → 先不顯示
+
+    const name = v.replace(/^images\//i, '');
+    if (this.imageURLCache.has(name)) return this.imageURLCache.get(name);
+
+    try {
+      const fh = await __imagesDirHandle.getFileHandle(name);
+      const file = await fh.getFile();
+      const url = URL.createObjectURL(file);
+      this.imageURLCache.set(name, url);
+      return url;
+    } catch (e) {
+      console.warn('找不到圖片於 images/：', v);
+      return '';
+    }
+  }
+
+  // YouTube URL 轉換為嵌入格式
+  getYouTubeEmbedURL(url) {
+    if (!url) return '';
+    
+    // 提取 YouTube 影片 ID
+    const regex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/;
+    const match = url.match(regex);
+    
+    if (match && match[1]) {
+      return `https://www.youtube.com/embed/${match[1]}`;
+    }
+    
+    return '';
+  }
+
+  renderRecipes() {
+    const container = document.getElementById('recipesContainer');
+    if (this.filteredRecipes.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="icon">🔍</div>
+          <h3>找不到符合條件的食譜</h3>
+          <p>試著調整搜尋關鍵字或分類篩選</p>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = this.filteredRecipes.map((recipe) => {
+      const totalMin = (parseInt(recipe.prep_minutes || 0, 10) || 0) + (parseInt(recipe.cook_minutes || 0, 10) || 0);
+      const tagsHtml = recipe.tags
+        ? recipe.tags.split(';').map((tag) => `<span class="tag">${tag.trim()}</span>`).join('')
+        : '';
+
+      const youtubeEmbedURL = this.getYouTubeEmbedURL(recipe.youtube_url);
+      const youtubeHtml = youtubeEmbedURL 
+        ? `<div class="recipe-video">
+             <iframe src="${youtubeEmbedURL}" allowfullscreen></iframe>
+           </div>`
+        : '';
+
+      return `
+      <div class="recipe-card">
+        <div class="recipe-image">
+          ${recipe.image_url ? `<img data-img="${recipe.id}" alt="${recipe.title}">` : '🍽️'}
+        </div>
+        <div class="recipe-content">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <h3 class="recipe-title">${recipe.title || ''}</h3>
+            <button onclick="app.editRecipe('${recipe.id}')" class="btn" style="font-size: 0.8rem; padding: 4px 8px;">編輯</button>
+          </div>
+          <div class="recipe-meta">
+            <span class="meta-item">⏱️ ${totalMin} 分鐘</span>
+            <span class="meta-item">👥 ${recipe.servings || '？'} 人份</span>
+            ${recipe.calories ? `<span class="meta-item">🔥 ${recipe.calories} 卡</span>` : ''}
+          </div>
+          ${tagsHtml ? `<div class="recipe-tags">${tagsHtml}</div>` : ''}
+          ${youtubeHtml}
+          <div class="recipe-details">
+            <details>
+              <summary>📝 食材清單</summary>
+              <div class="ingredients-list">
+                ${(recipe.ingredients || '').split('|').map((i) => `<div>• ${i.trim()}</div>`).join('')}
+              </div>
+            </details>
+            <details>
+              <summary>👨‍🍳 製作步驟</summary>
+              <div class="steps-list">
+                ${(recipe.steps || '').split('>').map((s) => `<div class="step">${s.trim()}</div>`).join('')}
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    // 異步補圖（只能在已選資料夾後）
+    if (__imagesDirHandle) {
+      this.filteredRecipes.forEach(async (recipe) => {
+        if (!recipe.image_url) return;
+        const imgEl = container.querySelector(`img[data-img="${recipe.id}"]`);
+        if (!imgEl) return;
+        try {
+          const src = await this.resolveImageURL(recipe.image_url);
+          if (src) imgEl.src = src;
+          imgEl.removeAttribute('data-img');
+        } catch (e) {
+          console.warn('圖片載入失敗：', recipe.image_url, e);
+        }
+      });
+    }
+  }
+}
+
+// ====== 啟動 ======
+const app = new RecipeApp();
+window.app = app;
+
+// ====== 本地檔案環境變數 ======
+let __recipesDirHandle = null;
+let __imagesDirHandle = null;
+
+async function pickRecipesFolder() {
+  if (!window.showDirectoryPicker) { 
+    alert("你的瀏覽器不支援選擇資料夾。請改用 Chrome/Edge。"); 
+    return; 
+  }
+  
+  try {
+    // 如果已經有資料夾，先檢查權限是否仍然有效
+    if (__recipesDirHandle) {
+      try {
+        const permission = await __recipesDirHandle.queryPermission({ mode: 'readwrite' });
+        if (permission === 'granted') {
+          const saveStatus = document.getElementById('saveStatus');
+          if (saveStatus) {
+            saveStatus.textContent = '✔ 資料夾權限仍然有效';
+            saveStatus.style.color = '#059669';
+            setTimeout(() => saveStatus.textContent = '', 2000);
+          }
+          return; // 不需要重新選擇
+        }
+      } catch (e) {
+        console.warn('檢查資料夾權限失敗:', e);
+      }
+    }
+    
+    __recipesDirHandle = await window.showDirectoryPicker({ mode: "readwrite" });
+    __imagesDirHandle = await __recipesDirHandle.getDirectoryHandle("images", { create: true });
+    
+    // 記住這個資料夾
+    app.rememberFolder(__recipesDirHandle);
+    
+    // 顯示儲存狀態
+    const saveStatus = document.getElementById('saveStatus');
+    if (saveStatus) {
+      saveStatus.textContent = '✔ 資料夾已選擇並記住';
+      saveStatus.style.color = '#059669';
+    }
+    
+    await app.afterFolderPicked();
+  } catch (e) { 
+    if (e.name !== 'AbortError') { // 用戶取消不算錯誤
+      console.error(e);
+      const saveStatus = document.getElementById('saveStatus');
+      if (saveStatus) {
+        saveStatus.textContent = '✖ 選擇資料夾失敗';
+        saveStatus.style.color = '#dc2626';
+      }
+    }
+  }
+}
+
+async function writeFile(handle, data) {
+  const w = await handle.createWritable();
+  await w.write(data);
+  await w.close();
+}
+
+function extFromFilename(n) {
+  const m = (n || "").match(/\.([a-zA-Z0-9]+)$/);
+  return m ? m[1].toLowerCase() : "png";
+}
+
+async function saveImageToLocalFolder(file, recipeId) {
+  if (!__recipesDirHandle || !__imagesDirHandle) return { ok: false, reason: "NO_DIR" };
+  const ext = extFromFilename(file.name);
+  const filename = `${recipeId}-${Date.now()}.${ext}`;
+  const fh = await __imagesDirHandle.getFileHandle(filename, { create: true });
+  await writeFile(fh, await file.arrayBuffer());
+  return { ok: true, relativePath: `images/${filename}` };
+}
+
+async function writeCSVToLocal() {
+  if (!__recipesDirHandle) { 
+    alert("尚未選擇資料夾。請先按「選擇資料夾」。");
+    return; 
+  }
+  
+  const headers = ["id","title","category","tags","ingredients","steps","prep_minutes","cook_minutes","servings","calories","image_url","youtube_url"];
+  const esc = (s) => {
+    if (s == null) return "";
+    s = String(s);
+    if (s.includes(",") || s.includes("\"") || s.includes("\n") || s.includes("\r"))
+      return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  };
+  const lines = [headers.join(",")];
+  for (const r of app.recipes) { 
+    lines.push(headers.map(h => esc(r[h])).join(",")); 
+  }
+
+  // 加 BOM & CRLF
+  const bom = "\uFEFF";
+  const csvText = bom + lines.join("\r\n");
+
+  const csvHandle = await __recipesDirHandle.getFileHandle("recipes.csv", { create: true });
+  await writeFile(csvHandle, new Blob([csvText], { type: "text/csv;charset=utf-8" }));
+  
+  // 顯示儲存狀態
+  const saveStatus = document.getElementById('saveStatus');
+  if (saveStatus) {
+    saveStatus.textContent = '✔ 已儲存至本機';
+    saveStatus.style.color = '#059669';
+    setTimeout(() => {
+      saveStatus.textContent = '';
+    }, 3000);
+  }
+}
+
+// ====== 頂部按鈕綁定（離線限定）======
+document.addEventListener("click", (ev) => {
+  const t = ev.target;
+  if (!t) return;
+  if (t.id === "btnPickFolder") pickRecipesFolder();
+  if (t.id === "btnWriteCSV") writeCSVToLocal();
+  if (t.id === "btnExport") {
+    const headers = ["id","title","category","tags","ingredients","steps","prep_minutes","cook_minutes","servings","calories","image_url","youtube_url"];
+    const esc = (s) => {
+      if (s == null) return "";
+      s = String(s);
+      if (s.includes(",") || s.includes("\"") || s.includes("\n") || s.includes("\r"))
+        return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+    const lines = [headers.join(",")];
+    for (const r of app.recipes) { lines.push(headers.map(h => esc(r[h])).join(",")); }
+
+    const bom = "\uFEFF";
+    const csvText = bom + lines.join("\r\n");
+
+    const blob = new Blob([csvText], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "recipes.csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+});
+
+// 編輯抽屜：新圖片預覽
+document.addEventListener("change", (ev) => {
+  const t = ev.target;
+  if (t && t.id === "imageFile") {
+    const preview = document.getElementById("imagePreview");
+    if (!preview) return;
+    preview.innerHTML = "";
+    const f = t.files && t.files[0];
+    if (!f) return;
+    const url = URL.createObjectURL(f);
+    const img = document.createElement("img");
+    img.src = url;
+    Object.assign(img.style, { maxWidth: "100%", borderRadius: "12px" });
+    preview.appendChild(img);
+    const caption = document.createElement('div');
+    caption.textContent = '新上傳的圖片預覽';
+    Object.assign(caption.style, { fontSize: '0.9rem', color: '#666', marginTop: '8px' });
+    preview.appendChild(caption);
+  }
+});
+
+// 暴露全域
+window.recipes = app.recipes;
+window.filteredRecipes = app.filteredRecipes;
+
+(function () {
+    function registerSW() {
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("./sw.js").catch(console.error);
+        }
+    }
+    function onceReady(fn) {
+        if (document.readyState !== "loading") fn();
+        else document.addEventListener("DOMContentLoaded", fn);
+    }
+    onceReady(registerSW);
+})();
+
+// 可及性友善：示範如何同步 aria-hidden
+window.drawerA11y = {
+    open() {
+        const d = document.getElementById('editDrawer');
+        d.classList.remove('hidden');
+        d.setAttribute('aria-hidden', 'false');
+    },
+    close() {
+        const d = document.getElementById('editDrawer');
+        d.classList.add('hidden');
+        d.setAttribute('aria-hidden', 'true');
+    }
+};
+</script>
+
+</body>
+</html>
