@@ -1203,14 +1203,33 @@ class RecipeApp {
 
   async ensureCSVExists() {
     try {
-      await __recipesDirHandle.getFileHandle('recipes.csv'); // 存在就好
-    } catch {
-      // 不存在 → 建立 with header（含 BOM + CRLF）
-      const headers = ["id","title","category","tags","ingredients","steps","prep_minutes","cook_minutes","servings","calories","image_url","youtube_url"];
-      const bom = "\uFEFF";
-      const csvText = bom + headers.join(",") + "\r\n";
-      const fh = await __recipesDirHandle.getFileHandle("recipes.csv", { create: true });
-      await writeFile(fh, new Blob([csvText], { type: "text/csv;charset=utf-8" }));
+      const fh = await __recipesDirHandle.getFileHandle('recipes.csv');
+      // 檔案存在，檢查是否為空檔案
+      const file = await fh.getFile();
+      const text = await file.text();
+      
+      // 如果檔案完全空白或只有 BOM，才創建標題列
+      const cleanText = text.replace(/^\uFEFF/, '').trim(); // 移除 BOM
+      if (!cleanText) {
+        console.log('發現空的 recipes.csv，添加標題列');
+        const headers = ["id","title","category","tags","ingredients","steps","prep_minutes","cook_minutes","servings","calories","image_url","youtube_url"];
+        const bom = "\uFEFF";
+        const csvText = bom + headers.join(",") + "\r\n";
+        await writeFile(fh, new Blob([csvText], { type: "text/csv;charset=utf-8" }));
+      }
+    } catch (e) {
+      if (e.name === 'NotFoundError') {
+        // 檔案不存在 → 建立 with header（含 BOM + CRLF）
+        console.log('recipes.csv 不存在，建立新檔案');
+        const headers = ["id","title","category","tags","ingredients","steps","prep_minutes","cook_minutes","servings","calories","image_url","youtube_url"];
+        const bom = "\uFEFF";
+        const csvText = bom + headers.join(",") + "\r\n";
+        const fh = await __recipesDirHandle.getFileHandle("recipes.csv", { create: true });
+        await writeFile(fh, new Blob([csvText], { type: "text/csv;charset=utf-8" }));
+      } else {
+        console.error('檢查 CSV 檔案時發生錯誤:', e);
+        throw e;
+      }
     }
   }
 
@@ -1219,18 +1238,55 @@ class RecipeApp {
       const fh = await __recipesDirHandle.getFileHandle('recipes.csv');
       const file = await fh.getFile();
       const text = await file.text();
-      const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+      
+      console.log('載入 CSV 檔案大小:', text.length, '字元');
+      
+      if (!text || text.trim().length === 0) {
+        console.log('CSV 檔案是空的');
+        this.recipes = [];
+        return;
+      }
+      
+      const parsed = Papa.parse(text, { 
+        header: true, 
+        skipEmptyLines: true,
+        transformHeader: (header) => header.trim() // 清理標題
+      });
+      
+      if (parsed.errors && parsed.errors.length > 0) {
+        console.warn('CSV 解析警告:', parsed.errors);
+      }
+      
       // 確保每筆都有 id（若空檔就給新 id）
-      this.recipes = (parsed.data || []).map((x, i) => ({
-        ...x,
-        id: x.id && String(x.id).trim() ? x.id : this.makeId(i)
-      }));
-      if (!this.recipes.length) {
-        this.recipes = []; // 空表
+      this.recipes = (parsed.data || []).map((x, i) => {
+        // 過濾掉完全空白的行
+        const hasData = Object.values(x).some(val => val && String(val).trim());
+        if (!hasData) return null;
+        
+        return {
+          ...x,
+          id: x.id && String(x.id).trim() ? x.id : this.makeId(i)
+        };
+      }).filter(Boolean); // 移除 null 項目
+      
+      console.log('成功載入', this.recipes.length, '筆食譜');
+      
+      if (this.recipes.length === 0) {
+        const stats = document.getElementById('stats');
+        stats.textContent = 'CSV 檔案已載入，但沒有找到有效的食譜資料';
       }
     } catch (e) {
       console.error('讀取本地 recipes.csv 失敗：', e);
-      alert('讀取本地 recipes.csv 失敗，請確認權限或檔案是否存在。');
+      
+      // 更具體的錯誤處理
+      if (e.name === 'NotFoundError') {
+        alert('找不到 recipes.csv 檔案，將建立新的空檔案。');
+      } else if (e.name === 'NotAllowedError') {
+        alert('沒有權限讀取 recipes.csv，請重新選擇資料夾。');
+      } else {
+        alert(`讀取 recipes.csv 失敗：${e.message}。請確認檔案格式正確。`);
+      }
+      
       this.recipes = [];
     }
   }
@@ -1856,6 +1912,35 @@ async function writeCSVToLocal() {
     return; 
   }
   
+  // 安全檢查：避免用空資料覆蓋現有檔案
+  try {
+    const existingFh = await __recipesDirHandle.getFileHandle('recipes.csv');
+    const existingFile = await existingFh.getFile();
+    const existingText = await existingFile.text();
+    const existingLines = existingText.split('\n').filter(line => line.trim());
+    
+    // 如果現有檔案有資料，但我們的記憶體中沒有資料，發出警告
+    if (existingLines.length > 1 && (!app.recipes || app.recipes.length === 0)) {
+      const confirmOverwrite = confirm(
+        `警告：現有的 recipes.csv 包含 ${existingLines.length - 1} 筆資料，\n` +
+        `但程式記憶體中沒有資料。這可能會清空您的檔案。\n\n` +
+        `是否要繼續？建議先重新載入資料。`
+      );
+      if (!confirmOverwrite) {
+        const saveStatus = document.getElementById('saveStatus');
+        if (saveStatus) {
+          saveStatus.textContent = '⚠ 儲存已取消以保護資料';
+          saveStatus.style.color = '#d97706';
+          setTimeout(() => saveStatus.textContent = '', 5000);
+        }
+        return;
+      }
+    }
+  } catch (e) {
+    // 檔案不存在或其他錯誤，繼續執行
+    console.log('無法檢查現有檔案，繼續寫入新檔案');
+  }
+  
   const headers = ["id","title","category","tags","ingredients","steps","prep_minutes","cook_minutes","servings","calories","image_url","youtube_url"];
   const esc = (s) => {
     if (s == null) return "";
@@ -1864,8 +1949,9 @@ async function writeCSVToLocal() {
       return `"${s.replace(/"/g, '""')}"`;
     return s;
   };
+  
   const lines = [headers.join(",")];
-  for (const r of app.recipes) { 
+  for (const r of app.recipes || []) { 
     lines.push(headers.map(h => esc(r[h])).join(",")); 
   }
 
@@ -1879,7 +1965,8 @@ async function writeCSVToLocal() {
   // 顯示儲存狀態
   const saveStatus = document.getElementById('saveStatus');
   if (saveStatus) {
-    saveStatus.textContent = '✔ 已儲存至本機';
+    const recipeCount = app.recipes ? app.recipes.length : 0;
+    saveStatus.textContent = `✔ 已儲存 ${recipeCount} 筆資料至本機`;
     saveStatus.style.color = '#059669';
     setTimeout(() => {
       saveStatus.textContent = '';
