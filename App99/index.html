@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>管理員登入（Auth-Only）</title>
+    <style>
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f3f4f6;
+            margin: 0;
+            color: #111827
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 24px
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, .1);
+            padding: 20px;
+            margin-bottom: 16px
+        }
+
+        h1 {
+            font-size: 28px;
+            margin: 8px 0 16px
+        }
+
+        h3 {
+            margin: 0 0 12px
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap
+        }
+
+        .input {
+            flex: 1;
+            min-width: 180px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px
+        }
+
+        .btn {
+            border: 0;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-weight: 600;
+            cursor: pointer
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: #fff
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: #fff
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: #fff
+        }
+
+        .tag {
+            font-size: 12px;
+            background: #eef2ff;
+            color: #4338ca;
+            border: 1px solid #c7d2fe;
+            border-radius: 9999px;
+            padding: 4px 8px
+        }
+
+        .hidden {
+            display: none
+        }
+
+        .muted {
+            color: #6b7280
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔐 管理員登入（Auth-Only）</h1>
+
+        <!-- 連線 -->
+        <div class="card">
+            <h3>📡 連接 Apps Script</h3>
+            <div class="row" style="margin-bottom:8px">
+                <input id="gasUrl" class="input" placeholder="貼上 /exec 結尾的 Web App URL" selection="https://script.google.com/macros/s/AKfycbyvQrXrrbOzA5s_tppnR17H6b9dlcjcbGIqTHEVAGWKy6BTAeIo_PxhzQj-ZuvvkMze/exec">
+                <button id="connectBtn" class="btn btn-primary">連接</button>
+                <button id="disconnectBtn" class="btn btn-secondary hidden">中斷</button>
+                <span id="connStatus" class="tag">未連接</span>
+            </div>
+            <p class="muted">部署為 Web 應用程式（任何人），複製最新 /exec URL 貼上。</p>
+        </div>
+
+        <!-- 登入 -->
+        <div class="card">
+            <h3>👥 管理員登入</h3>
+            <div class="row" style="margin-bottom:8px">
+                <input id="username" class="input" placeholder="帳號">
+                <input id="password" type="password" class="input" placeholder="密碼">
+            </div>
+            <div class="row">
+                <button id="loginBtn" class="btn btn-primary">登入</button>
+                <button id="logoutBtn" class="btn btn-danger" disabled>登出</button>
+                <span id="authStatus" class="tag">未登入</span>
+                <span id="roleHint" class="tag">權限：-</span>
+            </div>
+        </div>
+
+        <!-- 👑 Owner 工具 -->
+        <div id="ownerTools" class="card hidden">
+            <h3>👑 Owner 工具</h3>
+
+            <div style="margin-bottom:12px">
+                <strong>建立管理員</strong>
+                <div class="row" style="margin-top:6px">
+                    <input id="oaUser" class="input" placeholder="帳號">
+                    <input id="oaPass" type="password" class="input" placeholder="初始密碼">
+                    <select id="oaRole" class="input" style="max-width:160px">
+                        <option value="admin">admin</option>
+                        <option value="editor">editor</option>
+                        <option value="viewer">viewer</option>
+                    </select>
+                    <button id="oaCreateBtn" class="btn btn-primary">建立</button>
+                </div>
+            </div>
+
+            <div style="margin-bottom:12px">
+                <strong>調整角色 / 啟用停用</strong>
+                <div class="row" style="margin-top:6px">
+                    <input id="oaTarget" class="input" placeholder="目標帳號">
+                    <select id="oaNewRole" class="input" style="max-width:160px">
+                        <option value="owner">owner</option>
+                        <option value="admin">admin</option>
+                        <option value="editor">editor</option>
+                        <option value="viewer">viewer</option>
+                    </select>
+                    <button id="oaSetRoleBtn" class="btn btn-secondary">設定角色</button>
+                </div>
+                <div class="row" style="margin-top:6px">
+                    <select id="oaActive" class="input" style="max-width:160px">
+                        <option value="true">啟用</option>
+                        <option value="false">停用</option>
+                    </select>
+                    <button id="oaSetActiveBtn" class="btn btn-secondary">啟用/停用</button>
+                </div>
+            </div>
+
+            <div>
+                <strong>重設密碼</strong>
+                <div class="row" style="margin-top:6px">
+                    <input id="oaResetUser" class="input" placeholder="目標帳號">
+                    <input id="oaNewPassword" type="password" class="input" placeholder="新密碼">
+                    <button id="oaResetPassBtn" class="btn btn-danger">重設密碼</button>
+                </div>
+            </div>
+
+            <p class="muted" style="margin-top:8px">僅 owner 可操作；密碼雜湊與 salt 由後端自動處理。</p>
+        </div>
+    </div>
+
+    <script>
+        // ===== 狀態 =====
+        let gasUrl = localStorage.getItem('gasUrl') || '';
+        let isConnected = false;
+        let TOKEN = localStorage.getItem('token') || null;
+        let CURRENT_USER = JSON.parse(localStorage.getItem('user') || 'null');
+
+        // ===== 初始化 =====
+        document.addEventListener('DOMContentLoaded', () => {
+            if (gasUrl) document.getElementById('gasUrl').value = gasUrl;
+            bindEvents();
+            reflectAuthToUI();
+            if (gasUrl) connect(true);
+        });
+
+        // ===== 綁定事件 =====
+        function bindEvents() {
+            document.getElementById('connectBtn').addEventListener('click', () => connect(false));
+            document.getElementById('disconnectBtn').addEventListener('click', disconnect);
+
+            document.getElementById('loginBtn').addEventListener('click', login);
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+
+            document.getElementById('oaCreateBtn').addEventListener('click', onCreate);
+            document.getElementById('oaSetActiveBtn').addEventListener('click', onSetActive);
+            document.getElementById('oaSetRoleBtn').addEventListener('click', onSetRole);
+            document.getElementById('oaResetPassBtn').addEventListener('click', onResetPass);
+        }
+
+        // ===== 連線 =====
+        async function connect(silent) {
+            gasUrl = document.getElementById('gasUrl').value.trim() || gasUrl;
+            if (!gasUrl) return alert('請輸入 Web App /exec URL');
+            try {
+                const r = await fetch(gasUrl + '?action=test');
+                const j = await r.json();
+                if (!j.success) throw new Error('GAS 回應非 success');
+                isConnected = true;
+                localStorage.setItem('gasUrl', gasUrl);
+                document.getElementById('connStatus').textContent = '已連接';
+                document.getElementById('disconnectBtn').classList.remove('hidden');
+                if (TOKEN) await whoami(true);
+                if (!silent) alert('連線成功');
+            } catch (e) {
+                isConnected = false;
+                document.getElementById('connStatus').textContent = '未連接';
+                document.getElementById('disconnectBtn').classList.add('hidden');
+                alert('連線失敗：' + e.message);
+            }
+        }
+        function disconnect() {
+            isConnected = false; gasUrl = ''; localStorage.removeItem('gasUrl');
+            document.getElementById('gasUrl').value = '';
+            document.getElementById('connStatus').textContent = '未連接';
+            document.getElementById('disconnectBtn').classList.add('hidden');
+        }
+
+        // ===== Auth =====
+        async function login() {
+            if (!isConnected) return alert('請先連線');
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            if (!username || !password) return alert('請輸入帳號與密碼');
+            try {
+                const res = await fetch(gasUrl, {
+                    method: 'POST', headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'adminLogin', data: { username, password } })
+                }).then(r => r.json());
+                if (!res.success) return alert('登入失敗：' + (res.message || ''));
+                TOKEN = res.token; CURRENT_USER = res.user;
+                localStorage.setItem('token', TOKEN);
+                localStorage.setItem('user', JSON.stringify(CURRENT_USER));
+                reflectAuthToUI();
+                alert(`登入成功：${CURRENT_USER.username}（${CURRENT_USER.role}）`);
+            } catch (e) { alert('登入錯誤：' + e.message); }
+        }
+        async function logout() {
+            try {
+                if (TOKEN) await fetch(gasUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'adminLogout', token: TOKEN }) });
+            } catch (_) { }
+            TOKEN = null; CURRENT_USER = null;
+            localStorage.removeItem('token'); localStorage.removeItem('user');
+            reflectAuthToUI();
+            alert('已登出');
+        }
+        async function whoami(silent) {
+            if (!TOKEN) { clearAuth(); reflectAuthToUI(); return; }
+            try {
+                const res = await fetch(gasUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'whoami', token: TOKEN }) }).then(r => r.json());
+                if (res.success) { CURRENT_USER = res.user; localStorage.setItem('user', JSON.stringify(CURRENT_USER)); reflectAuthToUI(); }
+                else { clearAuth(); reflectAuthToUI(); if (!silent) alert('登入已過期，請重新登入'); }
+            } catch (e) { if (!silent) alert('驗證失敗：' + e.message); }
+        }
+        function clearAuth() { TOKEN = null; CURRENT_USER = null; localStorage.removeItem('token'); localStorage.removeItem('user'); }
+
+        function reflectAuthToUI() {
+            const authStatus = document.getElementById('authStatus');
+            const roleHint = document.getElementById('roleHint');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const loginBtn = document.getElementById('loginBtn');
+            if (CURRENT_USER) {
+                authStatus.textContent = `已登入：${CURRENT_USER.username}`;
+                roleHint.textContent = `權限：${CURRENT_USER.role}`;
+                logoutBtn.disabled = false; loginBtn.disabled = true;
+            } else {
+                authStatus.textContent = '未登入'; roleHint.textContent = '權限：-';
+                logoutBtn.disabled = true; loginBtn.disabled = false;
+            }
+            // Owner 面板顯示控制
+            document.getElementById('ownerTools').classList.toggle('hidden', !(CURRENT_USER && CURRENT_USER.role === 'owner'));
+        }
+
+        // ===== Owner API Helper =====
+        async function callOwnerAPI(action, data) {
+            if (!isConnected) throw new Error('未連線');
+            if (!TOKEN || !CURRENT_USER || CURRENT_USER.role !== 'owner') throw new Error('需 owner 登入');
+            const res = await fetch(gasUrl, {
+                method: 'POST', headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ action, token: TOKEN, data })
+            }).then(r => r.json());
+            if (!res.success) throw new Error(res.message || (action + ' 失敗'));
+            return res;
+        }
+        const ownerCreateAdmin = (u, p, r) => callOwnerAPI('createadmin', { username: u, password: p, role: r });
+        const ownerSetAdminActive = (u, a) => callOwnerAPI('setadminactive', { username: u, isActive: a });
+        const ownerSetAdminRole = (u, r) => callOwnerAPI('setadminrole', { username: u, role: r });
+        const ownerResetAdminPassword = (u, p) => callOwnerAPI('resetadminpassword', { username: u, newPassword: p });
+
+        // ===== Owner 面板事件 =====
+        async function onCreate() {
+            try {
+                const u = document.getElementById('oaUser').value.trim();
+                const p = document.getElementById('oaPass').value;
+                const r = document.getElementById('oaRole').value;
+                if (!u || !p) return alert('請輸入帳號與密碼');
+                await ownerCreateAdmin(u, p, r);
+                alert('建立成功'); document.getElementById('oaUser').value = ''; document.getElementById('oaPass').value = '';
+            } catch (e) { alert(e.message); }
+        }
+        async function onSetActive() {
+            try {
+                const u = document.getElementById('oaTarget').value.trim();
+                const a = document.getElementById('oaActive').value === 'true';
+                if (!u) return alert('請輸入目標帳號');
+                await ownerSetAdminActive(u, a);
+                alert(a ? '已啟用' : '已停用');
+            } catch (e) { alert(e.message); }
+        }
+        async function onSetRole() {
+            try {
+                const u = document.getElementById('oaTarget').value.trim();
+                const r = document.getElementById('oaNewRole').value;
+                if (!u) return alert('請輸入目標帳號');
+                await ownerSetAdminRole(u, r);
+                alert('角色已更新為：' + r);
+            } catch (e) { alert(e.message); }
+        }
+        async function onResetPass() {
+            try {
+                const u = document.getElementById('oaResetUser').value.trim();
+                const p = document.getElementById('oaNewPassword').value;
+                if (!u || !p) return alert('請輸入目標帳號與新密碼');
+                await ownerResetAdminPassword(u, p);
+                alert('密碼已重設'); document.getElementById('oaNewPassword').value = '';
+            } catch (e) { alert(e.message); }
+        }
+    </script>
+</body>
+
+</html>
