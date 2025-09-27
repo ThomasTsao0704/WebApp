@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>今日看板｜訂位總覽</title>
+  <style>
+    :root{
+      --bg:#0f172a; --card:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#60a5fa;
+      --green:#22c55e; --red:#ef4444; --amber:#f59e0b; --blue:#3b82f6; --slate:#1f2937;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+         background:linear-gradient(180deg,#0b1220 0%,#0f172a 60%,#0b1220 100%);
+         color:var(--text); min-height:100vh;}
+    .wrap{max-width:1280px;margin:0 auto;padding:24px;}
+    header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:20px;}
+    .title{font-size:24px;font-weight:800;letter-spacing:.2px;display:flex;gap:12px;align-items:center}
+    .title span{opacity:.75;font-weight:600;font-size:14px}
+    .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .btn{border:none;border-radius:10px;padding:10px 14px;background:#1e293b;color:#dbeafe;
+         font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:8px}
+    .btn:hover{background:#233145;transform:translateY(-1px)}
+    .btn-ghost{background:transparent;border:1px solid #334155;color:#cbd5e1}
+    .btn-green{background:linear-gradient(135deg,#16a34a,#22c55e);color:white}
+    .pill{padding:6px 10px;border-radius:999px;border:1px solid #334155;color:#cbd5e1;font-size:12px}
+    .grid{display:grid;gap:16px}
+    @media(min-width:1024px){.grid-4{grid-template-columns:repeat(4,1fr)} .grid-2{grid-template-columns:2fr 1fr}}
+    .card{background:rgba(17,24,39,.85);backdrop-filter:blur(6px);border:1px solid #1f2937;border-radius:16px;padding:16px}
+    .card h3{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:#93c5fd;margin-bottom:12px}
+    .kpi{display:flex;align-items:flex-end;gap:12px}
+    .kpi .num{font-size:36px;font-weight:900;line-height:1}
+    .kpi .sub{font-size:12px;color:var(--muted)}
+    .tag{font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid #334155;color:#cbd5e1}
+    .list{display:flex;flex-direction:column;gap:10px;max-height:48vh;overflow:auto;padding-right:4px}
+    .item{display:flex;justify-content:space-between;align-items:center;background:#0b1220;border:1px solid #1f2937;border-radius:12px;padding:12px}
+    .left{display:flex;align-items:center;gap:12px}
+    .time{font-weight:800;color:#bfdbfe;min-width:56px;text-align:center}
+    .name{font-weight:700}
+    .muted{color:#94a3b8;font-size:12px}
+    .badge{padding:4px 8px;border-radius:10px;font-size:12px;font-weight:700}
+    .b-confirmed{background:#0a2a12;color:#86efac;border:1px solid #14532d}
+    .b-checked_in{background:#0b2447;color:#93c5fd;border:1px solid #1d4ed8}
+    .b-completed{background:#1f2937;color:#cbd5e1;border:1px solid #334155}
+    .b-no_show{background:#3b0a0a;color:#fecaca;border:1px solid #7f1d1d}
+    .b-cancelled{background:#2a0a0a;color:#fca5a5;border:1px solid #7f1d1d}
+    .empty{padding:20px;text-align:center;color:#94a3b8;border:1px dashed #334155;border-radius:12px}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .now{color:#22d3ee;font-weight:800}
+    .footer{margin-top:12px;color:#94a3b8;font-size:12px;display:flex;justify-content:space-between;align-items:center}
+    .select{background:#0b1220;border:1px solid #334155;border-radius:10px;color:#e5e7eb;padding:8px 10px}
+    .dot{width:8px;height:8px;border-radius:999px;display:inline-block;margin-right:6px}
+    .d-free{background:#22c55e}.d-block{background:#ef4444}.d-busy{background:#f59e0b}
+    .legend{display:flex;gap:12px;align-items:center}
+    .hl{color:#93c5fd}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">📊 今日看板 <span id="todaySpan"></span></div>
+      <div class="controls">
+        <div class="pill" id="refreshState">每 30 秒自動更新</div>
+        <select id="durationSelect" class="select" title="預設用餐時長(分)">
+          <option value="60">60 分</option>
+          <option value="90">90 分</option>
+          <option value="120" selected>120 分（預設）</option>
+          <option value="150">150 分</option>
+          <option value="180">180 分</option>
+        </select>
+        <button id="btnRefresh" class="btn btn-ghost">🔄 立即刷新</button>
+        <button class="btn btn-green" onclick="openMain()">🖥️ 主畫面</button>
+      </div>
+    </header>
+
+    <!-- KPI 區 -->
+    <section class="grid grid-4">
+      <div class="card">
+        <h3>今日訂位</h3>
+        <div class="kpi"><div class="num" id="kpiTotal">0</div><div class="sub">筆</div></div>
+        <div class="footer"><div class="legend"><span class="dot d-busy"></span><span>已排程</span></div><span id="lastUpdated"></span></div>
+      </div>
+      <div class="card">
+        <h3>已到 / 完成</h3>
+        <div class="kpi"><div class="num" id="kpiArrived">0</div><div class="sub">人次</div></div>
+        <div class="row muted" id="kpiArrivedBreakdown"></div>
+      </div>
+      <div class="card">
+        <h3>候補名單</h3>
+        <div class="kpi"><div class="num" id="kpiWait">0</div><div class="sub">組</div></div>
+        <div class="row muted" id="kpiWaitNote"></div>
+      </div>
+      <div class="card">
+        <h3>即時可用座位</h3>
+        <div class="kpi"><div class="num" id="kpiFree">0</div><div class="sub">個</div></div>
+        <div class="row legend">
+          <span><span class="dot d-free"></span>可用</span>
+          <span><span class="dot d-block"></span>封鎖</span>
+          <span><span class="dot d-busy"></span>占用</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 明細區 -->
+    <section class="grid grid-2" style="margin-top:16px">
+      <div class="card">
+        <div class="row" style="justify-content:space-between;margin-bottom:8px">
+          <h3>今日訂位清單</h3>
+          <div class="row muted"><span class="tag" id="openNowTag">現在時段：<span class="now" id="nowSpan">--:--</span></span></div>
+        </div>
+        <div id="resvList" class="list"></div>
+      </div>
+
+      <div class="card">
+        <h3>候補 & 封鎖</h3>
+        <div class="row" style="gap:12px;margin-bottom:10px">
+          <span class="tag">候補 <span id="badgeWait">0</span></span>
+          <span class="tag">封鎖 <span id="badgeBlock">0</span></span>
+        </div>
+        <div id="sideLists">
+          <div style="margin-bottom:12px">
+            <div class="muted" style="margin-bottom:6px">候補名單</div>
+            <div id="waitList" class="list" style="max-height:22vh"></div>
+          </div>
+          <div>
+            <div class="muted" style="margin-bottom:6px">封鎖時段</div>
+            <div id="blockList" class="list" style="max-height:22vh"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:16px">
+      <h3>即時可用座位（以現在時間＋選定用餐時長評估）</h3>
+      <div id="freeGrid" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:8px"></div>
+    </section>
+  </div>
+
+  <script>
+    // ======== 同源設定：自動取得 /exec 基底 ========
+    const BASE = (function(){
+      // 當前頁面就是 /exec?page=dashboard，因此直接取 window.location.origin + 路徑
+      const url = new URL(window.location.href);
+      // 保留到 /exec
+      const path = url.pathname.endsWith('/exec') ? url.pathname : url.pathname.replace(/\/exec.*/,'/exec');
+      return url.origin + path;
+    })();
+
+    // ======== 工具 ========
+    const fmt2 = n => String(n).padStart(2,'0');
+    const todayStr = () => {
+      const d = new Date();
+      return d.getFullYear() + '-' + fmt2(d.getMonth()+1) + '-' + fmt2(d.getDate());
+    };
+    const nowHM = () => {
+      const d = new Date();
+      return fmt2(d.getHours()) + ':' + fmt2(d.getMinutes());
+    };
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    async function safeJson(res){
+      const t = await res.text();
+      try{ return JSON.parse(t); } catch { return { __raw:t }; }
+    }
+    async function api(action, params={}){
+      const qs = new URLSearchParams({action, ...params});
+      const r = await fetch(`${BASE}?${qs.toString()}`, { method:'GET' });
+      const j = await safeJson(r);
+      if(!r.ok) throw new Error(`HTTP ${r.status}`);
+      if(j && j.success === false) throw new Error(j.error || 'API 失敗');
+      return j.data ?? j; // 健康檢查可能回 {status:...}
+    }
+
+    // ======== 狀態 ========
+    let RESOURCES = [];
+    let DURATION_MIN = 120; // 由下拉選單控制
+    let LAST_ID_MAP = {};   // 最新建立的 id 追蹤（非必要）
+
+    // ======== DOM 參考 ========
+    const $ = sel => document.querySelector(sel);
+    const el = {
+      todaySpan: $('#todaySpan'),
+      lastUpdated: $('#lastUpdated'),
+      nowSpan: $('#nowSpan'),
+      kpiTotal: $('#kpiTotal'),
+      kpiArrived: $('#kpiArrived'),
+      kpiArrivedBreakdown: $('#kpiArrivedBreakdown'),
+      kpiWait: $('#kpiWait'),
+      kpiFree: $('#kpiFree'),
+      badgeWait: $('#badgeWait'),
+      badgeBlock: $('#badgeBlock'),
+      resvList: $('#resvList'),
+      waitList: $('#waitList'),
+      blockList: $('#blockList'),
+      freeGrid: $('#freeGrid'),
+      durationSelect: $('#durationSelect'),
+      btnRefresh: $('#btnRefresh'),
+    };
+
+    // ======== 初始化 ========
+    async function init(){
+      el.todaySpan.textContent = `（${todayStr()}）`;
+      el.nowSpan.textContent = nowHM();
+
+      // 座位資源
+      RESOURCES = await api('getResources').catch(() => []);
+      await refreshAll();
+
+      // 控制項
+      el.durationSelect.addEventListener('change', () => {
+        DURATION_MIN = Number(el.durationSelect.value || 120);
+        refreshFreeOnly(); // 只更新可用座位更即時
+      });
+      el.btnRefresh.addEventListener('click', refreshAll);
+
+      // 每 30 秒自動刷新
+      setInterval(async ()=>{
+        el.nowSpan.textContent = nowHM();
+        await refreshAll();
+      }, 30000);
+    }
+
+    // ======== 刷新總管 ========
+    async function refreshAll(){
+      const date = todayStr();
+      const [resv, wait, blocks] = await Promise.all([
+        api('getReservations', {date}).catch(()=>[]),
+        api('getWaitlist', {date}).catch(()=>[]),
+        getBlocks(date) // 可能後端尚未開放，內含容錯
+      ]);
+
+      renderReservations(resv);
+      renderWaitlist(wait);
+      renderBlocks(blocks);
+      await refreshFreeOnly();
+
+      el.lastUpdated.textContent = new Date().toLocaleTimeString('zh-TW', {hour12:false});
+    }
+
+    // 只刷新「可用座位」
+    async function refreshFreeOnly(){
+      const now = nowHM();
+      const date = todayStr();
+      const checks = await Promise.all(RESOURCES.map(r => api('checkAvailability', {
+        resourceId: r.id, date, time: now, duration: DURATION_MIN
+      }).catch(()=>({available:false, __err:true}))));
+
+      const items = RESOURCES.map((r, i) => ({res:r, ok: !!checks[i] && checks[i].available === true}));
+      renderFree(items);
+      // KPI：可用數
+      el.kpiFree.textContent = items.filter(x=>x.ok).length;
+    }
+
+    // ======== 後端：封鎖 API 兼容 ========
+    async function getBlocks(date){
+      try{
+        const data = await api('getBlocked', {date});
+        if(Array.isArray(data)) return data;
+        return [];
+      }catch(err){
+        // 後端尚未加入 getBlocked：回傳空陣列並在畫面標示 0
+        console.log('getBlocked 不可用，請在 doGet 中加入 case "getBlocked" → successResponse(getBlockedPeriods("", date))');
+        return [];
+      }
+    }
+
+    // ======== Render 區 ========
+    function renderReservations(list){
+      const sorted = [...list].sort((a,b)=> (a.time||'').localeCompare(b.time||''));
+      el.kpiTotal.textContent = sorted.length;
+
+      const arrived = sorted.filter(r => r.status === 'checked_in' || r.status === 'completed');
+      el.kpiArrived.textContent = arrived.length;
+      const ci = sorted.filter(r=>r.status==='checked_in').length;
+      const cp = sorted.filter(r=>r.status==='completed').length;
+      el.kpiArrivedBreakdown.innerHTML = `
+        <span class="tag">已到場 ${ci}</span>
+        <span class="tag">已完成 ${cp}</span>
+      `;
+
+      if(sorted.length === 0){
+        el.resvList.innerHTML = `<div class="empty">今日尚無訂位</div>`;
+        return;
+      }
+
+      el.resvList.innerHTML = sorted.map(r=>{
+        const res = RESOURCES.find(x=>x.id===r.resourceId);
+        const seat = res ? `${res.name}` : r.resourceId;
+        const badge = statusBadge(r.status);
+        const note = r.notes ? `<div class="muted">💬 ${escapeHTML(r.notes)}</div>` : '';
+        return `
+          <div class="item">
+            <div class="left">
+              <div class="time">${r.time || '--:--'}</div>
+              <div>
+                <div class="name">${escapeHTML(r.customerName || '')} <span class="muted">(${r.partySize||'-'}人)</span></div>
+                <div class="muted">${escapeHTML(seat||'')}</div>
+                ${note}
+              </div>
+            </div>
+            <div>${badge}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderWaitlist(wait){
+      el.kpiWait.textContent = wait.length;
+      el.badgeWait.textContent = wait.length;
+      if(wait.length === 0){
+        el.waitList.innerHTML = `<div class="empty">無候補名單</div>`;
+        return;
+      }
+      const s = [...wait].sort((a,b)=> (a.priority||0) - (b.priority||0));
+      el.waitList.innerHTML = s.map(w=>{
+        const pref = w.resourceId ? `偏好：${escapeHTML(w.resourceId)}` : '無特別偏好';
+        return `
+          <div class="item">
+            <div class="left">
+              <div class="time">${w.time}</div>
+              <div>
+                <div class="name">${escapeHTML(w.customerName)}</div>
+                <div class="muted">${w.partySize}人 · ${pref}</div>
+              </div>
+            </div>
+            <div class="badge b-confirmed">waiting</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderBlocks(blocks){
+      el.badgeBlock.textContent = blocks.length;
+      if(blocks.length === 0){
+        el.blockList.innerHTML = `<div class="empty">今日無封鎖時段</div>`;
+        return;
+      }
+      const s = [...blocks].sort((a,b)=> (a.startTime||'').localeCompare(b.startTime||''));
+      el.blockList.innerHTML = s.map(b=>{
+        const seat = b.resourceId ? findSeatName(b.resourceId) : '全場';
+        return `
+          <div class="item">
+            <div class="left">
+              <div class="time">${b.startTime}</div>
+              <div>
+                <div class="name">${escapeHTML(seat)}</div>
+                <div class="muted">${b.startTime} ~ ${b.endTime}</div>
+                <div class="muted">原因：${escapeHTML(b.reason||'-')}</div>
+              </div>
+            </div>
+            <div class="badge" style="background:#2a0a0a;color:#fca5a5;border:1px solid #7f1d1d">blocked</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderFree(items){
+      if(items.length === 0){
+        el.freeGrid.innerHTML = `<div class="empty" style="grid-column:1/-1">無座位資料</div>`;
+        return;
+      }
+      el.freeGrid.innerHTML = items.map(({res, ok})=>{
+        return `
+          <div class="item" style="flex-direction:column;align-items:flex-start">
+            <div class="row" style="justify-content:space-between;width:100%">
+              <div class="name">${escapeHTML(res.name)}</div>
+              <div class="muted">${res.capacity} 人</div>
+            </div>
+            <div class="row" style="justify-content:space-between;width:100%;margin-top:6px">
+              <div class="muted">類型：${escapeHTML(res.type||'-')}</div>
+              <div class="badge ${ok?'b-confirmed':'b-no_show'}">${ok?'可用':'不可用'}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function statusBadge(status){
+      const map = {
+        confirmed: 'b-confirmed',
+        checked_in: 'b-checked_in',
+        completed: 'b-completed',
+        no_show: 'b-no_show',
+        cancelled: 'b-cancelled'
+      };
+      const cls = map[status] || 'b-confirmed';
+      const text = ({
+        confirmed:'已確認',
+        checked_in:'已到場',
+        completed:'已完成',
+        no_show:'未到場',
+        cancelled:'已取消'
+      })[status] || status;
+      return `<span class="badge ${cls}">${text}</span>`;
+    }
+
+    function findSeatName(id){
+      const r = RESOURCES.find(x=>x.id===id);
+      return r ? r.name : id;
+    }
+    function escapeHTML(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+    function openMain(){ window.location.href = `${BASE}?ui=1`; }
+
+    // 啟動
+    (async ()=>{ await init(); })();
+  </script>
+</body>
+</html>
