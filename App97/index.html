@@ -133,49 +133,27 @@
 
             try {
                 const text = await file.text();
-                const lines = text.trim().split('\n').filter(line => line.trim());
+                const lines = text.trim().split('\n');
                 
-                // 找到包含"收盤價"的標題行
-                let headerIndex = 0;
-                let headers = [];
+                const headers = lines[0].split('\t').map(h => h.trim());
                 
-                for (let i = 0; i < Math.min(5, lines.length); i++) {
-                    const cols = lines[i].split('\t').map(h => h.trim());
-                    if (cols.some(col => col.includes('收盤價') || col.includes('漲跌幅'))) {
-                        headers = cols;
-                        headerIndex = i;
-                        break;
-                    }
-                }
-                
-                // 如果沒找到，使用第一行作為標題
-                if (headers.length === 0) {
-                    headers = lines[0].split('\t').map(h => h.trim());
-                    headerIndex = 0;
-                }
-                
-                console.log('檢測到的標題:', headers);
-                
-                stockData = lines.slice(headerIndex + 1).map(line => {
-                    const values = line.split('\t').map(v => v.trim());
+                stockData = lines.slice(1).map(line => {
+                    const values = line.split('\t');
                     const stock = {};
                     headers.forEach((header, index) => {
-                        stock[header] = values[index] || '';
+                        stock[header] = values[index]?.trim() || '';
                     });
                     return stock;
-                }).filter(stock => stock['代碼'] || stock['收盤價']); // 過濾空行
+                });
 
                 filteredData = [...stockData];
-                
-                console.log('解析後的數據範例:', stockData[0]);
                 
                 uploadStatus.textContent = `✓ 已載入 ${stockData.length} 筆股票資料`;
                 uploadStatus.classList.remove('hidden');
                 filterSection.classList.remove('hidden');
                 displayResults();
             } catch (error) {
-                console.error('錯誤:', error);
-                alert('檔案讀取失敗: ' + error.message);
+                alert('檔案讀取失敗，請確認格式正確');
             }
         });
 
