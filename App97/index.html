@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>股票選股分析器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-4xl font-bold text-gray-800 mb-8 flex items-center gap-3">
+            <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+            </svg>
+            股票選股分析器
+        </h1>
+
+        <!-- 上傳區域 -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <label class="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-8 cursor-pointer hover:border-blue-500 transition-colors">
+                <svg class="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                <span class="text-gray-600 mb-1">上傳股票數據 CSV 檔案</span>
+                <span class="text-sm text-gray-400">支援 Tab 分隔的格式</span>
+                <input type="file" id="fileInput" accept=".csv,.txt" class="hidden">
+            </label>
+            <p id="uploadStatus" class="mt-4 text-center text-green-600 font-medium hidden"></p>
+        </div>
+
+        <!-- 篩選條件 -->
+        <div id="filterSection" class="bg-white rounded-xl shadow-lg p-6 mb-6 hidden">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                </svg>
+                選股條件設定
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">最低收盤價</label>
+                    <input type="number" id="minPrice" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="例如: 50">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">最高收盤價</label>
+                    <input type="number" id="maxPrice" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="例如: 200">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">最低漲跌幅 (%)</label>
+                    <input type="number" id="minChange" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="例如: 5">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">最高漲跌幅 (%)</label>
+                    <input type="number" id="maxChange" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="例如: -3">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">最低成交量</label>
+                    <input type="number" id="minVolume" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="例如: 1000">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">最低振幅 (%)</label>
+                    <input type="number" id="minAmplitude" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="例如: 3">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">排序方式</label>
+                <select id="sortBy" class="w-full md:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="code">股票代碼</option>
+                    <option value="change">漲跌幅 (高到低)</option>
+                    <option value="volume">成交量 (高到低)</option>
+                    <option value="amplitude">振幅 (高到低)</option>
+                </select>
+            </div>
+
+            <div class="flex gap-3">
+                <button id="applyBtn" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                    套用篩選
+                </button>
+                <button id="resetBtn" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">
+                    重置條件
+                </button>
+            </div>
+        </div>
+
+        <!-- 結果顯示 -->
+        <div id="resultSection" class="bg-white rounded-xl shadow-lg p-6 hidden">
+            <h2 id="resultTitle" class="text-xl font-bold text-gray-800 mb-4"></h2>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b-2 border-gray-200">
+                            <th class="px-4 py-3 text-left font-semibold text-gray-700">代碼</th>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-700">商品</th>
+                            <th class="px-4 py-3 text-right font-semibold text-gray-700">收盤價</th>
+                            <th class="px-4 py-3 text-right font-semibold text-gray-700">漲跌幅</th>
+                            <th class="px-4 py-3 text-right font-semibold text-gray-700">振幅</th>
+                            <th class="px-4 py-3 text-right font-semibold text-gray-700">成交量</th>
+                            <th class="px-4 py-3 text-right font-semibold text-gray-700">成交金額</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let stockData = [];
+        let filteredData = [];
+
+        const fileInput = document.getElementById('fileInput');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const filterSection = document.getElementById('filterSection');
+        const resultSection = document.getElementById('resultSection');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultBody = document.getElementById('resultBody');
+        const applyBtn = document.getElementById('applyBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        // 上傳檔案處理
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+                const lines = text.trim().split('\n');
+                
+                const headers = lines[0].split('\t').map(h => h.trim());
+                
+                stockData = lines.slice(1).map(line => {
+                    const values = line.split('\t');
+                    const stock = {};
+                    headers.forEach((header, index) => {
+                        stock[header] = values[index]?.trim() || '';
+                    });
+                    return stock;
+                });
+
+                filteredData = [...stockData];
+                
+                uploadStatus.textContent = `✓ 已載入 ${stockData.length} 筆股票資料`;
+                uploadStatus.classList.remove('hidden');
+                filterSection.classList.remove('hidden');
+                displayResults();
+            } catch (error) {
+                alert('檔案讀取失敗，請確認格式正確');
+            }
+        });
+
+        // 套用篩選
+        applyBtn.addEventListener('click', () => {
+            const minPrice = document.getElementById('minPrice').value;
+            const maxPrice = document.getElementById('maxPrice').value;
+            const minChange = document.getElementById('minChange').value;
+            const maxChange = document.getElementById('maxChange').value;
+            const minVolume = document.getElementById('minVolume').value;
+            const minAmplitude = document.getElementById('minAmplitude').value;
+            const sortBy = document.getElementById('sortBy').value;
+
+            filteredData = [...stockData];
+
+            if (minPrice) {
+                filteredData = filteredData.filter(stock => 
+                    parseFloat(stock['收盤價']) >= parseFloat(minPrice)
+                );
+            }
+            if (maxPrice) {
+                filteredData = filteredData.filter(stock => 
+                    parseFloat(stock['收盤價']) <= parseFloat(maxPrice)
+                );
+            }
+            if (minChange) {
+                filteredData = filteredData.filter(stock => 
+                    parseFloat(stock['漲跌幅']) >= parseFloat(minChange)
+                );
+            }
+            if (maxChange) {
+                filteredData = filteredData.filter(stock => 
+                    parseFloat(stock['漲跌幅']) <= parseFloat(maxChange)
+                );
+            }
+            if (minVolume) {
+                filteredData = filteredData.filter(stock => 
+                    parseFloat(stock['成交量']) >= parseFloat(minVolume)
+                );
+            }
+            if (minAmplitude) {
+                filteredData = filteredData.filter(stock => 
+                    parseFloat(stock['振幅']) >= parseFloat(minAmplitude)
+                );
+            }
+
+            // 排序
+            filteredData.sort((a, b) => {
+                switch(sortBy) {
+                    case 'change':
+                        return parseFloat(b['漲跌幅']) - parseFloat(a['漲跌幅']);
+                    case 'volume':
+                        return parseFloat(b['成交量']) - parseFloat(a['成交量']);
+                    case 'amplitude':
+                        return parseFloat(b['振幅']) - parseFloat(a['振幅']);
+                    default:
+                        return (a['代碼'] || '').localeCompare(b['代碼'] || '');
+                }
+            });
+
+            displayResults();
+        });
+
+        // 重置條件
+        resetBtn.addEventListener('click', () => {
+            document.getElementById('minPrice').value = '';
+            document.getElementById('maxPrice').value = '';
+            document.getElementById('minChange').value = '';
+            document.getElementById('maxChange').value = '';
+            document.getElementById('minVolume').value = '';
+            document.getElementById('minAmplitude').value = '';
+            document.getElementById('sortBy').value = 'code';
+            
+            filteredData = [...stockData];
+            displayResults();
+        });
+
+        // 顯示結果
+        function displayResults() {
+            resultTitle.textContent = `篩選結果 (${filteredData.length} 檔股票)`;
+            resultSection.classList.remove('hidden');
+            
+            resultBody.innerHTML = filteredData.map(stock => {
+                const change = parseFloat(stock['漲跌幅']) || 0;
+                const changeColor = change > 0 ? 'text-red-600' : change < 0 ? 'text-green-600' : 'text-gray-600';
+                const trendIcon = change > 0 
+                    ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>'
+                    : change < 0 
+                    ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>'
+                    : '';
+                
+                return `
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="px-4 py-3 font-medium">${stock['代碼']}</td>
+                        <td class="px-4 py-3">${stock['商品']}</td>
+                        <td class="px-4 py-3 text-right">${stock['收盤價']}</td>
+                        <td class="px-4 py-3 text-right font-medium ${changeColor}">
+                            <div class="flex items-center justify-end gap-1">
+                                ${trendIcon}
+                                ${stock['漲跌幅']}%
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-right">${stock['振幅']}%</td>
+                        <td class="px-4 py-3 text-right">${stock['成交量']}</td>
+                        <td class="px-4 py-3 text-right">${stock['成交金額(元)']}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+    </script>
+</body>
+</html>
