@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>美味餐廳 - 線上訂位系統（同源版）</title>
+    <title>美味餐廳 - 線上訂位系統</title>
     <style>
         * {
             margin: 0;
@@ -14,14 +14,15 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f9fafb;
+            background: #f9fafb;
             min-height: 100vh
         }
 
+        /* Nav */
         nav {
             background: #fff;
             border-bottom: 1px solid #e5e7eb;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, .1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
             position: sticky;
             top: 0;
             z-index: 100
@@ -73,11 +74,12 @@
             border-bottom-color: #2563eb
         }
 
+        /* Loading */
         .loading-overlay {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, .5);
+            background: rgba(0, 0, 0, .45);
             z-index: 9999;
             justify-content: center;
             align-items: center
@@ -91,7 +93,8 @@
             background: #fff;
             padding: 2rem;
             border-radius: 12px;
-            text-align: center
+            text-align: center;
+            min-width: 220px
         }
 
         .spinner {
@@ -114,6 +117,7 @@
             }
         }
 
+        /* Layout */
         .container {
             max-width: 1200px;
             margin: 2rem auto;
@@ -122,34 +126,34 @@
 
         .hero {
             text-align: center;
-            margin-bottom: 3rem;
-            padding: 2rem 0
+            margin-bottom: 2rem;
+            padding: 1.5rem 0
         }
 
         .hero h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
+            font-size: 2rem;
+            font-weight: 800;
             color: #111827;
-            margin-bottom: .5rem
+            margin-bottom: .25rem
         }
 
         .hero p {
-            font-size: 1.125rem;
+            font-size: 1.05rem;
             color: #6b7280
         }
 
         .card {
             background: #fff;
             border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, .1);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+            padding: 1.25rem;
+            margin-bottom: 1.25rem
         }
 
         .card-title {
-            font-size: 1.125rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: .75rem;
             display: flex;
             align-items: center;
             gap: .5rem;
@@ -158,7 +162,7 @@
 
         .grid {
             display: grid;
-            gap: 1.5rem
+            gap: 1.25rem
         }
 
         .grid-2 {
@@ -171,6 +175,7 @@
             }
         }
 
+        /* Form */
         .form-group {
             margin-bottom: 1rem
         }
@@ -178,7 +183,7 @@
         .form-label {
             display: block;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             margin-bottom: .5rem;
             color: #374151
         }
@@ -191,22 +196,24 @@
             border: 1px solid #d1d5db;
             border-radius: 8px;
             font-size: 14px;
-            transition: all .2s
+            transition: all .2s;
+            background: #fff
         }
 
         .form-input:focus,
         .form-select:focus,
         .form-textarea:focus {
-            outline: 0;
+            outline: none;
             border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, .1)
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .12)
         }
 
+        /* Buttons */
         .btn {
-            padding: .75rem 1.5rem;
+            padding: .75rem 1.25rem;
             border-radius: 8px;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
             transition: all .2s;
             border: none;
@@ -224,11 +231,6 @@
             background: #1d4ed8
         }
 
-        .btn-full {
-            width: 100%;
-            justify-content: center
-        }
-
         .btn-secondary {
             background: #f3f4f6;
             color: #374151
@@ -238,19 +240,26 @@
             background: #e5e7eb
         }
 
+        .btn-full {
+            width: 100%;
+            justify-content: center
+        }
+
+        /* Resource */
         .resource-card {
             padding: 1rem;
             border: 2px solid #e5e7eb;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
             transition: all .2s;
-            margin-bottom: .75rem
+            margin-bottom: .75rem;
+            background: #fff
         }
 
         .resource-card:hover {
             border-color: #9ca3af;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, .1)
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, .06)
         }
 
         .resource-card.selected {
@@ -259,13 +268,13 @@
         }
 
         .resource-name {
-            font-weight: 600;
+            font-weight: 700;
             margin-bottom: .25rem;
             color: #111827
         }
 
         .resource-capacity {
-            font-size: 14px;
+            font-size: 13px;
             color: #6b7280;
             margin-bottom: .5rem
         }
@@ -284,6 +293,7 @@
             color: #4b5563
         }
 
+        /* Time slots */
         .time-slots {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -324,9 +334,10 @@
             cursor: not-allowed
         }
 
+        /* Alerts */
         .alert {
             padding: 1rem;
-            border-radius: 8px;
+            border-radius: 10px;
             margin-bottom: 1rem;
             display: flex;
             align-items: center;
@@ -351,6 +362,7 @@
             border: 1px solid #93c5fd
         }
 
+        /* Staff list */
         .reservation-item {
             border-bottom: 1px solid #e5e7eb;
             padding: 1rem 0
@@ -363,12 +375,12 @@
         .reservation-header {
             display: flex;
             justify-content: space-between;
-            align-items: start;
-            margin-bottom: .5rem
+            align-items: flex-start;
+            margin-bottom: .35rem
         }
 
         .reservation-time {
-            font-weight: 600;
+            font-weight: 800;
             color: #111827
         }
 
@@ -381,7 +393,7 @@
             padding: .25rem .75rem;
             border-radius: 9999px;
             font-size: 12px;
-            font-weight: 500
+            font-weight: 700
         }
 
         .status-confirmed {
@@ -409,10 +421,7 @@
             color: #991b1b
         }
 
-        .hidden {
-            display: none !important
-        }
-
+        /* Empty */
         .empty-state {
             text-align: center;
             padding: 3rem 1rem;
@@ -420,26 +429,46 @@
         }
 
         .empty-state-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem
+            font-size: 2.75rem;
+            margin-bottom: .5rem
         }
 
+        /* API setup strip */
         .api-setup {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #fff;
-            padding: 2rem;
+            padding: 1.25rem;
             border-radius: 12px;
-            margin-bottom: 2rem
+            margin-bottom: 1.25rem
         }
 
         .api-setup input {
-            margin-top: .75rem
+            margin-top: .5rem;
+            background: #fff;
+            color: #111827
+        }
+
+        /* Systems */
+        .row {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            flex-wrap: wrap
+        }
+
+        .muted {
+            font-size: 12px;
+            color: #6b7280
+        }
+
+        .right {
+            margin-left: auto
         }
     </style>
 </head>
 
 <body>
-    <!-- Loading Overlay -->
+    <!-- Loading -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-spinner">
             <div class="spinner"></div>
@@ -447,44 +476,53 @@
         </div>
     </div>
 
-    <!-- 導航列 -->
+    <!-- Nav -->
     <nav>
         <div class="nav-container">
             <div class="nav-brand">🍽️ 美味餐廳</div>
             <div class="nav-buttons">
-                <button class="nav-button active" onclick="switchView(event, 'customer')">👤 線上訂位</button>
-                <button class="nav-button" onclick="switchView(event, 'staff')">📋 管理後台</button>
+                <button class="nav-button active" onclick="switchView('customer', event)">👤 線上訂位</button>
+                <button class="nav-button" onclick="switchView('staff', event)">📋 管理後台</button>
             </div>
         </div>
     </nav>
 
-    <!-- 顧客訂位視圖 -->
+    <!-- Customer View -->
     <div id="customerView" class="container">
-        <!-- 同源模式預設隱藏；只有 file:// 或你想改外網時才會顯示 -->
-        <div id="apiSetup" class="api-setup hidden">
-            <h3 style="margin-bottom:.5rem;">⚙️ 系統設定</h3>
-            <p style="font-size:14px;opacity:.9">請輸入您的 Google Apps Script API 網址</p>
+        <!-- API 設定（當未能決定 BASE 時顯示） -->
+        <div id="apiSetup" class="api-setup" style="display:none">
+            <div class="row">
+                <div>
+                    <h3 style="margin-bottom:.25rem">⚙️ 系統設定</h3>
+                    <div class="muted">請輸入你的 Google Apps Script Web App（/exec）網址，或在網址加上 <code>?api=</code></div>
+                </div>
+                <div class="right muted" id="apiHint"></div>
+            </div>
             <input type="text" id="apiUrlInput" class="form-input"
-                placeholder="https://script.google.com/macros/s/.../exec" style="background:#fff;color:#111827;">
-            <button onclick="saveApiUrl()" class="btn btn-primary" style="margin-top:1rem;">💾 儲存設定</button>
+                placeholder="https://script.google.com/macros/s/.../exec" />
+            <div class="row" style="margin-top:.75rem">
+                <button class="btn btn-primary" onclick="saveApiUrl()">💾 儲存設定</button>
+                <button class="btn btn-secondary" onclick="tryHealth()">🩺 連線測試</button>
+            </div>
         </div>
 
-        <!-- 提示訊息容器 -->
+        <!-- Alerts -->
         <div id="alertContainer"></div>
 
-        <!-- 標題區 -->
         <div class="hero">
             <h1>線上訂位服務</h1>
-            <p>選擇您喜歡的日期、時間和座位</p>
+            <p>選擇日期、時間與座位，立即完成預約</p>
         </div>
 
-        <!-- 訂位表單 -->
         <div class="grid grid-2">
-            <!-- 左側：選擇區 -->
+            <!-- Left: Filters -->
             <div>
                 <div class="card">
-                    <h3 class="card-title">📅 選擇日期</h3>
-                    <input type="date" id="customerDate" class="form-input" onchange="onDateChange()">
+                    <div class="row" style="justify-content:space-between">
+                        <h3 class="card-title">📅 選擇日期</h3>
+                        <div id="healthDot" class="muted">API：未知</div>
+                    </div>
+                    <input type="date" id="customerDate" class="form-input" onchange="onDateChange()" />
                 </div>
 
                 <div class="card">
@@ -512,31 +550,35 @@
                 </div>
             </div>
 
-            <!-- 右側：時間與表單 -->
+            <!-- Right: Times & Form -->
             <div>
-                <div id="timeSlotCard" class="card hidden">
-                    <h3 class="card-title">⏰ 選擇時間</h3>
+                <div id="timeSlotCard" class="card" style="display:none">
+                    <div class="row" style="justify-content:space-between">
+                        <h3 class="card-title">⏰ 選擇時間</h3>
+                        <div class="row muted">
+                            <span>間隔 30 分</span>
+                        </div>
+                    </div>
                     <div id="timeSlotsList" class="time-slots"></div>
                 </div>
 
-                <div id="bookingForm" class="card hidden">
+                <div id="bookingForm" class="card" style="display:none">
                     <h3 class="card-title">📝 填寫資訊</h3>
                     <div class="form-group">
                         <label class="form-label">姓名 *</label>
-                        <input type="text" id="customerName" class="form-input" placeholder="請輸入您的姓名">
+                        <input type="text" id="customerName" class="form-input" placeholder="請輸入您的姓名" />
                     </div>
                     <div class="form-group">
                         <label class="form-label">手機號碼 *</label>
-                        <input type="tel" id="customerPhone" class="form-input" placeholder="請輸入您的手機號碼">
+                        <input type="tel" id="customerPhone" class="form-input" placeholder="請輸入您的手機號碼" />
                     </div>
                     <div class="form-group">
                         <label class="form-label">Email（選填）</label>
-                        <input type="email" id="customerEmail" class="form-input" placeholder="請輸入您的 Email">
+                        <input type="email" id="customerEmail" class="form-input" placeholder="請輸入您的 Email" />
                     </div>
                     <div class="form-group">
                         <label class="form-label">特殊需求</label>
-                        <textarea id="customerNotes" class="form-textarea" rows="3"
-                            placeholder="如有特殊需求請告知我們（例如：素食、兒童座椅等）"></textarea>
+                        <textarea id="customerNotes" class="form-textarea" rows="3" placeholder="如：素食、兒童座椅等"></textarea>
                     </div>
                     <button class="btn btn-primary btn-full" onclick="confirmReservation()">✅ 確認預約</button>
                 </div>
@@ -544,18 +586,20 @@
         </div>
     </div>
 
-    <!-- 員工後台視圖 -->
-    <div id="staffView" class="container hidden">
-        <div style="margin-bottom:2rem;">
-            <h1 style="font-size:1.875rem;font-weight:700;color:#111827;margin-bottom:1rem;">預約管理</h1>
-            <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
-                <input type="date" id="staffDate" class="form-input" style="max-width:200px;"
-                    onchange="loadStaffReservations()">
-                <span style="color:#6b7280;">共 <strong id="totalReservations">0</strong> 筆預約</span>
+    <!-- Staff View -->
+    <div id="staffView" class="container" style="display:none">
+        <div style="margin-bottom:1.25rem">
+            <div class="row" style="justify-content:space-between">
+                <h1 style="font-size:1.6rem;font-weight:800;color:#111827">預約管理</h1>
+                <div class="muted" id="staffApiState">API：未知</div>
+            </div>
+            <div class="row" style="gap:.75rem;flex-wrap:wrap;margin-top:.5rem">
+                <input type="date" id="staffDate" class="form-input" style="max-width:200px"
+                    onchange="loadStaffReservations()" />
+                <span style="color:#6b7280">共 <strong id="totalReservations">0</strong> 筆預約</span>
                 <button class="btn btn-secondary" onclick="loadStaffReservations()">🔄 重新整理</button>
             </div>
         </div>
-
         <div class="card">
             <div id="staffReservationList">
                 <div class="empty-state">
@@ -567,240 +611,283 @@
     </div>
 
     <script>
-        // ---------------- 同源 API 偵測 ----------------
-        function getBaseExecUrl() {
-            const u = new URL(location.href);
-            // 確保回到 /exec
-            return `${u.origin}${u.pathname.replace(/\/exec.*/, '/exec')}`;
+        // ========= 決定 API BASE：?api= > localStorage > 同源推斷 =========
+        function normalizeExec(u) {
+            try {
+                const x = new URL(u);
+                if (!/\/exec$/.test(x.pathname)) {
+                    x.pathname = x.pathname.replace(/\/exec.*/, '/exec');
+                    if (!/\/exec$/.test(x.pathname)) x.pathname = (x.pathname.replace(/\/$/, '') + '/exec');
+                }
+                x.search = ''; x.hash = '';
+                return x.toString();
+            } catch (e) { return ''; }
         }
-        function isSameOriginUsable() { return location.protocol !== 'file:'; }
+        (function decideBase() {
+            const url = new URL(location.href);
+            const apiParam = url.searchParams.get('api');
+            const ls = localStorage.getItem('gasApiUrl');
+            let base = '';
+            if (apiParam) { base = normalizeExec(apiParam); localStorage.setItem('gasApiUrl', base); }
+            else if (ls) { base = normalizeExec(ls); }
+            else {
+                const here = new URL(location.href);
+                const path = here.pathname.endsWith('/exec') ? here.pathname : here.pathname.replace(/\/exec.*/, '/exec');
+                base = here.origin + path;
+            }
+            window.__GAS_BASE__ = base;
+            // UI 顯示
+            const hint = document.getElementById('apiHint');
+            hint.textContent = base ? `目前 BASE：${base}` : '未設定，請輸入 /exec 網址';
+            const showSetup = !base || (!base.includes('script.google.com') && !/\/exec$/.test(base));
+            document.getElementById('apiSetup').style.display = showSetup ? 'block' : 'none';
+        })();
 
-        // ---------------- 狀態 & 公用 ------------------
-        let apiUrl = '';
+        // ========= 共用工具 =========
+        const $ = sel => document.querySelector(sel);
+        const fmt2 = n => String(n).padStart(2, '0');
+        const today = () => { const d = new Date(); return `${d.getFullYear()}-${fmt2(d.getMonth() + 1)}-${fmt2(d.getDate())}`; };
+        function showLoading(b) { $('#loadingOverlay').classList.toggle('show', !!b); }
+        function escapeHTML(s) { return String(s || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
+        function showAlert(message, type = 'success') {
+            const container = $('#alertContainer'); const el = document.createElement('div');
+            el.className = `alert alert-${type}`; el.innerHTML = `<span style="font-size:1.2rem">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span><span>${message}</span>`;
+            container.appendChild(el);
+            setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateY(-6px)'; el.style.transition = 'all .25s'; setTimeout(() => el.remove(), 250); }, 4500);
+        }
+        async function safeJson(res) { const t = await res.text(); try { return JSON.parse(t) } catch { return { __raw: t } } }
+        async function api(action, params = {}) {
+            const BASE = window.__GAS_BASE__;
+            if (!BASE) throw new Error('尚未設定 API BASE，請用 ?api= 或在頁面上方儲存 /exec 網址');
+            const qs = new URLSearchParams({ action, ...params });
+            const r = await fetch(`${BASE}?${qs.toString()}`, { method: 'GET', cache: 'no-store' });
+            const j = await safeJson(r);
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            if (j && j.success === false) throw new Error(j.error || 'API 失敗');
+            return j.data ?? j;
+        }
+
+        // ========= 狀態 =========
+        let apiUrl = 'https://thomastsao0704.github.io/WebApp/App98/index.html?api=https://script.google.com/macros/s/AKfycbwQ22P3jxKGiDpvgu6rwPsCRSiGNV02gEnN2YPAu7Cl1ZjJ1FVUkRHpiSICkBmDqUH5yw/exec';               // 僅用於顯示/儲存
         let resources = [];
         let selectedResource = null;
         let selectedTime = null;
 
-        function showLoading(show) { document.getElementById('loadingOverlay').classList.toggle('show', show); }
-        function showAlert(message, type = 'success') {
-            const c = document.getElementById('alertContainer');
-            const el = document.createElement('div');
-            el.className = `alert alert-${type}`;
-            el.innerHTML = `<span style="font-size:1.25rem;">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span><span>${esc(message)}</span>`;
-            c.appendChild(el);
-            setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateY(-10px)'; el.style.transition = 'all .3s'; setTimeout(() => el.remove(), 300); }, 5000);
-        }
-        function esc(s) { return String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
+        // ========= 初始化 =========
+        async function init() {
+            // 日期預設今日 & 最小值今日
+            const t = today();
+            $('#customerDate').value = t; $('#customerDate').min = t;
+            $('#staffDate').value = t;
 
-        // ---------------- API 呼叫（GET，免 preflight） ----------------
+            apiUrl = window.__GAS_BASE__ || '';
+            if (!apiUrl) { $('#apiSetup').style.display = 'block'; $('#healthDot').textContent = 'API：未設定'; $('#staffApiState').textContent = 'API：未設定'; return; }
+
+            // 健康檢查
+            await tryHealth();
+
+            // 載入座位
+            await loadResources();
+        }
+
+        // 儲存 API
+        function saveApiUrl() {
+            const val = $('#apiUrlInput').value.trim();
+            if (!val) return showAlert('請輸入 API 網址', 'error');
+            if (!val.endsWith('/exec') && !val.includes('script.google.com')) return showAlert('請輸入有效的 Google Apps Script /exec 網址', 'error');
+            const normalized = normalizeExec(val);
+            localStorage.setItem('gasApiUrl', normalized);
+            window.__GAS_BASE__ = normalized;
+            apiUrl = normalized;
+            $('#apiSetup').style.display = 'none';
+            showAlert('✅ API 網址已儲存', 'success');
+            tryHealth();
+            loadResources();
+        }
+
+        async function tryHealth() {
+            try {
+                const res = await api('ping'); // 你的 doGet 已支援 ping
+                $('#healthDot').textContent = 'API：正常';
+                $('#staffApiState').textContent = 'API：正常';
+            } catch (e) {
+                $('#healthDot').textContent = 'API：異常';
+                $('#staffApiState').textContent = 'API：異常';
+                showAlert('連線測試失敗：' + e.message, 'error');
+            }
+        }
+
+        // ========= API 呼叫封裝（GET） =========
         async function callAPI(action, params = {}) {
-            if (!apiUrl) { showAlert('請先設定或確認 API 網址', 'error'); return null; }
-            const qs = new URLSearchParams({ action, ...params }).toString();
-            const url = `${apiUrl}?${qs}`;
             showLoading(true);
             try {
-                const res = await fetch(url, { method: 'GET' });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const text = await res.text();
-                let json; try { json = JSON.parse(text); } catch { throw new Error('回應不是 JSON：' + text.slice(0, 120)); }
-                if (!json.success) throw new Error(json.error || '操作失敗');
-                return json.data;
+                return await api(action, params);
             } catch (err) {
-                showAlert('API 呼叫失敗: ' + err.message, 'error');
+                showAlert('API 呼叫失敗：' + err.message, 'error');
                 return null;
-            } finally { showLoading(false); }
-        }
-
-        // ---------------- 初始化 ----------------
-        function init() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('customerDate').value = today;
-            document.getElementById('customerDate').min = today;
-            document.getElementById('staffDate').value = today;
-
-            const savedUrl = localStorage.getItem('gasApiUrl');
-            if (savedUrl) {
-                apiUrl = savedUrl;
-                const el = document.getElementById('apiUrlInput'); if (el) el.value = savedUrl;
-            } else if (isSameOriginUsable()) {
-                apiUrl = getBaseExecUrl();
-                const setup = document.getElementById('apiSetup'); if (setup) setup.classList.add('hidden');
-            } else {
-                const setup = document.getElementById('apiSetup'); if (setup) setup.classList.remove('hidden');
+            } finally {
+                showLoading(false);
             }
-
-            if (apiUrl) loadResources();
         }
 
-        // 提供外部網域時手動儲存
-        function saveApiUrl() {
-            const url = document.getElementById('apiUrlInput').value.trim();
-            if (!url) { showAlert('請輸入 API 網址', 'error'); return; }
-            if (!url.includes('script.google.com') || !url.endsWith('/exec')) {
-                showAlert('請輸入有效的 Google Apps Script 網址', 'error'); return;
-            }
-            apiUrl = url; localStorage.setItem('gasApiUrl', url);
-            document.getElementById('apiSetup').classList.add('hidden');
-            showAlert('✅ API 網址已儲存', 'success'); loadResources();
-        }
-
-        // ---------------- 顧客流程 ----------------
+        // ========= 資料載入 =========
         async function loadResources() {
             const data = await callAPI('getResources');
-            if (data) { resources = data; filterResources(); }
+            if (data) {
+                resources = data;
+                filterResources();
+            }
         }
 
+        // 顧客：篩選座位
         function filterResources() {
-            const partySize = parseInt(document.getElementById('partySize').value, 10);
-            const filtered = resources.filter(r => Number(r.capacity) >= partySize);
-            const html = filtered.map(r => `
-        <div class="resource-card ${selectedResource === r.id ? 'selected' : ''}" onclick="selectResource('${esc(r.id)}')">
-          <div class="resource-name">${esc(r.name)}</div>
-          <div class="resource-capacity">最多 ${esc(r.capacity)} 人</div>
-          <div class="resource-tags">${(r.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
+            const partySize = parseInt($('#partySize').value, 10);
+            const list = resources.filter(r => Number(r.capacity || 0) >= partySize);
+            const html = list.map(r => `
+        <div class="resource-card ${selectedResource === r.id ? 'selected' : ''}" onclick="selectResource('${r.id}')">
+          <div class="resource-name">${escapeHTML(r.name)}</div>
+          <div class="resource-capacity">最多 ${r.capacity} 人</div>
+          <div class="resource-tags">${(r.tags || []).map(t => `<span class="tag">${escapeHTML(t)}</span>`).join('')}</div>
         </div>
       `).join('');
-            document.getElementById('resourceList').innerHTML = html || `
-        <div class="empty-state"><div class="empty-state-icon">😅</div><p>沒有符合條件的座位</p></div>`;
+            $('#resourceList').innerHTML = html || `<div class="empty-state"><div class="empty-state-icon">😅</div><p>沒有符合條件的座位</p></div>`;
         }
 
         function onDateChange() {
             selectedResource = null; selectedTime = null;
-            document.getElementById('timeSlotCard').classList.add('hidden');
-            document.getElementById('bookingForm').classList.add('hidden');
+            $('#timeSlotCard').style.display = 'none';
+            $('#bookingForm').style.display = 'none';
             filterResources();
         }
 
         function selectResource(resourceId) {
-            selectedResource = resourceId; selectedTime = null;
-            filterResources(); loadTimeSlots();
-            document.getElementById('timeSlotCard').classList.remove('hidden');
-            document.getElementById('bookingForm').classList.add('hidden');
+            selectedResource = resourceId;
+            selectedTime = null;
+            filterResources();
+            loadTimeSlots();
+            $('#timeSlotCard').style.display = 'block';
+            $('#bookingForm').style.display = 'none';
         }
 
-        // 生成 11:00~21:00、每 30 分
+        // 生成 11:00 ~ 21:00 / 30分粒度
         function generateTimeSlots() {
-            const slots = []; for (let h = 11; h <= 21; h++) {
+            const slots = [];
+            for (let h = 11; h <= 21; h++) {
                 for (let m = 0; m < 60; m += 30) {
-                    slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+                    slots.push(`${fmt2(h)}:${fmt2(m)}`);
                 }
             }
             return slots;
         }
 
-        // 並行 + 限流加速查詢
         async function loadTimeSlots() {
-            const date = document.getElementById('customerDate').value;
-            const timeSlots = generateTimeSlots();
-            const maxConcurrent = 8;
-            const chunks = [];
-            for (let i = 0; i < timeSlots.length; i += maxConcurrent) { chunks.push(timeSlots.slice(i, i + maxConcurrent)); }
+            const date = $('#customerDate').value;
+            const times = generateTimeSlots();
 
-            const results = {};
-            for (const chunk of chunks) {
-                const batch = chunk.map(time => callAPI('checkAvailability', {
-                    resourceId: selectedResource, date, time, duration: 120
-                }).then(r => ({ time, ok: !!(r && r.available) })).catch(() => ({ time, ok: false })));
-                const settled = await Promise.all(batch);
-                settled.forEach(({ time, ok }) => { results[time] = ok; });
-            }
+            // 並行檢查可用性
+            const checks = await Promise.all(times.map(t => api('checkAvailability', {
+                resourceId: selectedResource, date, time: t, duration: 120
+            }).catch(() => ({ available: false }))));
 
-            const html = timeSlots.map(time => {
-                const available = !!results[time];
-                return `
-          <button class="time-slot ${!available ? 'unavailable' : ''} ${selectedTime === time ? 'selected' : ''}"
-                  onclick="${available ? `selectTime('${time}')` : ''}" ${!available ? 'disabled' : ''}>
-            ${time}
-          </button>`;
+            const html = times.map((t, i) => {
+                const available = checks[i] && checks[i].available === true;
+                const sel = selectedTime === t ? 'selected' : '';
+                const dis = available ? '' : 'disabled';
+                const cls = `time-slot ${available ? '' : 'unavailable'} ${sel}`;
+                const onclick = available ? `onclick="selectTime('${t}')"` : '';
+                return `<button class="${cls}" ${onclick} ${dis}>${t}</button>`;
             }).join('');
-            document.getElementById('timeSlotsList').innerHTML = html;
+
+            $('#timeSlotsList').innerHTML = html;
         }
 
-        function selectTime(time) {
-            selectedTime = time; loadTimeSlots();
-            const form = document.getElementById('bookingForm');
-            form.classList.remove('hidden'); form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        function selectTime(t) {
+            selectedTime = t;
+            // 更新按鈕樣式
+            [...document.querySelectorAll('.time-slot')].forEach(btn => {
+                if (btn.textContent.trim() === t) btn.classList.add('selected'); else btn.classList.remove('selected');
+            });
+            $('#bookingForm').style.display = 'block';
+            $('#bookingForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         async function confirmReservation() {
-            const name = document.getElementById('customerName').value.trim();
-            const phone = document.getElementById('customerPhone').value.trim();
-            const email = document.getElementById('customerEmail').value.trim();
-            const notes = document.getElementById('customerNotes').value.trim();
-            const date = document.getElementById('customerDate').value;
-            const partySize = parseInt(document.getElementById('partySize').value, 10);
+            const name = $('#customerName').value.trim();
+            const phone = $('#customerPhone').value.trim();
+            const email = $('#customerEmail').value.trim();
+            const notes = $('#customerNotes').value.trim();
+            const date = $('#customerDate').value;
+            const partySize = parseInt($('#partySize').value, 10);
 
-            if (!name || !phone) { showAlert('請填寫姓名和手機號碼', 'error'); return; }
+            if (!selectedResource || !selectedTime) { return showAlert('請先選擇座位與時段', 'error'); }
+            if (!name || !phone) { return showAlert('請填寫姓名與手機號碼', 'error'); }
 
             const result = await callAPI('createReservation', {
-                resourceId: selectedResource, customerName: name, phone, email,
-                date, time: selectedTime, duration: 120, partySize, status: 'confirmed', notes
+                resourceId: selectedResource,
+                customerName: name,
+                phone, email,
+                date, time: selectedTime,
+                duration: 120,
+                partySize,
+                status: 'confirmed',
+                notes
             });
 
             if (result) {
-                showAlert(`🎉 預約成功！訂位編號：${esc(result.id)}`, 'success');
-                // 重置表單
-                document.getElementById('customerName').value = '';
-                document.getElementById('customerPhone').value = '';
-                document.getElementById('customerEmail').value = '';
-                document.getElementById('customerNotes').value = '';
+                showAlert(`🎉 預約成功！訂位編號：${result.id}`, 'success');
+                // reset
+                $('#customerName').value = ''; $('#customerPhone').value = ''; $('#customerEmail').value = ''; $('#customerNotes').value = '';
                 selectedResource = null; selectedTime = null;
-                document.getElementById('timeSlotCard').classList.add('hidden');
-                document.getElementById('bookingForm').classList.add('hidden');
+                $('#timeSlotCard').style.display = 'none'; $('#bookingForm').style.display = 'none';
                 filterResources();
-                // 若正在看後台，順便刷新
-                if (!document.getElementById('staffView').classList.contains('hidden')) {
-                    loadStaffReservations();
-                }
             }
         }
 
-        // ---------------- 後台 ----------------
+        // ========= 後台 =========
         async function loadStaffReservations() {
-            const date = document.getElementById('staffDate').value;
+            const date = $('#staffDate').value;
             const data = await callAPI('getReservations', { date });
-            if (data) {
-                document.getElementById('totalReservations').textContent = data.length;
-                if (data.length === 0) {
-                    document.getElementById('staffReservationList').innerHTML =
-                        '<div class="empty-state"><div class="empty-state-icon">📭</div><p>今日無預約</p></div>';
-                    return;
-                }
-                const html = data.sort((a, b) => a.time.localeCompare(b.time))
-                    .map(r => {
-                        const res = resources.find(x => x.id === r.resourceId);
-                        return `
-              <div class="reservation-item">
-                <div class="reservation-header">
-                  <div>
-                    <div class="reservation-time">${esc(r.time)} - ${esc(res?.name || r.resourceId)}</div>
-                    <div class="reservation-details">${esc(r.customerName)} (${esc(r.phone)}) - ${esc(r.partySize)}人</div>
-                    ${r.notes ? `<div class="reservation-details" style="margin-top:.25rem;">💬 ${esc(r.notes)}</div>` : ''}
-                  </div>
-                  <span class="status-badge status-${esc(r.status)}">${esc(getStatusText(r.status))}</span>
-                </div>
-              </div>`;
-                    }).join('');
-                document.getElementById('staffReservationList').innerHTML = html;
+            if (!data) { return; }
+            $('#totalReservations').textContent = data.length;
+
+            if (data.length === 0) {
+                $('#staffReservationList').innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><p>今日無預約</p></div>`;
+                return;
             }
+
+            const html = data.sort((a, b) => (a.time || '').localeCompare(b.time || '')).map(r => {
+                const res = resources.find(x => x.id === r.resourceId);
+                const seat = res ? res.name : r.resourceId;
+                return `
+          <div class="reservation-item">
+            <div class="reservation-header">
+              <div>
+                <div class="reservation-time">${r.time || '--:--'} - ${escapeHTML(seat)}</div>
+                <div class="reservation-details">${escapeHTML(r.customerName || '')} (${escapeHTML(r.phone || '')}) · ${r.partySize || '-'}人</div>
+                ${r.notes ? `<div class="reservation-details" style="margin-top:.25rem">💬 ${escapeHTML(r.notes)}</div>` : ''}
+              </div>
+              <span class="status-badge status-${r.status}">${statusText(r.status)}</span>
+            </div>
+          </div>
+        `;
+            }).join('');
+            $('#staffReservationList').innerHTML = html;
         }
 
-        function getStatusText(status) {
-            const map = { 'confirmed': '已確認', 'checked_in': '已到場', 'completed': '已完成', 'no_show': '未到場', 'cancelled': '已取消' };
-            return map[status] || status;
+        function statusText(s) {
+            return ({ confirmed: '已確認', checked_in: '已到場', completed: '已完成', no_show: '未到場', cancelled: '已取消' })[s] || s;
         }
 
-        // ---------------- 視圖切換 ----------------
-        function switchView(ev, view) {
-            document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
-            ev.currentTarget.classList.add('active');
-            document.getElementById('customerView').classList.add('hidden');
-            document.getElementById('staffView').classList.add('hidden');
-            document.getElementById(view + 'View').classList.remove('hidden');
-            if (view === 'staff') { loadStaffReservations(); }
+        // ========= 視圖切換 =========
+        function switchView(view, evt) {
+            document.querySelectorAll('.nav-button').forEach(b => b.classList.remove('active'));
+            if (evt && evt.target) evt.target.classList.add('active');
+            $('#customerView').style.display = (view === 'customer') ? 'block' : 'none';
+            $('#staffView').style.display = (view === 'staff') ? 'block' : 'none';
+            if (view === 'staff') loadStaffReservations();
         }
 
-        // ---------------- 啟動 ----------------
+        // ========= 啟動 =========
         window.onload = init;
     </script>
 </body>
