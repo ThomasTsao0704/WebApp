@@ -1,467 +1,813 @@
-<!DOCTYPE html><html lang="zh-Hant">
+<!DOCTYPE html>
+<html lang="zh-TW">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>每日個股選股器（單檔本機版）</title>
-<meta name="description" content="離線本機使用的台股每日篩選器。載入 CSV 後可依條件過濾、排序、查看走勢，並可儲存自訂條件。">
-<style>
-  :root { --bg:#0b1020; --fg:#e9eef7; --muted:#a9b6d6; --card:#121831; --accent:#7aa2ff; --ok:#2ecc71; --warn:#f39c12; --bad:#e74c3c; }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,Arial; background:var(--bg); color:var(--fg)}
-  header{position:sticky;top:0;z-index:10;background:linear-gradient(180deg,rgba(11,16,32,.98),rgba(11,16,32,.7));backdrop-filter: blur(8px);border-bottom:1px solid #1d2442}
-  .wrap{max-width:1280px;margin:0 auto;padding:14px 16px}
-  h1{font-size:20px;margin:0 0 8px 0;letter-spacing:.4px}
-  .toolbar{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end}
-  .controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-  .controls > label{display:flex;flex-direction:column;gap:6px;background:var(--card);border:1px solid #1d2442;border-radius:12px;padding:8px 10px;color:var(--fg)}
-  input,select,button{font:inherit}
-  input,select{background:#121a36;border:1px solid #2b345b;color:var(--fg);border-radius:10px;padding:8px 10px}
-  button{cursor:pointer;border:1px solid #273157;background:#1a2140;border-radius:10px;padding:8px 12px;color:var(--fg)}
-  button.primary{background:linear-gradient(180deg,#1f4fff,#0e37c9);border-color:#0e37c9;color:white}
-  button.ghost{background:transparent;border-color:#33406c}
-  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .hint{color:var(--muted);font-size:12px}
-  .grid{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-top:12px}
-  .card{background:var(--card);border:1px solid #1d2442;border-radius:16px;padding:12px}
-  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid #33406c;background:#121a36;color:var(--muted)}
-  .mt6{margin-top:6px} .mt8{margin-top:8px} .mt12{margin-top:12px} .mt16{margin-top:16px}
-  .sticky{position:sticky;top:84px}
-  table{width:100%;border-collapse:collapse}
-  th,td{padding:8px 6px;border-bottom:1px dashed #263055;text-align:right;white-space:nowrap}
-  th{position:sticky;top:0;background:#151c39;z-index:1; user-select:none; cursor:pointer}
-  td.left,th.left{text-align:left}
-  tr:hover{background:#151c39}
-  .pos{color:var(--ok)} .neg{color:var(--bad)}
-  .kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-  .kv > label{display:flex;gap:6px;align-items:center;justify-content:space-between;background:#121a36;border:1px solid #2b345b;border-radius:10px;padding:8px}
-  .kv input{width:90px}
-  .switch{display:flex;align-items:center;gap:8px}
-  .switch input{width:auto}
-  .badge{border:1px solid #2b345b;background:#0f1631;border-radius:999px;font-size:12px;padding:2px 8px;color:var(--muted)}
-  footer{opacity:.75;padding:20px 0;text-align:center;font-size:12px}
-  @media (max-width: 1100px){ .grid{grid-template-columns:1fr} .sticky{position:static} }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>股票選股分析器（含多檔比較＋策略）</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js + time adapter -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
 </head>
-<body>
-<header>
-  <div class="wrap">
-    <h1>每日個股選股器（單檔本機版）</h1>
-    <div class="toolbar">
-      <div class="controls">
-        <label>載入 CSV<input id="file" type="file" accept=".csv" /></label>
-        <label>關鍵字（代碼/商品）<input id="q" type="text" placeholder="如：2330 或 台積電" /></label>
-        <label>日期（起）<input id="d1" type="date" /></label>
-        <label>日期（迄）<input id="d2" type="date" /></label>
-      </div>
-      <div class="row">
-        <button id="btn-strong" class="ghost" title="漲跌幅≥%、量≥、且收盤>均價[1+2+3]">強勢股</button>
-        <button id="btn-break" class="ghost" title="收盤 ≥ 52H價 × 0.98">近高突破</button>
-        <button id="btn-reset" class="ghost">重置條件</button>
-        <button id="btn-save" class="ghost">儲存條件</button>
-        <button id="btn-load" class="ghost">載入條件</button>
-        <button id="btn-export" class="primary">匯出結果 CSV</button>
-      </div>
-      <div class="row mt6 hint">使用方式：選擇含「代碼、商品、Date、收盤價、漲跌幅、成交量、內盤量、外盤量、52H價、均價[...]」欄位的每日 CSV。可拖曳檔案到頁面。</div>
-    </div><div class="row mt12">
-  <div class="kv" style="flex:1">
-    <label><span>漲跌幅 ≥ %</span><input id="chgMin" type="number" step="0.1" placeholder="例如 2"></label>
-    <label><span>成交量 ≥</span><input id="volMin" type="number" step="100" placeholder="例如 500"></label>
-    <label><span>外盤比 ≥</span><input id="buyRatioMin" type="number" step="0.01" placeholder="0.6 表 60%"></label>
-    <label><span>收盤 ≥</span><input id="closeMin" type="number" step="0.01" placeholder="最低價"></label>
-    <label><span>收盤 ≤</span><input id="closeMax" type="number" step="0.01" placeholder="最高價"></label>
-    <label style="grid-column:1/-1"><span>自訂欄位（區間）</span>
-      <span>
-        <select id="colSel" style="min-width:220px"></select>
-        介於 <input id="colMin" type="number" step="0.01" style="width:100px"> ～ <input id="colMax" type="number" step="0.01" style="width:100px">
-      </span>
-    </label>
-  </div>
-  <div class="card" style="min-width:280px">
-    <div class="switch"><input type="checkbox" id="chkBull" /><label for="chkBull">多頭排列：收盤價 ＞ 均價[1] ＞ 均價[1+2] ＞ 均價[1+2+3]</label></div>
-    <div class="switch mt8"><input type="checkbox" id="chkLastOnly" checked /><label for="chkLastOnly">每檔只取最近一日（預設）</label></div>
-    <div class="mt8 hint">可同時勾選條件，表格可點欄位標題排序。</div>
-  </div>
-</div>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+  <div class="max-w-7xl mx-auto">
+    <h1 class="text-4xl font-bold text-gray-800 mb-8 flex items-center gap-3">
+      <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+      </svg>
+      股票選股分析器
+    </h1>
 
-  </div>
-</header><div class="wrap grid">
-  <section class="card" aria-label="結果表格">
-    <div class="row">
-      <div class="pill">結果 <span id="count">0</span> 檔</div>
-      <div class="pill">資料列 <span id="rows">0</span></div>
-      <div class="pill">日期範圍 <span id="range">—</span></div>
-      <div class="badge" id="note"></div>
+    <!-- 上傳 -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+      <label class="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-8 cursor-pointer hover:border-blue-500 transition-colors">
+        <svg class="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+        </svg>
+        <span class="text-gray-600 mb-1">上傳股票數據檔</span>
+        <span class="text-sm text-gray-400">支援 Tab/逗號分隔、含引號欄位</span>
+        <input type="file" id="fileInput" accept=".csv,.txt" class="hidden">
+      </label>
+      <p id="uploadStatus" class="mt-4 text-center text-green-600 font-medium hidden"></p>
+      <p id="uploadError" class="mt-2 text-center text-red-600 font-medium hidden"></p>
     </div>
-    <div class="mt12" style="overflow:auto; max-height: 70vh;">
-      <table id="tbl"><thead></thead><tbody></tbody></table>
+
+    <!-- 篩選 + 策略 -->
+    <div id="filterSection" class="bg-white rounded-xl shadow-lg p-6 mb-6 hidden">
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+          </svg>
+          選股條件設定
+        </h2>
+        <div class="flex items-center gap-2">
+          <input id="q" type="text" placeholder="搜尋代碼/商品關鍵字…" class="w-64 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+          <button id="exportBtn" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium">匯出篩選結果 CSV</button>
+        </div>
+      </div>
+
+      <!-- 基本條件 -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">最低收盤價</label>
+          <input type="number" id="minPrice" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="例如: 50">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">最高收盤價</label>
+          <input type="number" id="maxPrice" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="例如: 200">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">最低漲跌幅 (%)</label>
+          <input type="number" id="minChange" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="例如: 5">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">最高漲跌幅 (%)</label>
+          <input type="number" id="maxChange" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="例如: -3">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">最低成交量</label>
+          <input type="number" id="minVolume" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="例如: 1000">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">最低振幅 (%)</label>
+          <input type="number" id="minAmplitude" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="例如: 3">
+        </div>
+      </div>
+
+      <!-- 策略條件（可複選） -->
+      <div class="mt-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">策略條件（可多選組合）</label>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+          <label class="inline-flex items-center gap-2"><input type="checkbox" id="st_maBull" class="scale-110">均線多頭排列：SMA5 &gt; SMA10 &gt; SMA20</label>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" id="st_volUp" class="scale-110">放量上漲：漲幅&gt;0 且 量&gt;20日均量×1.5</label>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" id="st_break52h" class="scale-110">突破 52H：距離52H ≥ 0%</label>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" id="st_golden" class="scale-110">黃金交叉：EMA12 &gt; EMA26（當日）</label>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">排序方式</label>
+        <select id="sortBy" class="w-full md:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <option value="code">股票代碼（小→大）</option>
+          <option value="change">漲跌幅（高→低）</option>
+          <option value="volume">成交量（高→低）</option>
+          <option value="amplitude">振幅（高→低）</option>
+          <option value="price">收盤價（高→低）</option>
+          <option value="value">成交金額（高→低）</option>
+          <option value="dist52h">距離52H%（高→低）</option>
+        </select>
+      </div>
+
+      <div class="flex gap-3 mt-4">
+        <button id="applyBtn" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">套用篩選</button>
+        <button id="resetBtn" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">重置條件</button>
+      </div>
     </div>
-  </section>  <aside class="card sticky" aria-label="走勢圖">
-    <h3 style="margin:0 0 8px 0">走勢圖（點表格某檔）</h3>
-    <canvas id="chartPrice" height="240" aria-label="價格與成交量"></canvas>
-    <div class="hint mt8">顯示選中個股之「收盤價」與「成交量」。</div>
-  </aside>
-</div><footer>Made for 本機離線分析 · 建議以乾淨表頭的 CSV 載入 · v2</footer><script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script><script>
-let raw = [];      // 原始資料列（CSV 全部）
-let byCode = {};   // 依代碼分組
-let header = [];   // 欄位
-let chart;         // Chart.js 實例
 
-const $ = (s) => document.querySelector(s);
-const $$ = (s) => document.querySelectorAll(s);
+    <!-- 比較區 -->
+    <div id="compareSection" class="bg-white rounded-xl shadow-lg p-6 mb-6 hidden">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18"></path>
+          </svg>
+          比較清單（Ctrl＋點擊表格列可加入，最多 5 檔）
+        </h2>
+        <div class="text-sm text-gray-500">提示：再次 Ctrl＋點擊同一檔可移除</div>
+      </div>
 
-function parseNumber(x){
-  if (x===null || x===undefined) return null;
-  if (typeof x === 'number') return isFinite(x)?x:null;
-  let s = (''+x).replace(/[ ,%]/g,'').trim();
-  if (!s || s==='-' || s.toLowerCase()==='nan') return null;
-  const v = Number(s);
-  return isFinite(v) ? v : null;
-}
+      <!-- 圖表控制列 -->
+      <div class="flex flex-col lg:flex-row gap-3 items-start lg:items-center justify-between mb-3">
+        <div id="compareList" class="flex flex-wrap gap-2"></div>
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-600">圖表尺度</span>
+            <select id="scaleMode" class="px-2 py-1 border rounded">
+              <option value="close">收盤價</option>
+              <option value="norm">基準化 100</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-600">主圖標的</span>
+            <select id="primaryCode" class="px-2 py-1 border rounded min-w-[7rem]">
+              <option value="">（自動）</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-600">疊圖指標</span>
+            <label class="inline-flex items-center gap-1 text-sm"><input id="ov_sma" type="checkbox" class="scale-110">SMA(5/10/20)</label>
+            <label class="inline-flex items-center gap-1 text-sm"><input id="ov_ema" type="checkbox" class="scale-110">EMA(12/26)</label>
+            <label class="inline-flex items-center gap-1 text-sm"><input id="ov_bb" type="checkbox" class="scale-110">布林(20,2)</label>
+          </div>
+        </div>
+      </div>
 
-function toDate(s){
-  if(!s) return null;
-  if (s instanceof Date) return s;
-  const str = String(s).trim();
-  if(/^\d{8}$/.test(str)) return new Date(str.slice(0,4)+'-'+str.slice(4,6)+'-'+str.slice(6,8));
-  if(/^\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}$/.test(str)) return new Date(str);
-  const d = new Date(str);
-  return isNaN(d.getTime()) ? null : d;
-}
+      <div class="mt-4 relative" style="height: 360px;">
+        <canvas id="compareChart"></canvas>
+      </div>
+    </div>
 
-function guessDateKey(cols){
-  const keys = ['Date','日期','交易日期'];
-  for (const k of keys){
-    const m = cols.find(c => c && c.toLowerCase().includes(k.toLowerCase()));
-    if (m) return m;
-  }
-  return cols.find(c=>/date|日/.test(c?.toLowerCase?.()||'')) || cols[0];
-}
+    <!-- 結果 -->
+    <div id="resultSection" class="bg-white rounded-xl shadow-lg p-6 hidden">
+      <div class="flex items-end justify-between gap-3 mb-4">
+        <h2 id="resultTitle" class="text-xl font-bold text-gray-800"></h2>
+        <div id="summary" class="text-sm text-gray-500"></div>
+      </div>
 
-function calcDerived(row){
-  const o = Object.assign({}, row);
-  const inVol = parseNumber(row['內盤量']);
-  const outVol = parseNumber(row['外盤量']);
-  if (inVol!=null || outVol!=null){
-    const a = (inVol||0)+(outVol||0);
-    o['外盤比'] = a>0 ? (outVol||0)/a : null;
-  }
-  const hi52 = parseNumber(row['52H價']);
-  const close = parseNumber(row['收盤價']);
-  if (hi52!=null && close!=null){
-    o['距離52H%'] = (close/hi52-1)*100;
-  }
-  return o;
-}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b-2 border-gray-200">
+              <th class="px-4 py-3 text-left font-semibold text-gray-700">代碼</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-700">商品</th>
+              <th class="px-4 py-3 text-right font-semibold text-gray-700">收盤價</th>
+              <th class="px-4 py-3 text-right font-semibold text-gray-700">漲跌幅</th>
+              <th class="px-4 py-3 text-right font-semibold text-gray-700">振幅</th>
+              <th class="px-4 py-3 text-right font-semibold text-gray-700">成交量</th>
+              <th class="px-4 py-3 text-right font-semibold text-gray-700">成交金額</th>
+              <th class="px-4 py-3 text-right font-semibold text-gray-700">距離52H%</th>
+            </tr>
+          </thead>
+          <tbody id="resultBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
-function renderTable(rows){
-  const thead = $('#tbl thead'), tbody = $('#tbl tbody');
-  thead.innerHTML = ''; tbody.innerHTML='';
-  if (!rows.length) return;
+  <script>
+    // ===== 工具 =====
+    const $ = (id) => document.getElementById(id);
+    const fmtInt = (n) => Number.isFinite(n) ? Math.round(n).toLocaleString() : '';
+    const fmtMoney = (n) => Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: 0 }) : '';
+    const fmtPrice = (n) => Number.isFinite(n) ? n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+    const fmtPct = (n) => (Number.isFinite(n) ? (n.toFixed(2) + '%') : '');
 
-  const fixed = ['代碼','商品','Date','收盤價','漲跌幅','成交量','外盤比','距離52H%'];
-  const extra = header.filter(h => !fixed.includes(h));
-  const cols = [...fixed, ...extra];
+    function normalizeNumericString(s = '') {
+      const map = { '０': '0', '１': '1', '２': '2', '３': '3', '４': '4', '５': '5', '６': '6', '７': '7', '８': '8', '９': '9', '．': '.', '，': ',' };
+      s = String(s).trim().replace(/[０-９．，]/g, ch => map[ch] ?? ch);
+      s = s.replace(/,/g, '').replace(/％/g, '%');
+      return s;
+    }
+    function toNumber(s) {
+      if (s === null || s === undefined) return NaN;
+      s = normalizeNumericString(s);
+      if (/%$/.test(s)) s = s.replace('%', '');
+      const v = parseFloat(s);
+      return Number.isFinite(v) ? v : NaN;
+    }
+    function escapeHtml(s = '') {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function parseDate(d) {
+      if (!d) return null;
+      const s = String(d).trim().replace(/[.]/g, '-').replace(/\//g, '-');
+      const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      if (!m) return null;
+      const [_, y, mo, da] = m;
+      const dt = new Date(Number(y), Number(mo) - 1, Number(da));
+      return isNaN(+dt) ? null : dt;
+    }
 
-  const tr = document.createElement('tr');
-  for (const h of cols){
-    const th = document.createElement('th');
-    th.textContent = h; th.className = (h==='代碼'||h==='商品')?'left':'';
-    th.onclick = () => {
-      const dir = th.dataset.dir==='asc'?'desc':'asc';
-      rows.sort((a,b)=>{
-        const av = parseNumber(a[h]);
-        const bv = parseNumber(b[h]);
-        if (av==null && bv==null){
-          const as = String(a[h]??''); const bs = String(b[h]??'');
-          return dir==='asc'? as.localeCompare(bs, 'zh-Hant') : bs.localeCompare(as, 'zh-Hant');
-        }
-        const A = av ?? -1e15, B = bv ?? -1e15;
-        return dir==='asc'? A-B : B-A;
-      });
-      th.dataset.dir = dir;
-      renderTable(rows);
+    const COLOR_POOL = ['#1f77b4','#ff7f0e','#2ca02c','#d62728','#9467bd','#8c564b','#e377c2','#7f7f7f'];
+
+    const HEADER_ALIASES = {
+      '代碼': ['代碼','股票代碼','股票代號','證券代號','Code','code'],
+      '商品': ['商品','名稱','證券名稱','公司','Name','name'],
+      '收盤價': ['收盤價','收盤','收盤(元)','Close','close','收盤價(元)'],
+      '漲跌幅': ['漲跌幅','漲跌(%)','漲幅%','漲跌幅%','Change%','pct_change','漲幅'],
+      '振幅': ['振幅','振幅%','Amplitude%','amplitude'],
+      '成交量': ['成交量','成交股數','Volume','volume'],
+      '成交金額(元)': ['成交金額(元)','成交金額','成交金額元','Value','金額','成交金額(千)'],
+      '日期': ['日期','Date','date','交易日','時間'],
+      '52H價': ['52H價','52週高','52週最高','52W High','52WH','52WHigh']
     };
-    tr.appendChild(th);
-  }
-  thead.appendChild(tr);
-
-  for (const r of rows){
-    const tr = document.createElement('tr');
-    tr.onclick = ()=> showChart(r['代碼']);
-    for (const h of cols){
-      const td = document.createElement('td');
-      let v = r[h];
-      if (h==='代碼'||h==='商品') td.className='left';
-      if (h==='漲跌幅' || h==='距離52H%'){
-        const nv = parseNumber(v); td.classList.add(nv>=0?'pos':'neg');
-        v = nv==null? '': nv.toFixed(2)+'%';
+    function buildHeaderMap(headers) {
+      const map = {};
+      for (const std in HEADER_ALIASES) {
+        const aliases = HEADER_ALIASES[std].map(s => s.toLowerCase());
+        const hitIdx = headers.findIndex(h => aliases.includes(String(h).toLowerCase()));
+        if (hitIdx >= 0) map[std] = headers[hitIdx];
       }
-      if (h==='外盤比'){
-        const nv = parseNumber(v); v = nv==null? '': (nv*100).toFixed(1)+'%';
-      }
-      td.textContent = v==null? '' : v;
-      tr.appendChild(td);
+      return map;
     }
-    tbody.appendChild(tr);
-  }
-}
 
-function showChart(code){
-  const dk = guessDateKey(header);
-  const list = (byCode[code]||[]).slice().sort((a,b)=> toDate(a[dk]) - toDate(b[dk]));
-  const labels = list.map(d => d[dk]);
-  const closes = list.map(d => parseNumber(d['收盤價']));
-  const vols = list.map(d => parseNumber(d['成交量']));
+    // === CSV/TSV ===
+    function detectDelimiter(sampleText) {
+      const line = sampleText.split(/\r?\n/).find(x => x.trim()) || '';
+      return (line.includes('\t')) ? '\t' : ',';
+    }
+    function parseDelimited(text, delimiter) {
+      const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+      const rows = [];
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const out = [];
+        let cur = '', inQuotes = false;
+        for (let i=0;i<line.length;i++){
+          const ch=line[i];
+          if (ch === '"'){
+            if (inQuotes && line[i+1] === '"'){ cur+='"'; i++; }
+            else { inQuotes = !inQuotes; }
+          } else if (ch===delimiter && !inQuotes){
+            out.push(cur); cur='';
+          } else {
+            cur+=ch;
+          }
+        }
+        out.push(cur);
+        rows.push(out.map(s=>s.trim()));
+      }
+      return rows;
+    }
 
-  const ctx = $('#chartPrice').getContext('2d');
-  if (chart) chart.destroy();
-  chart = new Chart(ctx, {
-    type:'line',
-    data:{ labels, datasets:[ {label:`${code} 收盤價`, data:closes, yAxisID:'y'}, {label:`${code} 成交量`, data:vols, yAxisID:'y1'} ] },
-    options:{ responsive:true, interaction:{mode:'index',intersect:false}, stacked:false, plugins:{legend:{display:true}}, scales:{ y:{type:'linear', position:'left'}, y1:{type:'linear', position:'right', grid:{drawOnChartArea:false}} } }
-  });
-}
+    // === 狀態 ===
+    let rawRows = [];
+    let stockData = [];         // 每列(日)一筆：含 rolling 計算欄位
+    let filteredData = [];
+    let keyMap = {};
+    let seriesByCode = new Map();  // code -> [{t,y,vol,name,origRowRef}]
+    let compareSet = new Set();    // 最多 5 檔
+    let colorByCode = new Map();
+    let chart;
+    let scaleMode = 'close';       // 'close' | 'norm'
 
-function updateStats(rows){
-  $('#rows').text(raw.length.toLocaleString());
-  $('#count').text(new Set(rows.map(r=>r['代碼'])).size);
-  const dk = guessDateKey(header);
-  const dates = raw.map(r => toDate(r[dk])).filter(Boolean).sort((a,b)=>a-b);
-  if (dates.length){
-    const min = dates[0], max = dates[dates.length-1];
-    const fmt = d => d.toISOString().slice(0,10);
-    $('#range').text(`${fmt(min)} ~ ${fmt(max)}`);
-  } else $('#range').text('—');
-}
+    // DOM
+    const fileInput = $('fileInput');
+    const uploadStatus = $('uploadStatus');
+    const uploadError = $('uploadError');
+    const filterSection = $('filterSection');
+    const resultSection = $('resultSection');
+    const compareSection = $('compareSection');
+    const resultTitle = $('resultTitle');
+    const resultBody = $('resultBody');
+    const summary = $('summary');
+    const primaryCodeSel = $('primaryCode');
 
-function afterRenderPostFilters(){
-  // 後置條件：強勢股 / 近高突破 / 多頭排列
-  const tbody = $('#tbl tbody');
-  const rows = [...tbody.querySelectorAll('tr')];
-  const ths = [...$('#tbl thead th')];
-  const idxBy = (name) => ths.findIndex(th => th.textContent===name || th.textContent.includes(name));
+    // ===== Rolling & 指標 =====
+    function SMA(arr, w){
+      const out = Array(arr.length).fill(NaN);
+      let sum=0;
+      for (let i=0;i<arr.length;i++){
+        const v = arr[i];
+        sum += Number.isFinite(v)?v:0;
+        if (i>=w) sum -= Number.isFinite(arr[i-w])?arr[i-w]:0;
+        if (i>=w-1){
+          // 若窗口內含 NaN 太多會失真，這裡簡化為遇到 NaN 當 0；可再強化
+          out[i] = sum / w;
+        }
+      }
+      return out;
+    }
+    function EMA(arr, w){
+      const out = Array(arr.length).fill(NaN);
+      const k = 2/(w+1);
+      let prev = NaN;
+      for (let i=0;i<arr.length;i++){
+        const v = arr[i];
+        if (!Number.isFinite(v)) { out[i]=Number.NaN; continue; }
+        if (!Number.isFinite(prev)) prev = v;  // 起始用當前值
+        prev = v * k + prev * (1-k);
+        out[i] = prev;
+      }
+      return out;
+    }
+    function BB(arr, w=20, m=2){
+      // 以 SMA 為中軌，標準差為帶寬
+      const out = { mid:Array(arr.length).fill(NaN), upper:Array(arr.length).fill(NaN), lower:Array(arr.length).fill(NaN) };
+      const mid = SMA(arr, w);
+      for (let i=0;i<arr.length;i++){
+        if (i<w-1 || !Number.isFinite(mid[i])) continue;
+        let sum=0, sum2=0, n=0;
+        for (let j=i-w+1;j<=i;j++){
+          const v=arr[j]; if(!Number.isFinite(v)) continue;
+          sum += v; sum2 += v*v; n++;
+        }
+        if (n>=2){
+          const mean = sum/n;
+          const sd = Math.sqrt(Math.max(0, (sum2/n - mean*mean)));
+          out.mid[i]=mid[i];
+          out.upper[i]=mid[i]+m*sd;
+          out.lower[i]=mid[i]-m*sd;
+        }
+      }
+      return out;
+    }
 
-  // 多頭排列（收盤 > MA1 > MA12 > MA123）
-  if ($('#chkBull').checked){
-    const ixC = idxBy('收盤價');
-    const ix1 = idxBy('均價[1]');
-    const ix12 = idxBy('均價[1+2]');
-    const ix123 = idxBy('均價[1+2+3]');
-    if (ixC>-1 && ix1>-1 && ix12>-1 && ix123>-1){
-      rows.forEach(tr=>{
-        const c = parseNumber(tr.children[ixC].textContent);
-        const m1 = parseNumber(tr.children[ix1].textContent);
-        const m12 = parseNumber(tr.children[ix12].textContent);
-        const m123 = parseNumber(tr.children[ix123].textContent);
-        if (!(c>m1 && m1>m12 && m12>m123)) tr.remove();
+    function sum(arr){ return arr.reduce((a,b)=>a+(Number.isFinite(b)?b:0),0); }
+    function avg(arr){ const v=arr.filter(Number.isFinite); return v.length?sum(v)/v.length:0; }
+
+    // === 上傳處理 ===
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      uploadError.classList.add('hidden'); uploadError.textContent = '';
+
+      try {
+        const text = await file.text();
+        const delimiter = detectDelimiter(text);
+        const rows = parseDelimited(text, delimiter);
+        rawRows = rows.filter(r => r.some(c => String(c).trim() !== ''));
+
+        // 找表頭
+        let headerRowIdx = 0;
+        let headers = [];
+        for (let i=0;i<Math.min(8,rawRows.length);i++){
+          const cols = rawRows[i].map(s=>s.trim());
+          if (cols.some(c=>/收盤價|漲跌幅|代碼|名稱|成交量|Close|Volume/i.test(c))){
+            headerRowIdx=i; headers=cols; break;
+          }
+        }
+        if (!headers.length){ headers = rawRows[0].map(s=>s.trim()); headerRowIdx=0; }
+
+        keyMap = buildHeaderMap(headers);
+
+        // 轉成物件列
+        const dataRows = rawRows.slice(headerRowIdx+1);
+        stockData = dataRows.map(r=>{
+          const obj={};
+          const get = (stdKey) => {
+            const original = keyMap[stdKey];
+            if (!original) return '';
+            const idx = headers.indexOf(original);
+            return r[idx] ?? '';
+          };
+          obj['代碼']=get('代碼');
+          obj['商品']=get('商品');
+          obj['收盤價']=toNumber(get('收盤價'));
+          obj['漲跌幅']=toNumber(get('漲跌幅'));
+          obj['振幅']=toNumber(get('振幅'));
+          obj['成交量']=toNumber(get('成交量'));
+          let v=get('成交金額(元)'); let val=toNumber(v);
+          if (/千/.test(String(keyMap['成交金額(元)']||'')) && Number.isFinite(val)) val*=1000;
+          obj['成交金額(元)']=val;
+          obj['日期']=get('日期');
+          obj['日期Date']=parseDate(obj['日期']);
+          const h52 = toNumber(get('52H價'));
+          obj['52H價']=Number.isFinite(h52)?h52:NaN;
+          obj['距離52H%']=(Number.isFinite(obj['收盤價']) && Number.isFinite(obj['52H價']) && obj['52H價']>0)
+            ? ((obj['收盤價']/obj['52H價']-1)*100) : NaN;
+          return obj;
+        }).filter(x=>x['代碼'] || Number.isFinite(x['收盤價']));
+
+        // 建立 timeseries 與 rolling 指標
+        seriesByCode = new Map();
+        const byCode = new Map();
+        for (const row of stockData){
+          const code = String(row['代碼']||'').trim();
+          if (!code) continue;
+          if (!(row['日期Date'] instanceof Date)) continue;
+          if (!Number.isFinite(row['收盤價'])) continue;
+          if (!byCode.has(code)) byCode.set(code, []);
+          byCode.get(code).push(row);
+        }
+        // 逐檔排序並計算 rolling
+        for (const [code, arr] of byCode){
+          arr.sort((a,b)=>a['日期Date']-b['日期Date']);
+          const closes = arr.map(x=>x['收盤價']);
+          const vols   = arr.map(x=>Number.isFinite(x['成交量'])?x['成交量']:NaN);
+
+          const sma5 = SMA(closes,5);
+          const sma10= SMA(closes,10);
+          const sma20= SMA(closes,20);
+          const ema12= EMA(closes,12);
+          const ema26= EMA(closes,26);
+          const vma20= SMA(vols,20);
+          const bb20 = BB(closes,20,2);
+
+          for (let i=0;i<arr.length;i++){
+            arr[i]['SMA5']=sma5[i];
+            arr[i]['SMA10']=sma10[i];
+            arr[i]['SMA20']=sma20[i];
+            arr[i]['EMA12']=ema12[i];
+            arr[i]['EMA26']=ema26[i];
+            arr[i]['VOL_MA20']=vma20[i];
+            arr[i]['BB_MID']=bb20.mid[i];
+            arr[i]['BB_UP']=bb20.upper[i];
+            arr[i]['BB_LO']=bb20.lower[i];
+            // 黃金交叉旗標（當日狀態）；更嚴謹可檢查前一日相對關係變化
+            arr[i]['GOLDEN'] = Number.isFinite(ema12[i]) && Number.isFinite(ema26[i]) && ema12[i] > ema26[i];
+          }
+
+          // 建圖用序列
+          seriesByCode.set(code, arr.map(x=>({
+            t: x['日期Date'], y: x['收盤價'], vol: x['成交量'], name: x['商品']||code, ref:x
+          })));
+        }
+
+        filteredData = stockData.slice();
+
+        uploadStatus.textContent = `✓ 已載入 ${stockData.length} 列（偵測分隔符：${delimiter === '\t' ? 'Tab' : '逗號'}，可 Ctrl＋點擊表格列加入比較）`;
+        uploadStatus.classList.remove('hidden');
+        filterSection.classList.remove('hidden');
+        compareSection.classList.remove('hidden');
+        $('q').value = '';
+        compareSet.clear(); colorByCode.clear();
+        refreshPrimarySelect();
+        displayResults();
+        renderCompareList();
+        initOrUpdateChart();
+      } catch(err){
+        console.error(err);
+        uploadError.textContent = '檔案讀取或解析失敗：' + (err?.message || err);
+        uploadError.classList.remove('hidden');
+      }
+    });
+
+    // === 基本操作 ===
+    $('applyBtn').addEventListener('click', applyFilters);
+    $('resetBtn').addEventListener('click', () => {
+      ['minPrice','maxPrice','minChange','maxChange','minVolume','minAmplitude'].forEach(id=>$(id).value='');
+      ['st_maBull','st_volUp','st_break52h','st_golden'].forEach(id=>$(id).checked=false);
+      $('sortBy').value='code';
+      $('q').value='';
+      filteredData = stockData.slice();
+      displayResults();
+    });
+    $('q').addEventListener('input', ()=>applyFilters(false));
+    $('exportBtn').addEventListener('click', exportCSV);
+
+    $('sortBy').addEventListener('change', ()=>{ sortNow(); displayResults(); });
+
+    $('scaleMode').addEventListener('change', (e)=>{ scaleMode=e.target.value; initOrUpdateChart(); });
+    $('ov_sma').addEventListener('change', ()=>initOrUpdateChart());
+    $('ov_ema').addEventListener('change', ()=>initOrUpdateChart());
+    $('ov_bb').addEventListener('change', ()=>initOrUpdateChart());
+    $('primaryCode').addEventListener('change', ()=>initOrUpdateChart());
+
+    // === 篩選含策略 ===
+    function applyFilters(reSort=true){
+      const minPrice = toNumber($('minPrice').value);
+      const maxPrice = toNumber($('maxPrice').value);
+      const minChange= toNumber($('minChange').value);
+      const maxChange= toNumber($('maxChange').value);
+      const minVolume= toNumber($('minVolume').value);
+      const minAmplitude= toNumber($('minAmplitude').value);
+      const q = $('q').value.trim();
+
+      const st_maBull = $('st_maBull').checked;
+      const st_volUp  = $('st_volUp').checked;
+      const st_break52h = $('st_break52h').checked;
+      const st_golden = $('st_golden').checked;
+
+      filteredData = stockData.filter(s=>{
+        if (q){
+          const hay = `${s['代碼']||''} ${s['商品']||''}`.toLowerCase();
+          if (!hay.includes(q.toLowerCase())) return false;
+        }
+        if (Number.isFinite(minPrice) && !(s['收盤價'] >= minPrice)) return false;
+        if (Number.isFinite(maxPrice) && !(s['收盤價'] <= maxPrice)) return false;
+        if (Number.isFinite(minChange)&& !(s['漲跌幅'] >= minChange)) return false;
+        if (Number.isFinite(maxChange)&& !(s['漲跌幅'] <= maxChange)) return false;
+        if (Number.isFinite(minVolume)&& !(s['成交量'] >= minVolume)) return false;
+        if (Number.isFinite(minAmplitude)&& !(s['振幅'] >= minAmplitude)) return false;
+
+        // 策略條件（AND 組合）
+        if (st_maBull){
+          const ok = Number.isFinite(s['SMA5']) && Number.isFinite(s['SMA10']) && Number.isFinite(s['SMA20']) && (s['SMA5']>s['SMA10'] && s['SMA10']>s['SMA20']);
+          if (!ok) return false;
+        }
+        if (st_volUp){
+          const ok = Number.isFinite(s['漲跌幅']) && s['漲跌幅']>0
+                  && Number.isFinite(s['成交量']) && Number.isFinite(s['VOL_MA20'])
+                  && s['成交量'] > s['VOL_MA20']*1.5;
+          if (!ok) return false;
+        }
+        if (st_break52h){
+          if (!(Number.isFinite(s['距離52H%']) && s['距離52H%']>=0)) return false;
+        }
+        if (st_golden){
+          const ok = s['GOLDEN']===true;
+          if (!ok) return false;
+        }
+
+        return true;
       });
+
+      if (reSort) sortNow();
+      displayResults();
     }
-  }
-}
 
-function applyFilters(){
-  if (!raw.length) return;
-  const q = $('#q').value.trim();
-  const d1 = $('#d1').value ? new Date($('#d1').value) : null;
-  const d2 = $('#d2').value ? new Date($('#d2').value) : null;
-  const chgMin = parseNumber($('#chgMin').value);
-  const volMin = parseNumber($('#volMin').value);
-  const cMin = parseNumber($('#closeMin').value);
-  const cMax = parseNumber($('#closeMax').value);
-  const brMin = parseNumber($('#buyRatioMin').value);
-  const col = $('#colSel').value;
-  const colMin = parseNumber($('#colMin').value);
-  const colMax = parseNumber($('#colMax').value);
-  const lastOnly = $('#chkLastOnly').checked;
-
-  const dk = guessDateKey(header);
-  let rows = [];
-  if (lastOnly){
-    const mapLatest = new Map();
-    for (const r of raw){
-      const code = r['代碼'];
-      const dt = toDate(r[dk]);
-      const ex = mapLatest.get(code);
-      if (!ex || (dt && dt>ex._dt)){
-        const rr = calcDerived(r); rr._dt = dt; mapLatest.set(code, rr);
-      }
-    }
-    rows = [...mapLatest.values()];
-  } else {
-    rows = raw.map(calcDerived);
-  }
-
-  rows = rows.filter(r=>{
-    if (q){
-      const s = (String(r['代碼']||'')+' '+String(r['商品']||'')).toLowerCase();
-      if (!s.includes(q.toLowerCase())) return false;
-    }
-    const dt = r._dt ?? toDate(r[dk]);
-    if (d1 && dt && dt<d1) return false;
-    if (d2 && dt && dt>d2) return false;
-    if (chgMin!=null){ const v = parseNumber(r['漲跌幅']); if (!(v!=null && v>=chgMin)) return false; }
-    if (volMin!=null){ const v = parseNumber(r['成交量']); if (!(v!=null && v>=volMin)) return false; }
-    if (cMin!=null || cMax!=null){
-      const v = parseNumber(r['收盤價']);
-      if (cMin!=null && !(v!=null && v>=cMin)) return false;
-      if (cMax!=null && !(v!=null && v<=cMax)) return false;
-    }
-    if (brMin!=null){ const v = parseNumber(r['外盤比']); if (!(v!=null && v>=brMin)) return false; }
-    if (col && (colMin!=null || colMax!=null)){
-      const v = parseNumber(r[col]);
-      if (colMin!=null && !(v!=null && v>=colMin)) return false;
-      if (colMax!=null && !(v!=null && v<=colMax)) return false;
-    }
-    return true;
-  });
-
-  // 預設排序：漲跌幅 由大到小
-  rows.sort((a,b)=> (parseNumber(b['漲跌幅'])??-1e12) - (parseNumber(a['漲跌幅'])??-1e12));
-
-  updateStats(rows);
-  renderTable(rows);
-  afterRenderPostFilters();
-  $('#note').textContent = lastOnly? '以最新一日為主' : '顯示所有日期資料列';
-}
-
-function loadCSV(file){
-  Papa.parse(file, {
-    header:true,
-    skipEmptyLines:true,
-    transformHeader: h => (h||'').replace(/\ufeff/g,'').trim(),
-    complete: (res)=>{
-      raw = res.data.map(r=>{
-        if (r['Date']===undefined && r['日期']!==undefined) r['Date']=r['日期'];
-        return r;
-      }).filter(r => r['代碼'] && r['商品']);
-      header = res.meta.fields.filter(Boolean);
-
-      // 填入自訂欄位選單
-      const sel = $('#colSel'); sel.innerHTML='';
-      header.forEach(h => {
-        if (!['代碼','商品','Date','日期'].includes(h)){
-          const opt = document.createElement('option'); opt.value=h; opt.textContent=h; sel.appendChild(opt);
+    function sortNow(){
+      const sortBy = $('sortBy').value;
+      filteredData.sort((a,b)=>{
+        switch(sortBy){
+          case 'change': return (b['漲跌幅'] ?? -Infinity) - (a['漲跌幅'] ?? -Infinity);
+          case 'volume': return (b['成交量'] ?? -Infinity) - (a['成交量'] ?? -Infinity);
+          case 'amplitude': return (b['振幅'] ?? -Infinity) - (a['振幅'] ?? -Infinity);
+          case 'price': return (b['收盤價'] ?? -Infinity) - (a['收盤價'] ?? -Infinity);
+          case 'value': return (b['成交金額(元)'] ?? -Infinity) - (a['成交金額(元)'] ?? -Infinity);
+          case 'dist52h': return (b['距離52H%'] ?? -Infinity) - (a['距離52H%'] ?? -Infinity);
+          default: return String(a['代碼']||'').localeCompare(String(b['代碼']||''), 'zh-Hant-u-nu-hanidec');
         }
       });
-
-      // 建 byCode
-      byCode = {};
-      const dk = guessDateKey(header);
-      for (const r of raw){
-        const code = r['代碼']; if (!byCode[code]) byCode[code]=[]; byCode[code].push(r);
-        r._dt = toDate(r[dk]);
-      }
-
-      // 估日期範圍
-      const dates = raw.map(r => r._dt).filter(Boolean).sort((a,b)=>a-b);
-      if (dates.length){
-        $('#d1').value = dates[Math.max(0, dates.length-60)].toISOString().slice(0,10);
-        $('#d2').value = dates[dates.length-1].toISOString().slice(0,10);
-      }
-
-      applyFilters();
     }
-  });
-}
 
-$('#file').addEventListener('change', e=>{ if (e.target.files?.length) loadCSV(e.target.files[0]); });
-$('#q,#d1,#d2,#chgMin,#volMin,#closeMin,#closeMax,#buyRatioMin,#colSel,#colMin,#colMax,#chkBull,#chkLastOnly').forEach?.call($$('input,select'), el => {
-  el.addEventListener('input', applyFilters);
-});
+    function displayResults(){
+      resultSection.classList.remove('hidden');
+      const count = filteredData.length;
+      resultTitle.textContent = `篩選結果（${count} 列）`;
 
-// 快捷條件
-$('#btn-strong').onclick = () => {
-  if ($('#chgMin').value==='') $('#chgMin').value='2';
-  if ($('#volMin').value==='') $('#volMin').value='500';
-  $('#chkBull').checked = false; // 預設不強制多頭排列
-  // 收盤價 > 均價[1+2+3] 以後置檢查實作：先渲染再篩
-  applyFilters();
-  const ths = [...$('#tbl thead th')];
-  const ixClose = ths.findIndex(th => th.textContent==='收盤價');
-  const ixMA = ths.findIndex(th => th.textContent.includes('均價[1+2+3]'));
-  if (ixClose>-1 && ixMA>-1){
-    const rows = [...$('#tbl tbody tr')];
-    rows.forEach(tr => {
-      const c = parseNumber(tr.children[ixClose]?.textContent);
-      const m = parseNumber(tr.children[ixMA]?.textContent);
-      if (!(c!=null && m!=null && c>m)) tr.remove();
-    });
-  }
-};
-$('#btn-break').onclick = () => {
-  applyFilters();
-  const ths = [...$('#tbl thead th')];
-  const ixClose = ths.findIndex(th=>th.textContent==='收盤價');
-  const ix52 = ths.findIndex(th=>th.textContent.includes('52H價'));
-  if (ixClose>-1 && ix52>-1){
-    const rows = [...$('#tbl tbody tr')];
-    rows.forEach(tr=>{
-      const c = parseNumber(tr.children[ixClose]?.textContent);
-      const h = parseNumber(tr.children[ix52]?.textContent);
-      if (!(c!=null && h!=null && c >= h*0.98)) tr.remove();
-    });
-  }
-};
-$('#btn-reset').onclick = () => {
-  $$('#q,#d1,#d2,#chgMin,#volMin,#closeMin,#closeMax,#buyRatioMin,#colMin,#colMax').forEach(i=> i.value='');
-  $('#chkBull').checked=false; $('#chkLastOnly').checked=true; applyFilters();
-};
+      const pos = filteredData.filter(x=> (x['漲跌幅']??0) > 0).length;
+      const neg = filteredData.filter(x=> (x['漲跌幅']??0) < 0).length;
+      const avgChg = avg(filteredData.map(x=>x['漲跌幅'])).toFixed(2);
+      const totVol = sum(filteredData.map(x=>x['成交量']));
+      const totVal = sum(filteredData.map(x=>x['成交金額(元)']));
+      summary.textContent = `上漲：${pos}、下跌：${neg}、平均漲跌幅：${avgChg}%、合計量：${fmtInt(totVol)}、合計金額：${fmtMoney(totVal)}`;
 
-// 儲存/載入條件（localStorage）
-function currentFilters(){
-  return {
-    q:$('#q').value, d1:$('#d1').value, d2:$('#d2').value,
-    chgMin:$('#chgMin').value, volMin:$('#volMin').value,
-    closeMin:$('#closeMin').value, closeMax:$('#closeMax').value,
-    buyRatioMin:$('#buyRatioMin').value,
-    colSel:$('#colSel').value, colMin:$('#colMin').value, colMax:$('#colMax').value,
-    bull:$('#chkBull').checked, lastOnly:$('#chkLastOnly').checked
-  };
-}
-function applySaved(f){
-  if (!f) return;
-  $('#q').value=f.q||''; $('#d1').value=f.d1||''; $('#d2').value=f.d2||'';
-  $('#chgMin').value=f.chgMin||''; $('#volMin').value=f.volMin||'';
-  $('#closeMin').value=f.closeMin||''; $('#closeMax').value=f.closeMax||'';
-  $('#buyRatioMin').value=f.buyRatioMin||'';
-  // colSel 必須等 CSV 載入後才有選項，如無則略過
-  if ($('#colSel').options.length){ $('#colSel').value=f.colSel||''; }
-  $('#colMin').value=f.colMin||''; $('#colMax').value=f.colMax||'';
-  $('#chkBull').checked=!!f.bull; $('#chkLastOnly').checked=!!f.lastOnly;
-}
-$('#btn-save').onclick = () => {
-  const name = prompt('儲存為條件名稱（例如：強勢＋近高）：');
-  if (!name) return;
-  const all = JSON.parse(localStorage.getItem('stock_filters')||'{}');
-  all[name] = currentFilters();
-  localStorage.setItem('stock_filters', JSON.stringify(all));
-  alert('已儲存：'+name);
-};
-$('#btn-load').onclick = () => {
-  const all = JSON.parse(localStorage.getItem('stock_filters')||'{}');
-  const names = Object.keys(all);
-  if (!names.length){ alert('尚無已儲存的條件'); return; }
-  const name = prompt('輸入要載入的條件名稱\n可用：\n- '+names.join('\n- '));
-  if (!name || !all[name]) return;
-  applySaved(all[name]);
-  applyFilters();
-};
+      resultBody.innerHTML = filteredData.map(stock=>{
+        const code = stock['代碼'] ?? '';
+        const name = stock['商品'] ?? '';
+        const price= fmtPrice(stock['收盤價']);
+        const chg  = stock['漲跌幅'];
+        const amp  = stock['振幅'];
+        const vol  = fmtInt(stock['成交量']);
+        const val  = fmtMoney(stock['成交金額(元)']);
+        const dist52 = stock['距離52H%'];
 
-// 匯出結果 CSV（取目前畫面表格資料）
-$('#btn-export').onclick = () => {
-  const ths = [...$('#tbl thead th')].map(th=>th.textContent);
-  const rows = [...$('#tbl tbody tr')].map(tr=> [...tr.children].map(td=> td.textContent));
-  if (!rows.length){ alert('目前沒有可匯出的結果'); return; }
-  let csv = ths.join(',') + '\n' + rows.map(r => r.map(x => '"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n');
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='選股結果.csv'; a.click();
-  URL.revokeObjectURL(url);
-};
+        const changeColor = Number.isFinite(chg) ? (chg>0?'text-red-600':(chg<0?'text-green-600':'text-gray-600')) : 'text-gray-400';
+        const iconUp = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>';
+        const iconDown = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>';
+        const trendIcon = Number.isFinite(chg)?(chg>0?iconUp:(chg<0?iconDown:'')):'';
+        const selected = compareSet.has(code) ? 'bg-blue-50' : '';
 
-// 拖曳上傳
-window.addEventListener('dragover', e=>{e.preventDefault();});
-window.addEventListener('drop', e=>{ e.preventDefault(); if (e.dataTransfer.files?.length) loadCSV(e.dataTransfer.files[0]); });
-</script></body>
+        return `
+          <tr class="border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${selected}" data-code="${escapeHtml(code)}">
+            <td class="px-4 py-3 font-medium">${escapeHtml(code)}</td>
+            <td class="px-4 py-3">${escapeHtml(name)}</td>
+            <td class="px-4 py-3 text-right">${price||''}</td>
+            <td class="px-4 py-3 text-right font-medium ${changeColor}">
+              <div class="flex items-center justify-end gap-1">${trendIcon}${Number.isFinite(chg)?fmtPct(chg):''}</div>
+            </td>
+            <td class="px-4 py-3 text-right">${Number.isFinite(amp)?fmtPct(amp):''}</td>
+            <td class="px-4 py-3 text-right">${vol}</td>
+            <td class="px-4 py-3 text-right">${val}</td>
+            <td class="px-4 py-3 text-right ${Number.isFinite(dist52)?(dist52>=0?'text-red-600':'text-green-600'):'text-gray-400'}">
+              ${Number.isFinite(dist52)?fmtPct(dist52):''}
+            </td>
+          </tr>`;
+      }).join('');
+
+      // Ctrl+點擊加入/移除比較
+      resultBody.onclick = (ev)=>{
+        const tr = ev.target.closest('tr[data-code]'); if(!tr) return;
+        if (!ev.ctrlKey) return;
+        const code = tr.getAttribute('data-code');
+        toggleCompare(code);
+      };
+    }
+
+    function exportCSV(){
+      if (!filteredData.length) return;
+      const headers = ['代碼','商品','收盤價','漲跌幅','振幅','成交量','成交金額(元)','距離52H%','日期','52H價','SMA5','SMA10','SMA20','EMA12','EMA26','VOL_MA20'];
+      const lines=[headers.join(',')];
+      for (const r of filteredData){
+        const row = [
+          r['代碼']??'',
+          r['商品']??'',
+          Number.isFinite(r['收盤價'])?r['收盤價']:'',
+          Number.isFinite(r['漲跌幅'])?r['漲跌幅']:'',
+          Number.isFinite(r['振幅'])?r['振幅']:'',
+          Number.isFinite(r['成交量'])?r['成交量']:'',
+          Number.isFinite(r['成交金額(元)'])?r['成交金額(元)']:'',
+          Number.isFinite(r['距離52H%'])?r['距離52H%']:'',
+          r['日期']??'',
+          Number.isFinite(r['52H價'])?r['52H價']:'',
+          r['SMA5']??'',
+          r['SMA10']??'',
+          r['SMA20']??'',
+          r['EMA12']??'',
+          r['EMA26']??'',
+          r['VOL_MA20']??'',
+        ].map(val=>{
+          const s=String(val??''); return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s;
+        }).join(',');
+        lines.push(row);
+      }
+      const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download='filtered_stocks.csv'; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // === 比較清單 ===
+    function toggleCompare(code){
+      if (!code) return;
+      if (compareSet.has(code)) compareSet.delete(code);
+      else {
+        if (compareSet.size >= 5){ alert('比較清單最多 5 檔。請先移除部分標的。'); return; }
+        compareSet.add(code);
+        if (!colorByCode.has(code)){
+          const used = new Set([...colorByCode.values()]);
+          const color = COLOR_POOL.find(c=>!used.has(c)) || COLOR_POOL[compareSet.size % COLOR_POOL.length];
+          colorByCode.set(code,color);
+        }
+      }
+      renderCompareList();
+      refreshPrimarySelect();
+      highlightSelectedRows();
+      initOrUpdateChart();
+    }
+
+    function highlightSelectedRows(){
+      document.querySelectorAll('#resultBody tr[data-code]').forEach(tr=>{
+        const code = tr.getAttribute('data-code');
+        tr.classList.toggle('bg-blue-50', compareSet.has(code));
+      });
+    }
+
+    function renderCompareList(){
+      const wrap = $('compareList');
+      wrap.innerHTML = '';
+      if (compareSet.size === 0){
+        wrap.innerHTML = `<span class="text-gray-500 text-sm">尚未選擇標的。請在下方表格「按住 Ctrl 並點擊」列來加入。</span>`;
+        return;
+      }
+      for (const code of compareSet){
+        const color = colorByCode.get(code)||'#1f77b4';
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-2 px-3 py-1 rounded-full border';
+        div.style.borderColor = color;
+        div.innerHTML = `
+          <span class="inline-block w-3 h-3 rounded-full" style="background:${color}"></span>
+          <span class="font-medium">${escapeHtml(code)}</span>
+          <button class="text-xs px-2 py-0.5 rounded bg-gray-100 hover:bg-gray-200" data-act="toggle" data-code="${escapeHtml(code)}">顯示/隱藏</button>
+          <button class="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700 hover:bg-red-200" data-act="remove" data-code="${escapeHtml(code)}">移除</button>
+        `;
+        wrap.appendChild(div);
+      }
+      wrap.onclick = (ev)=>{
+        const btn = ev.target.closest('button[data-act]'); if(!btn) return;
+        const act = btn.getAttribute('data-act'); const code = btn.getAttribute('data-code');
+        if (act==='remove'){
+          compareSet.delete(code);
+          renderCompareList();
+          refreshPrimarySelect();
+          highlightSelectedRows();
+          initOrUpdateChart();
+        } else if (act==='toggle'){
+          if (!chart) return;
+          const ds = chart.data.datasets.find(d=>d.label===code);
+          if (ds){ ds.hidden = !ds.hidden; chart.update(); }
+        }
+      };
+    }
+
+    function refreshPrimarySelect(){
+      const sel = primaryCodeSel;
+      const cur = sel.value;
+      sel.innerHTML = `<option value="">（自動）</option>` + [...compareSet].map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+      // 保留原選擇
+      if (cur && compareSet.has(cur)) sel.value = cur; else sel.value = '';
+    }
+
+    // === 圖表 ===
+    function initOrUpdateChart(){
+      const ctx = $('compareChart').getContext('2d');
+      const datasets = [];
+
+      // 收盤線
+      for (const code of compareSet){
+        const arr = seriesByCode.get(code)||[];
+        if (!arr.length) continue;
+        const color = colorByCode.get(code)||'#1f77b4';
+        let data = arr.map(p=>({ x:p.t, y:p.y }));
+        if (scaleMode==='norm'){
+          // 以該檔「第一筆有價」為 100
+          const first = data.find(d=>Number.isFinite(d.y));
+          if (first){
+            const base = first.y;
+            data = data.map(d=>({ x:d.x, y: Number.isFinite(d.y)? d.y/base*100 : NaN }));
+          }
+        }
+        datasets.push({
+          label: code, data, borderColor: color, backgroundColor: color, fill:false,
+          tension:0.15, pointRadius:0, borderWidth:2
+        });
+      }
+
+      // 疊圖指標：僅主圖標的
+      const ovSMA = $('ov_sma').checked;
+      const ovEMA = $('ov_ema').checked;
+      const ovBB  = $('ov_bb').checked;
+      const primary = primaryCodeSel.value || [...compareSet][0];
+      if (primary){
+        const arr = seriesByCode.get(primary)||[];
+        if (arr.length){
+          // 取對應序列
+          const closes = arr.map(p=>p.ref['收盤價']);
+          const dates  = arr.map(p=>p.t);
+          const addLine = (label, series, dash=[6,4])=>{
+            let data = series.map((y,i)=>({x:dates[i], y}));
+            if (scaleMode==='norm'){
+              const first = closes.find(v=>Number.isFinite(v));
+              const base = first;
+              if (Number.isFinite(base)){
+                data = series.map((v,i)=>({x:dates[i], y: Number.isFinite(v)? v/base*100 : NaN}));
+              }
+            }
+            datasets.push({
+              label: `${primary} ${label}`,
+              data, borderColor:'#444', borderDash:dash, pointRadius:0, borderWidth:1.5, fill:false
+            });
+          };
+          if (ovSMA){
+            const s5 = arr.map(p=>p.ref['SMA5']);
+            const s10= arr.map(p=>p.ref['SMA10']);
+            const s20= arr.map(p=>p.ref['SMA20']);
+            addLine('SMA5', s5, [4,3]);
+            addLine('SMA10',s10,[8,4]);
+            addLine('SMA20',s20,[12,4]);
+          }
+          if (ovEMA){
+            const e12= arr.map(p=>p.ref['EMA12']);
+            const e26= arr.map(p=>p.ref['EMA26']);
+            addLine('EMA12', e12, [2,2]);
+            addLine('EMA26', e26, [10,3]);
+          }
+          if (ovBB){
+            const mid= arr.map(p=>p.ref['BB_MID']);
+            const up = arr.map(p=>p.ref['BB_UP']);
+            const lo = arr.map(p=>p.ref['BB_LO']);
+            addLine('BB_mid', mid, [1,0]); // 實線
+            datasets[datasets.length-1].borderWidth = 1;
+            addLine('BB_up', up, [5,3]);
+            addLine('BB_lo', lo, [5,3]);
+          }
+        }
+      }
+
+      const yTitle = (scaleMode==='close')?'收盤價':'基準化（=100）';
+
+      const config = {
+        type:'line',
+        data:{ datasets },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          scales:{
+            x:{ type:'time', time:{ unit:'day', tooltipFormat:'yyyy-MM-dd' }, ticks:{ maxRotation:0, autoSkip:true }},
+            y:{ title:{ display:true, text:yTitle }, ticks:{ beginAtZero:false } }
+          },
+          plugins:{
+            legend:{ position:'top' },
+            tooltip:{
+              mode:'nearest', intersect:false,
+              callbacks:{ label:(ctx)=>`${ctx.dataset.label}: ${fmtPrice(ctx.parsed.y)}` }
+            }
+          }
+        }
+      };
+      if (!chart){ chart = new Chart(ctx, config); }
+      else { chart.data = config.data; chart.options=scalesOptionsTo(config.options); chart.update(); }
+    }
+    // 小工具：複製 options 給既有圖（避免直接重綁物件參照）
+    function scalesOptionsTo(opt){ return JSON.parse(JSON.stringify(opt)); }
+
+    // 初始化可視區塊
+    (function ensureSections(){ resultSection.classList.remove('hidden'); compareSection.classList.remove('hidden'); })();
+
+  </script>
+</body>
 </html>
