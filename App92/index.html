@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
-  <title>房貸寬限期情境模擬｜增強版</title>
+  <title>房貸寬限期完整分析｜五大情境模擬</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -15,6 +15,7 @@
       --text: #e6edf6;
       --warn: #ffb84d;
       --danger: #ff6b6b;
+      --success: #51cf66;
       --grid: #243242;
       --grace-color: #ffb84d;
       --repay-color: #7dc4ff;
@@ -34,6 +35,7 @@
     .grid{display:grid;gap:12px}
     @media (min-width:900px){ .grid{grid-template-columns:repeat(4,1fr)} }
     @media (min-width:900px){ .grid.stats{grid-template-columns:repeat(3,1fr)} }
+    @media (min-width:900px){ .grid.two{grid-template-columns:repeat(2,1fr)} }
     label{display:block;font-weight:600;margin-bottom:6px;font-size:13px}
     input,select{
       width:100%; padding:10px 12px; background:#0b131c;color:var(--text);
@@ -43,16 +45,32 @@
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .btn{
       background:#1b2a41;color:#fff;border:1px solid #2c3f57;
-      padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600;font-size:14px
+      padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600;font-size:14px;
+      transition:all 0.2s;border:none
     }
-    .btn:hover{background:#223452}
+    .btn:hover{background:#223452;transform:translateY(-1px)}
     .btn.accent{background:#204d7a;border-color:#2f6ea8}
     .btn.warn{background:#6e4007;border-color:#91560a}
+    .btn.success{background:#2d6e3f;border-color:#3d8e4f}
+    .btn.danger{background:#6e2020;border-color:#8e3030}
+    .btn:disabled{opacity:0.5;cursor:not-allowed}
     canvas{background:#0c121a;border-radius:14px;border:1px solid #1f2a38}
     .chart-container{position:relative;height:400px;width:100%}
     @media (max-width:768px){ .chart-container{height:300px} }
     .hint{color:var(--muted);font-size:13px}
     .footer{color:#7e8ea2;margin-top:8px;font-size:12px}
+    
+    /* 分頁系統 */
+    .tabs{display:flex;gap:8px;margin-bottom:20px;border-bottom:2px solid #1f2a38;overflow-x:auto}
+    .tab{
+      padding:12px 16px;background:transparent;border:none;color:var(--muted);
+      cursor:pointer;font-weight:600;font-size:14px;border-bottom:3px solid transparent;
+      transition:all 0.2s;white-space:nowrap
+    }
+    .tab:hover{color:var(--text);background:rgba(125,196,255,0.05)}
+    .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+    .tab-content{display:none}
+    .tab-content.active{display:block}
     
     .stat-box{
       background:linear-gradient(135deg,#1a2332 0%,#0f1520 100%);
@@ -73,6 +91,12 @@
     .warning-icon{display:inline-block;margin-right:8px;font-size:18px}
     .warning-text{font-weight:600;color:var(--warn)}
     
+    .success-box{
+      background:linear-gradient(135deg,#1a3d2e 0%,#0f2419 100%);
+      border:1px solid #2d7a52;border-radius:12px;padding:14px;margin-top:12px;
+    }
+    .success-text{font-weight:600;color:var(--success)}
+    
     .legend{display:flex;gap:20px;margin-top:12px;flex-wrap:wrap}
     .legend-item{display:flex;align-items:center;gap:8px;font-size:13px}
     .legend-color{width:16px;height:16px;border-radius:4px}
@@ -80,14 +104,93 @@
     .toggle-section{margin-top:12px;padding-top:12px;border-top:1px solid #1f2a38}
     .checkbox-label{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
     input[type="checkbox"]{width:auto;cursor:pointer}
+    
+    .big-number{font-size:32px;font-weight:700;line-height:1.2}
+    .comparison-card{
+      background:linear-gradient(135deg,#1a2332 0%,#0f1520 100%);
+      border:2px solid #2c3f57;border-radius:12px;padding:20px;margin-bottom:16px
+    }
+    .vs-divider{
+      text-align:center;font-size:24px;font-weight:700;color:var(--muted);
+      margin:20px 0;position:relative
+    }
+    .vs-divider::before,.vs-divider::after{
+      content:'';position:absolute;top:50%;width:40%;height:2px;
+      background:linear-gradient(to right,transparent,#2c3f57)
+    }
+    .vs-divider::before{left:0}
+    .vs-divider::after{right:0}
+    
+    .pressure-indicator{
+      height:40px;border-radius:10px;position:relative;overflow:hidden;
+      background:linear-gradient(to right,var(--success) 0%,var(--warn) 50%,var(--danger) 100%);
+      margin:16px 0
+    }
+    .pressure-marker{
+      position:absolute;top:-8px;width:4px;height:56px;background:#fff;
+      box-shadow:0 0 10px rgba(255,255,255,0.5);transition:left 0.3s
+    }
+    .pressure-labels{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+    
+    /* 時間軸動畫 */
+    .timeline-display{
+      text-align:center;font-size:48px;font-weight:700;margin:20px 0;
+      color:var(--accent);text-shadow:0 0 20px rgba(125,196,255,0.5)
+    }
+    .milestone{
+      background:linear-gradient(135deg,#2d4a6e 0%,#1a2d42 100%);
+      border:2px solid var(--accent);border-radius:12px;padding:12px;margin:8px 0;
+      animation:pulse 2s infinite
+    }
+    @keyframes pulse{
+      0%,100%{box-shadow:0 0 0 rgba(125,196,255,0.4)}
+      50%{box-shadow:0 0 20px rgba(125,196,255,0.8)}
+    }
+    .animation-controls{
+      display:flex;gap:10px;justify-content:center;margin:16px 0;flex-wrap:wrap
+    }
+    .speed-control{
+      display:flex;align-items:center;gap:8px;padding:8px 16px;
+      background:#1a2332;border-radius:10px;border:1px solid #2c3f57
+    }
+    
+    /* 儀表板 */
+    .gauge-container{
+      position:relative;width:250px;height:250px;margin:20px auto
+    }
+    .gauge-svg{width:100%;height:100%}
+    .gauge-bg{fill:none;stroke:#1f2a38;stroke-width:20}
+    .gauge-fill{fill:none;stroke-width:20;transition:stroke-dashoffset 0.5s,stroke 0.5s;
+      stroke-linecap:round}
+    .gauge-text{font-size:48px;font-weight:700;fill:var(--text)}
+    .gauge-label{font-size:14px;fill:var(--muted)}
+    
+    .health-metric{
+      background:linear-gradient(135deg,#1a2332 0%,#0f1520 100%);
+      border-left:4px solid var(--accent);border-radius:8px;padding:16px;margin:12px 0
+    }
+    .metric-title{font-weight:600;margin-bottom:8px;display:flex;justify-content:space-between}
+    .metric-bar{
+      height:24px;background:#0b131c;border-radius:8px;overflow:hidden;position:relative
+    }
+    .metric-fill{
+      height:100%;transition:width 0.5s,background 0.5s;
+      display:flex;align-items:center;justify-content:center;
+      font-size:12px;font-weight:600
+    }
+    .metric-info{font-size:13px;color:var(--muted);margin-top:8px}
+    
+    .dashboard-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
   </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="title">房貸寬限期情境模擬（增強版）</div>
-  <div class="subtitle">完整分析：① 顏色區分的長條圖、② 本金折線圖、③ 關鍵數據對比、④ 有無寬限期對比、⑤ 提前還款模擬</div>
+  <div class="title">房貸寬限期完整分析系統</div>
+  <div class="subtitle">五大情境模擬：基本對比 / 升息壓力 / 投資機會 / 時間軸動畫 / 財務健康儀表板</div>
 
+  <!-- 共用參數設定 -->
   <div class="card">
+    <div style="font-weight:700;margin-bottom:12px">基本參數設定</div>
     <div class="grid">
       <div>
         <label>貸款金額（元）</label>
@@ -106,101 +209,439 @@
         <input id="grace" type="number" value="5" min="0" max="10" step="1">
       </div>
     </div>
+  </div>
 
-    <div class="toggle-section">
+  <!-- 分頁導航 -->
+  <div class="tabs">
+    <button class="tab active" data-tab="basic">📊 基本模擬</button>
+    <button class="tab" data-tab="pressure">🔥 升息壓力</button>
+    <button class="tab" data-tab="investment">💰 投資機會</button>
+    <button class="tab" data-tab="timeline">🎬 時間軸動畫</button>
+    <button class="tab" data-tab="dashboard">🎯 財務健康</button>
+  </div>
+
+  <!-- 分頁 1: 基本模擬 -->
+  <div id="tab-basic" class="tab-content active">
+    <div class="card">
       <label class="checkbox-label">
         <input type="checkbox" id="showComparison">
-        <span>顯示「無寬限期」對比（看清楚代價）</span>
+        <span>顯示「無寬限期」對比</span>
       </label>
       <label class="checkbox-label">
         <input type="checkbox" id="enableExtraPay">
         <span>啟用提前還款模擬</span>
       </label>
+
+      <div id="extraPaySection" style="display:none;margin-top:12px">
+        <div class="grid" style="grid-template-columns:repeat(2,1fr)">
+          <div>
+            <label>每年額外還款（元）</label>
+            <input id="extraPay" type="number" value="100000" min="0" step="10000">
+          </div>
+          <div>
+            <label>從第幾年開始還</label>
+            <input id="extraStartYear" type="number" value="6" min="1" step="1">
+          </div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:16px">
+        <button class="btn accent" id="runBasic">生成圖表</button>
+        <button class="btn" id="downloadBar">下載長條圖</button>
+        <button class="btn" id="downloadLine">下載折線圖</button>
+        <button class="btn" id="exportCsv">匯出 CSV</button>
+      </div>
     </div>
 
-    <div id="extraPaySection" style="display:none;margin-top:12px">
+    <div id="statsCard" class="card" style="display:none">
+      <div style="font-weight:700;margin-bottom:12px">📊 關鍵數據對比</div>
+      <div class="grid stats">
+        <div class="stat-box">
+          <div class="stat-label">寬限期月繳</div>
+          <div class="stat-value" id="gracePayment">-</div>
+          <div class="stat-sub">（只繳利息）</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">攤還期月繳</div>
+          <div class="stat-value" id="repayPayment">-</div>
+          <div class="stat-sub" id="increasePercent">-</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">總利息支出</div>
+          <div class="stat-value" id="totalInterest">-</div>
+          <div class="stat-sub" id="interestDiff">-</div>
+        </div>
+      </div>
+      <div id="warningBox" class="warning-box">
+        <div class="warning-text">
+          <span class="warning-icon">⚠️</span>
+          <span id="warningText"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:8px">
+        <div style="font-weight:700">每月繳款對比長條圖</div>
+        <div class="hint">顏色區分：寬限期 vs 攤還期</div>
+      </div>
+      <div class="chart-container">
+        <canvas id="barChart"></canvas>
+      </div>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-color" style="background:var(--grace-color)"></div>
+          <span>寬限期（只繳利息）</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background:var(--repay-color)"></div>
+          <span>攤還期（本息攤還）</span>
+        </div>
+        <div class="legend-item" id="noGraceLegend" style="display:none">
+          <div class="legend-color" style="background:#9bb0c9"></div>
+          <span>無寬限期（對比）</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:8px">
+        <div style="font-weight:700">剩餘本金折線圖</div>
+        <div class="hint">看清楚寬限期的「拖延效應」</div>
+      </div>
+      <div class="chart-container">
+        <canvas id="lineChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分頁 2: 升息壓力測試 -->
+  <div id="tab-pressure" class="tab-content">
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:12px">升息情境設定</div>
+      <div class="grid" style="grid-template-columns:repeat(3,1fr)">
+        <div>
+          <label>情境 1：輕度升息（%）</label>
+          <input id="rate1" type="number" value="0.5" min="0" max="5" step="0.25">
+        </div>
+        <div>
+          <label>情境 2：中度升息（%）</label>
+          <input id="rate2" type="number" value="1" min="0" max="5" step="0.25">
+        </div>
+        <div>
+          <label>情境 3：重度升息（%）</label>
+          <input id="rate3" type="number" value="2" min="0" max="5" step="0.25">
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <label>你的月收入（元）- 用於計算負債比</label>
+        <input id="monthlyIncome" type="number" value="150000" min="0" step="5000">
+      </div>
+      <button class="btn accent" id="runPressure" style="margin-top:16px">分析升息影響</button>
+    </div>
+
+    <div id="pressureResults" style="display:none">
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:16px">🔥 升息壓力分析</div>
+        <div class="comparison-card">
+          <div style="color:var(--muted);margin-bottom:8px">目前利率 <span id="currentRate"></span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:14px;color:var(--muted)">攤還期月繳</div>
+              <div class="big-number" id="currentPayment"></div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:14px;color:var(--muted)">負債比</div>
+              <div class="big-number" id="currentRatio"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="vs-divider">升息後</div>
+
+        <div id="scenarios"></div>
+
+        <div style="margin-top:20px">
+          <div style="font-weight:700;margin-bottom:12px">財務壓力指標</div>
+          <div class="pressure-indicator">
+            <div class="pressure-marker" id="pressureMarker"></div>
+          </div>
+          <div class="pressure-labels">
+            <span>安全 (&lt;30%)</span>
+            <span>警戒 (30-50%)</span>
+            <span>危險 (&gt;50%)</span>
+          </div>
+        </div>
+
+        <div id="pressureWarning" class="warning-box">
+          <div class="warning-text">
+            <span class="warning-icon">⚠️</span>
+            <span id="pressureWarningText"></span>
+          </div>
+        </div>
+
+        <div id="pressureSuccess" class="success-box" style="display:none">
+          <div class="success-text">
+            <span style="margin-right:8px">✓</span>
+            <span id="pressureSuccessText"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="justify-content:space-between;margin-bottom:8px">
+          <div style="font-weight:700">升息情境月繳對比</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="pressureChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分頁 3: 投資機會成本 -->
+  <div id="tab-investment" class="tab-content">
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:12px">投資情境設定</div>
       <div class="grid" style="grid-template-columns:repeat(2,1fr)">
         <div>
-          <label>每年額外還款（元）</label>
-          <input id="extraPay" type="number" value="100000" min="0" step="10000">
+          <label>預期年化報酬率（%）</label>
+          <input id="returnRate" type="number" value="5" min="0" max="20" step="0.5">
+          <div class="hint">例如：定存 1-2%、ETF 5-8%、股票 8-15%</div>
         </div>
         <div>
-          <label>從第幾年開始還</label>
-          <input id="extraStartYear" type="number" value="6" min="1" step="1">
+          <label>投資期間（寬限期年數）</label>
+          <input id="investYears" type="number" value="5" min="1" max="10" step="1" disabled>
+          <div class="hint">自動同步寬限期年數</div>
+        </div>
+      </div>
+      <button class="btn accent" id="runInvestment" style="margin-top:16px">計算機會成本</button>
+    </div>
+
+    <div id="investmentResults" style="display:none">
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:16px">💰 投資機會成本分析</div>
+        
+        <div class="comparison-card">
+          <div style="font-size:14px;color:var(--muted);margin-bottom:8px">方案 A：選擇寬限期</div>
+          <div style="margin-bottom:16px">
+            <div style="color:var(--success);margin-bottom:4px">✓ 寬限期省下的錢拿去投資</div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-size:13px;color:var(--muted)">投資累積金額</div>
+                <div class="big-number" style="color:var(--accent2)" id="investTotal"></div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:13px;color:var(--muted)">多付的房貸利息</div>
+                <div class="big-number" style="color:var(--danger)" id="extraInterest"></div>
+              </div>
+            </div>
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid #2c3f57">
+              <div style="font-size:13px;color:var(--muted)">淨收益</div>
+              <div class="big-number" id="netGainA"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="vs-divider">VS</div>
+
+        <div class="comparison-card">
+          <div style="font-size:14px;color:var(--muted);margin-bottom:8px">方案 B：不選寬限期</div>
+          <div>
+            <div style="color:var(--success);margin-bottom:4px">✓ 直接本息攤還，省利息</div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-size:13px;color:var(--muted)">省下的房貸利息</div>
+                <div class="big-number" style="color:var(--accent2)" id="savedInterest"></div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:13px;color:var(--muted)">沒有投資收益</div>
+                <div class="big-number" style="color:var(--muted)">0</div>
+              </div>
+            </div>
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid #2c3f57">
+              <div style="font-size:13px;color:var(--muted)">淨收益</div>
+              <div class="big-number" id="netGainB"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="investmentConclusion" class="card" style="background:linear-gradient(135deg,#1a2d42 0%,#0f1923 100%);border:2px solid #2f6ea8;margin-top:20px">
+          <div style="font-weight:700;font-size:18px;margin-bottom:12px">📌 結論</div>
+          <div id="conclusionText" style="font-size:16px;line-height:1.8"></div>
+        </div>
+
+        <div class="card">
+          <div style="font-weight:700;margin-bottom:8px">划算分界點分析</div>
+          <div class="hint" style="margin-bottom:12px">當投資報酬率達到多少時，選擇寬限期才划算？</div>
+          <div id="breakEvenPoint" style="font-size:16px;padding:16px;background:#0b131c;border-radius:10px"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="justify-content:space-between;margin-bottom:8px">
+          <div style="font-weight:700">累積金額對比</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="investmentChart"></canvas>
         </div>
       </div>
     </div>
+  </div>
 
-    <div class="row" style="margin-top:16px">
-      <button class="btn accent" id="run">生成圖表</button>
-      <button class="btn" id="downloadBar">下載長條圖</button>
-      <button class="btn" id="downloadLine">下載折線圖</button>
-      <button class="btn" id="exportCsv">匯出 CSV</button>
+  <!-- 分頁 4: 時間軸動畫 -->
+  <div id="tab-timeline" class="tab-content">
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:12px">🎬 30年還款歷程動畫</div>
+      <div class="hint" style="margin-bottom:16px">看清楚每一年的本金和利息變化，以及關鍵里程碑</div>
+      
+      <div class="animation-controls">
+        <button class="btn accent" id="playAnimation">▶ 播放動畫</button>
+        <button class="btn" id="pauseAnimation" disabled>⏸ 暫停</button>
+        <button class="btn" id="resetAnimation">⟲ 重設</button>
+        <div class="speed-control">
+          <label style="margin:0">速度：</label>
+          <select id="animSpeed" style="width:auto;padding:4px 8px">
+            <option value="2000">慢速</option>
+            <option value="1000" selected>正常</option>
+            <option value="500">快速</option>
+            <option value="200">極快</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="timeline-display" id="timelineYear">第 1 年</div>
+
+      <div class="grid stats" style="margin-bottom:16px">
+        <div class="stat-box">
+          <div class="stat-label">本年繳款</div>
+          <div class="stat-value" id="yearPayment">-</div>
+          <div class="stat-sub" id="yearBreakdown">-</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">剩餘本金</div>
+          <div class="stat-value" id="yearPrincipal">-</div>
+          <div class="stat-sub" id="principalPercent">-</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">累積利息</div>
+          <div class="stat-value" id="cumulativeInterest">-</div>
+          <div class="stat-sub" id="interestPercent">-</div>
+        </div>
+      </div>
+
+      <div id="milestoneAlert"></div>
+    </div>
+
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:8px">本金 vs 利息逐年變化</div>
+      <div class="chart-container">
+        <canvas id="timelineChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:8px">還款進度折線圖</div>
+      <div class="chart-container">
+        <canvas id="progressChart"></canvas>
+      </div>
     </div>
   </div>
 
-  <div id="statsCard" class="card" style="display:none">
-    <div style="font-weight:700;margin-bottom:12px">📊 關鍵數據對比</div>
-    <div class="grid stats">
-      <div class="stat-box">
-        <div class="stat-label">寬限期月繳</div>
-        <div class="stat-value" id="gracePayment">-</div>
-        <div class="stat-sub">（只繳利息）</div>
+  <!-- 分頁 5: 財務健康儀表板 -->
+  <div id="tab-dashboard" class="tab-content">
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:12px">個人財務狀況輸入</div>
+      <div class="grid two">
+        <div>
+          <label>月收入（元）</label>
+          <input id="dashIncome" type="number" value="150000" min="0" step="5000">
+        </div>
+        <div>
+          <label>每月其他支出（元）</label>
+          <input id="otherExpense" type="number" value="30000" min="0" step="1000">
+          <div class="hint">生活費、保險、其他貸款等</div>
+        </div>
       </div>
-      <div class="stat-box">
-        <div class="stat-label">攤還期月繳</div>
-        <div class="stat-value" id="repayPayment">-</div>
-        <div class="stat-sub" id="increasePercent">-</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-label">總利息支出</div>
-        <div class="stat-value" id="totalInterest">-</div>
-        <div class="stat-sub" id="interestDiff">-</div>
-      </div>
+      <button class="btn accent" id="runDashboard" style="margin-top:16px">生成財務健康報告</button>
     </div>
-    <div id="warningBox" class="warning-box">
-      <div class="warning-text">
-        <span class="warning-icon">⚠️</span>
-        <span id="warningText"></span>
+
+    <div id="dashboardResults" style="display:none">
+      <div class="card">
+        <div style="font-weight:700;font-size:18px;margin-bottom:20px;text-align:center">🎯 財務健康儀表板</div>
+        
+        <div class="gauge-container">
+          <svg class="gauge-svg" viewBox="0 0 200 120">
+            <path class="gauge-bg" d="M 20 100 A 80 80 0 0 1 180 100" stroke-width="20"/>
+            <path id="gaugeFill" class="gauge-fill" d="M 20 100 A 80 80 0 0 1 180 100" 
+                  stroke-dasharray="251.2" stroke-dashoffset="251.2"/>
+            <text id="gaugeValue" class="gauge-text" x="100" y="85" text-anchor="middle">0%</text>
+            <text class="gauge-label" x="100" y="105" text-anchor="middle">負債比</text>
+          </svg>
+        </div>
+
+        <div style="text-align:center;margin-bottom:20px">
+          <div style="font-size:24px;font-weight:700" id="healthStatus">評估中...</div>
+          <div style="color:var(--muted);margin-top:4px" id="healthDesc">-</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:16px">詳細財務指標</div>
+        
+        <div class="health-metric">
+          <div class="metric-title">
+            <span>💰 可支配收入</span>
+            <span id="disposableIncome">-</span>
+          </div>
+          <div class="metric-bar">
+            <div class="metric-fill" id="disposableBar" style="background:var(--success)"></div>
+          </div>
+          <div class="metric-info" id="disposableInfo">-</div>
+        </div>
+
+        <div class="health-metric">
+          <div class="metric-title">
+            <span>🛡️ 緊急備用金</span>
+            <span id="emergencyFund">-</span>
+          </div>
+          <div class="metric-bar">
+            <div class="metric-fill" id="emergencyBar"></div>
+          </div>
+          <div class="metric-info">建議準備 6 個月的總支出作為緊急備用金</div>
+        </div>
+
+        <div class="health-metric">
+          <div class="metric-title">
+            <span>📈 可承受升息幅度</span>
+            <span id="maxRateIncrease">-</span>
+          </div>
+          <div class="metric-bar">
+            <div class="metric-fill" id="rateIncreaseBar"></div>
+          </div>
+          <div class="metric-info" id="rateIncreaseInfo">-</div>
+        </div>
+
+        <div class="health-metric">
+          <div class="metric-title">
+            <span>⚡ 提前還款建議</span>
+            <span id="extraPaySuggestion">-</span>
+          </div>
+          <div class="metric-bar">
+            <div class="metric-fill" id="extraPayBar" style="background:var(--accent2)"></div>
+          </div>
+          <div class="metric-info" id="extraPayInfo">-</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:12px">💡 個人化建議</div>
+        <div id="recommendations" style="line-height:1.8"></div>
       </div>
     </div>
   </div>
 
-  <div class="card">
-    <div class="row" style="justify-content:space-between;margin-bottom:8px">
-      <div style="font-weight:700">① 每月繳款對比長條圖</div>
-      <div class="hint">顏色區分：寬限期 vs 攤還期</div>
-    </div>
-    <div class="chart-container">
-      <canvas id="barChart"></canvas>
-    </div>
-    <div class="legend">
-      <div class="legend-item">
-        <div class="legend-color" style="background:var(--grace-color)"></div>
-        <span>寬限期（只繳利息）</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-color" style="background:var(--repay-color)"></div>
-        <span>攤還期（本息攤還）</span>
-      </div>
-      <div class="legend-item" id="noGraceLegend" style="display:none">
-        <div class="legend-color" style="background:#9bb0c9"></div>
-        <span>無寬限期（對比）</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="row" style="justify-content:space-between;margin-bottom:8px">
-      <div style="font-weight:700">② 剩餘本金折線圖</div>
-      <div class="hint">看清楚寬限期的「拖延效應」</div>
-    </div>
-    <div class="chart-container">
-      <canvas id="lineChart"></canvas>
-    </div>
-  </div>
-
-  <div class="footer">💡 小技巧：把參數設成朋友的實際數字，用數據說話更有震撼力。寬限期看似輕鬆，但會延後還款進度並增加總利息。</div>
+  <div class="footer">💡 提示：五個分頁各有重點，建議依序瀏覽以獲得完整的財務分析！</div>
 </div>
 
 <script>
@@ -213,6 +654,16 @@
     return n.toLocaleString('zh-TW', { maximumFractionDigits: 0 });
   }
   function byId(id){return document.getElementById(id)}
+
+  // 分頁切換
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      byId('tab-' + tab.dataset.tab).classList.add('active');
+    });
+  });
 
   function simulate({loan, annualRate, years, graceYears, extraPayAnnual = 0, extraStartYear = 1}) {
     const monthsTotal = years * 12;
@@ -229,6 +680,8 @@
     
     let totalInterest = 0;
     let actualMonths = 0;
+    const yearlyInterest = [];
+    const yearlyPrincipal = [];
 
     for (let m = 1; m <= monthsTotal; m++) {
       const prev = principalRemaining[m-1];
@@ -247,7 +700,6 @@
         if (principalPay > prev) principalPay = prev;
       }
 
-      // 提前還款（每年）
       const currentYear = Math.ceil(m / 12);
       if (extraPayAnnual > 0 && currentYear >= extraStartYear && m % 12 === 0) {
         const extra = Math.min(extraPayAnnual, prev - principalPay);
@@ -262,7 +714,6 @@
       if (principalRemaining[m] <= 0) break;
     }
 
-    // 以年彙總
     const monthlyPayByYear = [];
     const annualTotal = [];
     const principalEndOfYear = [];
@@ -275,6 +726,20 @@
       const slice = monthlyPaySeries.slice(s, e);
       const meanMonthly = slice.reduce((a,b)=>a+b, 0) / (slice.length || 1);
       const totalYear = slice.reduce((a,b)=>a+b, 0);
+      
+      // 計算該年度的利息和本金
+      let yearInt = 0, yearPrin = 0;
+      for (let m = s; m < e; m++) {
+        const prev = principalRemaining[m];
+        const interest = prev * mr;
+        yearInt += interest;
+        const prin = monthlyPaySeries[m] - interest;
+        yearPrin += Math.max(0, prin);
+      }
+      
+      yearlyInterest.push(yearInt);
+      yearlyPrincipal.push(yearPrin);
+      
       monthlyPayByYear.push(meanMonthly);
       annualTotal.push(totalYear);
       principalEndOfYear.push(principalRemaining[e] || 0);
@@ -291,11 +756,16 @@
       monthsGrace,
       totalInterest,
       interestOnly,
-      baseAmortPay
+      baseAmortPay,
+      yearlyInterest,
+      yearlyPrincipal
     };
   }
 
-  let barChart, lineChart;
+  let barChart, lineChart, pressureChart, investmentChart, timelineChart, progressChart;
+  let animationInterval = null;
+  let currentYear = 0;
+  let animationData = null;
 
   function renderBar(labels, data, graceYears, noGraceData = null) {
     const ctx = byId('barChart').getContext('2d');
@@ -311,7 +781,7 @@
 
     if (noGraceData) {
       datasets.push({
-        label: '無寬限期月繳（對比）',
+        label: '無寬限期月繳',
         data: noGraceData,
         backgroundColor: 'rgba(155, 176, 201, 0.3)',
         borderColor: 'rgba(155, 176, 201, 0.8)',
@@ -334,8 +804,7 @@
         },
         plugins: {
           tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}` } },
-          legend: { display: noGraceData ? true : false },
-          title: { display: true, text: '每月繳款金額對比' }
+          legend: { display: noGraceData ? true : false }
         }
       }
     });
@@ -392,8 +861,7 @@
         },
         plugins: {
           tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}` } },
-          legend: { display: noGracePrincipal ? true : false },
-          title: { display: true, text: '剩餘本金變化' }
+          legend: { display: noGracePrincipal ? true : false }
         }
       }
     });
@@ -415,7 +883,6 @@
       ? `比無寬限期多付 <span class="stat-increase">${fmt(extraInterest)}</span>`
       : `與無寬限期相同`;
 
-    // 警告
     const warningBox = byId('warningBox');
     if (increase > 50) {
       warningBox.classList.add('show');
@@ -423,6 +890,595 @@
     } else {
       warningBox.classList.remove('show');
     }
+  }
+
+  // 升息壓力測試
+  function runPressureTest() {
+    const loan = Number(byId('loan').value);
+    const baseRate = Number(byId('rate').value);
+    const years = Number(byId('years').value);
+    const grace = Number(byId('grace').value);
+    const income = Number(byId('monthlyIncome').value);
+    
+    const rate1 = Number(byId('rate1').value);
+    const rate2 = Number(byId('rate2').value);
+    const rate3 = Number(byId('rate3').value);
+
+    const baseRes = simulate({loan, annualRate: baseRate, years, graceYears: grace});
+    
+    byId('currentRate').textContent = baseRate + '%';
+    byId('currentPayment').textContent = fmt(baseRes.baseAmortPay);
+    const baseRatio = income > 0 ? (baseRes.baseAmortPay / income * 100).toFixed(1) : 0;
+    byId('currentRatio').textContent = baseRatio + '%';
+
+    const scenarios = [
+      {label: '輕度升息', rate: baseRate + rate1, increase: rate1},
+      {label: '中度升息', rate: baseRate + rate2, increase: rate2},
+      {label: '重度升息', rate: baseRate + rate3, increase: rate3}
+    ];
+
+    let html = '';
+    const chartLabels = ['目前'];
+    const chartData = [baseRes.baseAmortPay];
+    const chartRatios = [baseRatio];
+
+    scenarios.forEach(s => {
+      const res = simulate({loan, annualRate: s.rate, years, graceYears: grace});
+      const ratio = income > 0 ? (res.baseAmortPay / income * 100).toFixed(1) : 0;
+      const diff = res.baseAmortPay - baseRes.baseAmortPay;
+      const diffPercent = ((diff / baseRes.baseAmortPay) * 100).toFixed(1);
+      
+      chartLabels.push(s.label);
+      chartData.push(res.baseAmortPay);
+      chartRatios.push(ratio);
+
+      const colorClass = ratio < 30 ? 'success' : ratio < 50 ? 'warn' : 'danger';
+      
+      html += `
+        <div class="comparison-card" style="border-color:var(--${colorClass})">
+          <div style="color:var(--muted);margin-bottom:8px">${s.label}（利率 ${s.rate}%，+${s.increase}%）</div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:14px;color:var(--muted)">月繳金額</div>
+              <div class="big-number" style="color:var(--${colorClass})">${fmt(res.baseAmortPay)}</div>
+              <div style="font-size:13px;color:var(--${colorClass});margin-top:4px">
+                ↑ ${fmt(diff)} （+${diffPercent}%）
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:14px;color:var(--muted)">負債比</div>
+              <div class="big-number" style="color:var(--${colorClass})">${ratio}%</div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    byId('scenarios').innerHTML = html;
+
+    const maxRatio = Math.max(...chartRatios);
+    const markerPos = Math.min(maxRatio, 100);
+    byId('pressureMarker').style.left = markerPos + '%';
+
+    const warningBox = byId('pressureWarning');
+    const successBox = byId('pressureSuccess');
+    
+    if (maxRatio > 50) {
+      warningBox.classList.add('show');
+      byId('pressureWarningText').textContent = `最壞情況負債比達 ${maxRatio.toFixed(1)}%，財務風險極高！建議減少貸款額度或延長年限。`;
+      successBox.style.display = 'none';
+    } else if (maxRatio > 30) {
+      warningBox.classList.add('show');
+      byId('pressureWarningText').textContent = `升息後負債比可能達 ${maxRatio.toFixed(1)}%，需謹慎評估收入穩定性。`;
+      successBox.style.display = 'none';
+    } else {
+      warningBox.classList.remove('show');
+      successBox.style.display = 'block';
+      byId('pressureSuccessText').textContent = `即使重度升息，負債比仍在 ${maxRatio.toFixed(1)}%，財務狀況健康！`;
+    }
+
+    const ctx = byId('pressureChart').getContext('2d');
+    if (pressureChart) pressureChart.destroy();
+    pressureChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: chartLabels,
+        datasets: [{
+          label: '月繳金額（元）',
+          data: chartData,
+          backgroundColor: chartData.map((_, i) => {
+            const ratio = chartRatios[i];
+            return ratio < 30 ? 'rgba(81, 207, 102, 0.8)' : ratio < 50 ? 'rgba(255, 184, 77, 0.8)' : 'rgba(255, 107, 107, 0.8)';
+          }),
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            grid: { color: 'rgba(36,50,66,0.6)' },
+            ticks: { callback: v => fmt(v) }
+          }
+        },
+        plugins: {
+          tooltip: { 
+            callbacks: { 
+              label: ctx => {
+                const ratio = chartRatios[ctx.dataIndex];
+                return [`月繳：${fmt(ctx.parsed.y)}`, `負債比：${ratio}%`];
+              }
+            } 
+          },
+          legend: { display: false }
+        }
+      }
+    });
+
+    byId('pressureResults').style.display = 'block';
+  }
+
+  // 投資機會成本
+  function runInvestmentAnalysis() {
+    const loan = Number(byId('loan').value);
+    const baseRate = Number(byId('rate').value);
+    const years = Number(byId('years').value);
+    const grace = Number(byId('grace').value);
+    const returnRate = Number(byId('returnRate').value);
+
+    byId('investYears').value = grace;
+
+    const graceRes = simulate({loan, annualRate: baseRate, years, graceYears: grace});
+    const noGraceRes = simulate({loan, annualRate: baseRate, years, graceYears: 0});
+
+    const monthlySaving = noGraceRes.baseAmortPay - graceRes.interestOnly;
+    
+    const monthlyReturn = returnRate / 100 / 12;
+    const investMonths = grace * 12;
+    let investAccum = 0;
+    for (let m = 0; m < investMonths; m++) {
+      investAccum = (investAccum + monthlySaving) * (1 + monthlyReturn);
+    }
+
+    const extraInterestPaid = graceRes.totalInterest - noGraceRes.totalInterest;
+    const netGainA = investAccum - extraInterestPaid;
+    const netGainB = extraInterestPaid;
+
+    byId('investTotal').textContent = fmt(investAccum);
+    byId('extraInterest').textContent = fmt(extraInterestPaid);
+    byId('netGainA').textContent = fmt(netGainA);
+    byId('netGainA').style.color = netGainA > 0 ? 'var(--accent2)' : 'var(--danger)';
+
+    byId('savedInterest').textContent = fmt(extraInterestPaid);
+    byId('netGainB').textContent = fmt(netGainB);
+
+    let conclusion = '';
+    if (netGainA > netGainB) {
+      const diff = netGainA - netGainB;
+      conclusion = `<span style="color:var(--accent2)">✓ 選擇寬限期較划算</span><br>
+        若將省下的錢投資（年化報酬 ${returnRate}%），${grace} 年後可多賺 <span style="color:var(--accent2);font-weight:700">${fmt(diff)}</span>。
+        <br><br>但前提是：<br>
+        ① 確實有紀律地將省下的錢拿去投資<br>
+        ② 實際報酬率能達到預期水準<br>
+        ③ 攤還期月繳跳升時仍有足夠收入`;
+    } else {
+      const diff = netGainB - netGainA;
+      conclusion = `<span style="color:var(--warn)">⚠ 不選寬限期較划算</span><br>
+        直接本息攤還可少付 <span style="font-weight:700">${fmt(extraInterestPaid)}</span> 利息，
+        比投資方案多賺 <span style="color:var(--accent2);font-weight:700">${fmt(diff)}</span>。
+        <br><br>建議：除非投資報酬率能超過 <span style="font-weight:700">${calculateBreakEvenRate(monthlySaving, investMonths, extraInterestPaid).toFixed(2)}%</span>，否則不建議選擇寬限期。`;
+    }
+
+    byId('conclusionText').innerHTML = conclusion;
+
+    const breakEven = calculateBreakEvenRate(monthlySaving, investMonths, extraInterestPaid);
+    byId('breakEvenPoint').innerHTML = `
+      當投資年化報酬率 <span style="color:var(--accent);font-weight:700;font-size:20px">&gt; ${breakEven.toFixed(2)}%</span> 時，選擇寬限期才划算。
+      <div style="margin-top:8px;color:var(--muted);font-size:14px">
+        參考：定存約 1-2%、債券型基金 3-4%、平衡型基金 5-6%、股票型 ETF 6-8%、個股 8%+
+      </div>
+    `;
+
+    const labels = [];
+    const investData = [];
+    const savingData = [];
+    
+    for (let y = 0; y <= grace; y++) {
+      labels.push(y + '年');
+      
+      let accum = 0;
+      const m = y * 12;
+      for (let i = 0; i < m; i++) {
+        accum = (accum + monthlySaving) * (1 + monthlyReturn);
+      }
+      investData.push(accum);
+      savingData.push(monthlySaving * m);
+    }
+
+    const ctx = byId('investmentChart').getContext('2d');
+    if (investmentChart) investmentChart.destroy();
+    investmentChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: '投資累積金額',
+            data: investData,
+            borderColor: 'rgba(185, 255, 125, 1)',
+            backgroundColor: 'rgba(185, 255, 125, 0.1)',
+            tension: 0.3,
+            borderWidth: 3
+          },
+          {
+            label: '單純累積節省',
+            data: savingData,
+            borderColor: 'rgba(155, 176, 201, 0.8)',
+            backgroundColor: 'rgba(155, 176, 201, 0.05)',
+            tension: 0.3,
+            borderWidth: 2,
+            borderDash: [5, 5]
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            grid: { color: 'rgba(36,50,66,0.6)' },
+            ticks: { callback: v => fmt(v) }
+          }
+        },
+        plugins: {
+          tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}` } }
+        }
+      }
+    });
+
+    byId('investmentResults').style.display = 'block';
+  }
+
+  function calculateBreakEvenRate(monthlySaving, months, targetAmount) {
+    let low = 0, high = 50;
+    for (let iter = 0; iter < 50; iter++) {
+      const mid = (low + high) / 2;
+      const mr = mid / 100 / 12;
+      let accum = 0;
+      for (let m = 0; m < months; m++) {
+        accum = (accum + monthlySaving) * (1 + mr);
+      }
+      if (accum < targetAmount) {
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+    return (low + high) / 2;
+  }
+
+  // 時間軸動畫
+  function initTimelineAnimation() {
+    const loan = Number(byId('loan').value);
+    const rate = Number(byId('rate').value);
+    const years = Number(byId('years').value);
+    const grace = Number(byId('grace').value);
+
+    animationData = simulate({loan, annualRate: rate, years, graceYears: grace});
+    currentYear = 0;
+    
+    // 初始化圖表
+    const ctx1 = byId('timelineChart').getContext('2d');
+    if (timelineChart) timelineChart.destroy();
+    timelineChart = new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: '本金',
+            data: [],
+            backgroundColor: 'rgba(125, 196, 255, 0.8)',
+            stack: 'stack'
+          },
+          {
+            label: '利息',
+            data: [],
+            backgroundColor: 'rgba(255, 184, 77, 0.8)',
+            stack: 'stack'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { stacked: true },
+          y: { stacked: true, ticks: { callback: v => fmt(v) } }
+        }
+      }
+    });
+
+    const ctx2 = byId('progressChart').getContext('2d');
+    if (progressChart) progressChart.destroy();
+    progressChart = new Chart(ctx2, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: '還款進度',
+          data: [],
+          borderColor: 'rgba(125, 196, 255, 1)',
+          backgroundColor: 'rgba(125, 196, 255, 0.1)',
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { 
+            min: 0,
+            max: 100,
+            ticks: { callback: v => v + '%' }
+          }
+        }
+      }
+    });
+
+    updateTimelineFrame(0);
+  }
+
+  function updateTimelineFrame(year) {
+    if (!animationData || year >= animationData.yearLabels.length) return;
+    
+    const loan = Number(byId('loan').value);
+    const grace = Number(byId('grace').value);
+    
+    byId('timelineYear').textContent = `第 ${year + 1} 年`;
+    
+    const yearPayment = animationData.annualTotal[year];
+    const yearPrin = animationData.yearlyPrincipal[year];
+    const yearInt = animationData.yearlyInterest[year];
+    const remaining = animationData.principalEndOfYear[year];
+    const paidPercent = ((loan - remaining) / loan * 100).toFixed(1);
+    
+    let cumulInt = 0;
+    for (let i = 0; i <= year; i++) {
+      cumulInt += animationData.yearlyInterest[i];
+    }
+    const intPercent = (cumulInt / loan * 100).toFixed(1);
+    
+    byId('yearPayment').textContent = fmt(yearPayment);
+    byId('yearBreakdown').innerHTML = `本金 ${fmt(yearPrin)} + 利息 ${fmt(yearInt)}`;
+    byId('yearPrincipal').textContent = fmt(remaining);
+    byId('principalPercent').innerHTML = `已還清 <span style="color:var(--accent2)">${paidPercent}%</span>`;
+    byId('cumulativeInterest').textContent = fmt(cumulInt);
+    byId('interestPercent').innerHTML = `佔原貸款 ${intPercent}%`;
+    
+    // 檢查里程碑
+    let milestone = '';
+    if (year + 1 === grace && grace > 0) {
+      milestone = '<div class="milestone">🎯 <b>寬限期結束</b> - 月繳即將跳升，本金開始償還</div>';
+    } else if (paidPercent >= 50 && year > 0 && ((loan - animationData.principalEndOfYear[year-1]) / loan * 100) < 50) {
+      milestone = '<div class="milestone">🎉 <b>還清一半</b> - 已償還 50% 本金！</div>';
+    } else if (remaining < loan * 0.1 && year > 0 && animationData.principalEndOfYear[year-1] >= loan * 0.1) {
+      milestone = '<div class="milestone">🏆 <b>進入尾聲</b> - 剩餘本金不到 10%！</div>';
+    }
+    byId('milestoneAlert').innerHTML = milestone;
+    
+    // 更新圖表
+    timelineChart.data.labels = animationData.yearLabels.slice(0, year + 1);
+    timelineChart.data.datasets[0].data = animationData.yearlyPrincipal.slice(0, year + 1);
+    timelineChart.data.datasets[1].data = animationData.yearlyInterest.slice(0, year + 1);
+    timelineChart.update();
+    
+    const progressData = [];
+    for (let i = 0; i <= year; i++) {
+      const rem = animationData.principalEndOfYear[i];
+      progressData.push(((loan - rem) / loan * 100));
+    }
+    progressChart.data.labels = animationData.yearLabels.slice(0, year + 1);
+    progressChart.data.datasets[0].data = progressData;
+    progressChart.update();
+  }
+
+  function playAnimation() {
+    if (animationInterval) return;
+    
+    if (!animationData) initTimelineAnimation();
+    
+    byId('playAnimation').disabled = true;
+    byId('pauseAnimation').disabled = false;
+    
+    const speed = Number(byId('animSpeed').value);
+    
+    animationInterval = setInterval(() => {
+      currentYear++;
+      if (currentYear >= animationData.yearLabels.length) {
+        pauseAnimation();
+        currentYear = animationData.yearLabels.length - 1;
+        return;
+      }
+      updateTimelineFrame(currentYear);
+    }, speed);
+  }
+
+  function pauseAnimation() {
+    if (animationInterval) {
+      clearInterval(animationInterval);
+      animationInterval = null;
+    }
+    byId('playAnimation').disabled = false;
+    byId('pauseAnimation').disabled = true;
+  }
+
+  function resetAnimation() {
+    pauseAnimation();
+    currentYear = 0;
+    initTimelineAnimation();
+  }
+
+  // 財務健康儀表板
+  function runDashboard() {
+    const loan = Number(byId('loan').value);
+    const rate = Number(byId('rate').value);
+    const years = Number(byId('years').value);
+    const grace = Number(byId('grace').value);
+    const income = Number(byId('dashIncome').value);
+    const otherExpense = Number(byId('otherExpense').value);
+
+    if (income <= 0) {
+      alert('請輸入月收入');
+      return;
+    }
+
+    const res = simulate({loan, annualRate: rate, years, graceYears: grace});
+    const monthlyPayment = res.baseAmortPay;
+    
+    // 負債比
+    const debtRatio = (monthlyPayment / income * 100).toFixed(1);
+    
+    // 可支配收入
+    const disposable = income - monthlyPayment - otherExpense;
+    const disposablePercent = (disposable / income * 100).toFixed(1);
+    
+    // 緊急備用金建議
+    const totalMonthlyExpense = monthlyPayment + otherExpense;
+    const emergencyFundNeeded = totalMonthlyExpense * 6;
+    
+    // 可承受升息幅度（使負債比不超過50%）
+    const maxAffordablePayment = income * 0.5;
+    let maxRate = rate;
+    if (monthlyPayment < maxAffordablePayment) {
+      // 二分搜尋找出最大可承受利率
+      let low = rate, high = rate + 10;
+      for (let i = 0; i < 30; i++) {
+        const mid = (low + high) / 2;
+        const testRes = simulate({loan, annualRate: mid, years, graceYears: grace});
+        if (testRes.baseAmortPay <= maxAffordablePayment) {
+          low = mid;
+        } else {
+          high = mid;
+        }
+      }
+      maxRate = low;
+    }
+    const maxIncrease = maxRate - rate;
+    
+    // 提前還款建議
+    const extraPayCapacity = Math.max(0, disposable * 0.3);
+    
+    // 更新儀表盤
+    updateGauge(debtRatio);
+    
+    let status = '', statusDesc = '', statusColor = '';
+    if (debtRatio < 30) {
+      status = '財務健康 ✓';
+      statusDesc = '負債比在安全範圍內';
+      statusColor = 'var(--success)';
+    } else if (debtRatio < 50) {
+      status = '需要警戒 ⚠';
+      statusDesc = '負債比偏高，建議控制支出';
+      statusColor = 'var(--warn)';
+    } else {
+      status = '高風險 ⚠️';
+      statusDesc = '負債比過高，財務壓力大';
+      statusColor = 'var(--danger)';
+    }
+    
+    byId('healthStatus').textContent = status;
+    byId('healthStatus').style.color = statusColor;
+    byId('healthDesc').textContent = statusDesc;
+    
+    // 更新指標
+    byId('disposableIncome').textContent = fmt(disposable);
+    const dispBar = byId('disposableBar');
+    dispBar.style.width = Math.min(100, disposablePercent) + '%';
+    dispBar.textContent = disposablePercent + '%';
+    byId('disposableInfo').textContent = `扣除房貸和其他支出後，您還有 ${fmt(disposable)} 元可自由運用`;
+    
+    byId('emergencyFund').textContent = fmt(emergencyFundNeeded);
+    const emBar = byId('emergencyBar');
+    emBar.style.width = '100%';
+    emBar.style.background = 'var(--accent)';
+    emBar.textContent = '6 個月';
+    
+    byId('maxRateIncrease').textContent = '+' + maxIncrease.toFixed(2) + '%';
+    const rateBar = byId('rateIncreaseBar');
+    const rateBarWidth = Math.min(100, (maxIncrease / 3) * 100);
+    rateBar.style.width = rateBarWidth + '%';
+    rateBar.style.background = maxIncrease > 2 ? 'var(--success)' : maxIncrease > 1 ? 'var(--warn)' : 'var(--danger)';
+    rateBar.textContent = maxIncrease.toFixed(2) + '%';
+    byId('rateIncreaseInfo').textContent = maxIncrease > 2 
+      ? '您可承受較大幅度的升息' 
+      : maxIncrease > 1 
+      ? '中度升息可能造成財務壓力' 
+      : '升息空間有限，建議提前規劃';
+    
+    byId('extraPaySuggestion').textContent = fmt(extraPayCapacity) + ' / 月';
+    const extraBar = byId('extraPayBar');
+    const extraBarWidth = Math.min(100, (extraPayCapacity / monthlyPayment) * 100);
+    extraBar.style.width = extraBarWidth + '%';
+    extraBar.textContent = fmt(extraPayCapacity);
+    byId('extraPayInfo').textContent = extraPayCapacity > 0 
+      ? `建議將可支配收入的 30%（${fmt(extraPayCapacity)}）用於提前還款，可大幅減少利息` 
+      : '目前財務較緊，建議先建立緊急備用金';
+    
+    // 個人化建議
+    let recommendations = '';
+    if (debtRatio > 50) {
+      recommendations += '🚨 <b>優先建議：降低負債比</b><br>';
+      recommendations += '• 考慮延長貸款年限以降低月繳<br>';
+      recommendations += '• 尋找增加收入的機會<br>';
+      recommendations += '• 檢視並削減非必要支出<br><br>';
+    }
+    
+    if (disposable < emergencyFundNeeded / 6) {
+      recommendations += '💰 <b>建立緊急備用金</b><br>';
+      recommendations += `• 目標：${fmt(emergencyFundNeeded)}（6個月支出）<br>`;
+      recommendations += '• 優先於提前還款或投資<br><br>';
+    }
+    
+    if (extraPayCapacity > 10000) {
+      recommendations += '📈 <b>善用多餘資金</b><br>';
+      recommendations += `• 您每月可多還 ${fmt(extraPayCapacity)}<br>`;
+      recommendations += '• 可考慮提前還款以減少利息<br>';
+      recommendations += `• 或投資報酬率 >${calculateBreakEvenRate(res.interestOnly, grace * 12, res.totalInterest - simulate({loan, annualRate: rate, years, graceYears: 0}).totalInterest).toFixed(1)}% 的標的<br><br>`;
+    }
+    
+    if (maxIncrease < 1) {
+      recommendations += '⚠️ <b>升息風險提醒</b><br>';
+      recommendations += `• 您只能承受升息 ${maxIncrease.toFixed(2)}%<br>`;
+      recommendations += '• 建議鎖定固定利率或做好升息準備<br><br>';
+    }
+    
+    if (!recommendations) {
+      recommendations = '✓ 您的財務狀況良好！繼續保持穩健的理財習慣。';
+    }
+    
+    byId('recommendations').innerHTML = recommendations;
+    byId('dashboardResults').style.display = 'block';
+  }
+
+  function updateGauge(value) {
+    const maxAngle = 180;
+    const angle = Math.min(value, 100) / 100 * maxAngle;
+    const circumference = 251.2;
+    const offset = circumference - (angle / 180) * circumference;
+    
+    const fill = byId('gaugeFill');
+    fill.style.strokeDashoffset = offset;
+    
+    let color = '';
+    if (value < 30) color = 'var(--success)';
+    else if (value < 50) color = 'var(--warn)';
+    else color = 'var(--danger)';
+    fill.style.stroke = color;
+    
+    byId('gaugeValue').textContent = value + '%';
   }
 
   function downloadCanvasPNG(canvasId, filename){
@@ -437,7 +1493,6 @@
       const s = (v ?? '').toString();
       return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
     }).join(',')).join('\n');
-
     const blob = new Blob(["\ufeff" + content], {type:'text/csv;charset=utf-8;'});
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
@@ -445,7 +1500,7 @@
     URL.revokeObjectURL(url);
   }
 
-  function runOnce() {
+  function runBasic() {
     const loan  = Number(byId('loan').value);
     const rate  = Number(byId('rate').value);
     const years = Number(byId('years').value);
@@ -463,19 +1518,8 @@
     const graceRes = simulate({loan, annualRate: rate, years, graceYears: grace, extraPayAnnual: extraPay, extraStartYear: extraStart});
     const noGraceRes = simulate({loan, annualRate: rate, years, graceYears: 0});
 
-    renderBar(
-      graceRes.yearLabels, 
-      graceRes.monthlyPayByYear, 
-      grace,
-      showComp ? noGraceRes.monthlyPayByYear : null
-    );
-    
-    renderLine(
-      years, 
-      graceRes.principalRemaining,
-      showComp ? noGraceRes.principalRemaining : null
-    );
-
+    renderBar(graceRes.yearLabels, graceRes.monthlyPayByYear, grace, showComp ? noGraceRes.monthlyPayByYear : null);
+    renderLine(years, graceRes.principalRemaining, showComp ? noGraceRes.principalRemaining : null);
     updateStats(graceRes, noGraceRes);
 
     byId('noGraceLegend').style.display = showComp ? 'flex' : 'none';
@@ -498,7 +1542,14 @@
     byId('extraPaySection').style.display = e.target.checked ? 'block' : 'none';
   });
 
-  byId('run').addEventListener('click', runOnce);
+  byId('runBasic').addEventListener('click', runBasic);
+  byId('runPressure').addEventListener('click', runPressureTest);
+  byId('runInvestment').addEventListener('click', runInvestmentAnalysis);
+  byId('playAnimation').addEventListener('click', playAnimation);
+  byId('pauseAnimation').addEventListener('click', pauseAnimation);
+  byId('resetAnimation').addEventListener('click', resetAnimation);
+  byId('runDashboard').addEventListener('click', runDashboard);
+  
   byId('downloadBar').addEventListener('click', ()=>downloadCanvasPNG('barChart','每月繳款對比.png'));
   byId('downloadLine').addEventListener('click', ()=>downloadCanvasPNG('lineChart','剩餘本金.png'));
   byId('exportCsv').addEventListener('click', ()=>{
@@ -507,7 +1558,18 @@
     exportCSV(rows, '房貸寬限期模擬.csv');
   });
 
-  runOnce();
+  byId('grace').addEventListener('input', () => {
+    byId('investYears').value = byId('grace').value;
+  });
+
+  byId('animSpeed').addEventListener('change', () => {
+    if (animationInterval) {
+      pauseAnimation();
+      playAnimation();
+    }
+  });
+
+  runBasic();
 </script>
 </body>
 </html>
