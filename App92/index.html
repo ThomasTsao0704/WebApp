@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <title>房貸寬限期情境模擬｜增強版</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --card: #121821;
+      --muted: #9bb0c9;
+      --accent: #7dc4ff;
+      --accent2: #b9ff7d;
+      --text: #e6edf6;
+      --warn: #ffb84d;
+      --danger: #ff6b6b;
+      --grid: #243242;
+      --grace-color: #ffb84d;
+      --repay-color: #7dc4ff;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; background:var(--bg); color:var(--text);
+      font:15px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC",Arial,"Apple Color Emoji","Segoe UI Emoji";
+    }
+    .wrap{max-width:1200px;margin:32px auto;padding:0 16px}
+    .title{font-size:22px;font-weight:700;margin-bottom:14px}
+    .subtitle{color:var(--muted);margin-bottom:22px}
+    .card{
+      background:linear-gradient(180deg,#0f1520 0%,var(--card) 100%);
+      border:1px solid #1f2a38;border-radius:16px;padding:16px;margin-bottom:16px
+    }
+    .grid{display:grid;gap:12px}
+    @media (min-width:900px){ .grid{grid-template-columns:repeat(4,1fr)} }
+    @media (min-width:900px){ .grid.stats{grid-template-columns:repeat(3,1fr)} }
+    label{display:block;font-weight:600;margin-bottom:6px;font-size:13px}
+    input,select{
+      width:100%; padding:10px 12px; background:#0b131c;color:var(--text);
+      border:1px solid #1f2a38;border-radius:10px;outline:none;font-size:14px
+    }
+    input:focus,select:focus{border-color:#2e75ff; box-shadow:0 0 0 2px #2e75ff33}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .btn{
+      background:#1b2a41;color:#fff;border:1px solid #2c3f57;
+      padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600;font-size:14px
+    }
+    .btn:hover{background:#223452}
+    .btn.accent{background:#204d7a;border-color:#2f6ea8}
+    .btn.warn{background:#6e4007;border-color:#91560a}
+    canvas{background:#0c121a;border-radius:14px;border:1px solid #1f2a38}
+    .chart-container{position:relative;height:400px;width:100%}
+    @media (max-width:768px){ .chart-container{height:300px} }
+    .hint{color:var(--muted);font-size:13px}
+    .footer{color:#7e8ea2;margin-top:8px;font-size:12px}
+    
+    .stat-box{
+      background:linear-gradient(135deg,#1a2332 0%,#0f1520 100%);
+      border:1px solid #2c3f57;border-radius:12px;padding:14px;
+    }
+    .stat-label{font-size:12px;color:var(--muted);margin-bottom:4px}
+    .stat-value{font-size:20px;font-weight:700;color:var(--text)}
+    .stat-sub{font-size:13px;color:var(--muted);margin-top:4px}
+    .stat-increase{color:var(--danger);font-weight:600}
+    .stat-saving{color:var(--accent2);font-weight:600}
+    
+    .warning-box{
+      background:linear-gradient(135deg,#4a2c0f 0%,#2d1a09 100%);
+      border:1px solid #91560a;border-radius:12px;padding:14px;margin-top:12px;
+      display:none;
+    }
+    .warning-box.show{display:block}
+    .warning-icon{display:inline-block;margin-right:8px;font-size:18px}
+    .warning-text{font-weight:600;color:var(--warn)}
+    
+    .legend{display:flex;gap:20px;margin-top:12px;flex-wrap:wrap}
+    .legend-item{display:flex;align-items:center;gap:8px;font-size:13px}
+    .legend-color{width:16px;height:16px;border-radius:4px}
+    
+    .toggle-section{margin-top:12px;padding-top:12px;border-top:1px solid #1f2a38}
+    .checkbox-label{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+    input[type="checkbox"]{width:auto;cursor:pointer}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title">房貸寬限期情境模擬（增強版）</div>
+  <div class="subtitle">完整分析：① 顏色區分的長條圖、② 本金折線圖、③ 關鍵數據對比、④ 有無寬限期對比、⑤ 提前還款模擬</div>
+
+  <div class="card">
+    <div class="grid">
+      <div>
+        <label>貸款金額（元）</label>
+        <input id="loan" type="number" value="10000000" min="100000" step="100000">
+      </div>
+      <div>
+        <label>年利率（%）</label>
+        <input id="rate" type="number" value="2" min="0" max="10" step="0.01">
+      </div>
+      <div>
+        <label>總年限（年）</label>
+        <input id="years" type="number" value="30" min="1" max="40" step="1">
+      </div>
+      <div>
+        <label>寬限期（年）</label>
+        <input id="grace" type="number" value="5" min="0" max="10" step="1">
+      </div>
+    </div>
+
+    <div class="toggle-section">
+      <label class="checkbox-label">
+        <input type="checkbox" id="showComparison">
+        <span>顯示「無寬限期」對比（看清楚代價）</span>
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="enableExtraPay">
+        <span>啟用提前還款模擬</span>
+      </label>
+    </div>
+
+    <div id="extraPaySection" style="display:none;margin-top:12px">
+      <div class="grid" style="grid-template-columns:repeat(2,1fr)">
+        <div>
+          <label>每年額外還款（元）</label>
+          <input id="extraPay" type="number" value="100000" min="0" step="10000">
+        </div>
+        <div>
+          <label>從第幾年開始還</label>
+          <input id="extraStartYear" type="number" value="6" min="1" step="1">
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:16px">
+      <button class="btn accent" id="run">生成圖表</button>
+      <button class="btn" id="downloadBar">下載長條圖</button>
+      <button class="btn" id="downloadLine">下載折線圖</button>
+      <button class="btn" id="exportCsv">匯出 CSV</button>
+    </div>
+  </div>
+
+  <div id="statsCard" class="card" style="display:none">
+    <div style="font-weight:700;margin-bottom:12px">📊 關鍵數據對比</div>
+    <div class="grid stats">
+      <div class="stat-box">
+        <div class="stat-label">寬限期月繳</div>
+        <div class="stat-value" id="gracePayment">-</div>
+        <div class="stat-sub">（只繳利息）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">攤還期月繳</div>
+        <div class="stat-value" id="repayPayment">-</div>
+        <div class="stat-sub" id="increasePercent">-</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">總利息支出</div>
+        <div class="stat-value" id="totalInterest">-</div>
+        <div class="stat-sub" id="interestDiff">-</div>
+      </div>
+    </div>
+    <div id="warningBox" class="warning-box">
+      <div class="warning-text">
+        <span class="warning-icon">⚠️</span>
+        <span id="warningText"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <div style="font-weight:700">① 每月繳款對比長條圖</div>
+      <div class="hint">顏色區分：寬限期 vs 攤還期</div>
+    </div>
+    <div class="chart-container">
+      <canvas id="barChart"></canvas>
+    </div>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color" style="background:var(--grace-color)"></div>
+        <span>寬限期（只繳利息）</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background:var(--repay-color)"></div>
+        <span>攤還期（本息攤還）</span>
+      </div>
+      <div class="legend-item" id="noGraceLegend" style="display:none">
+        <div class="legend-color" style="background:#9bb0c9"></div>
+        <span>無寬限期（對比）</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <div style="font-weight:700">② 剩餘本金折線圖</div>
+      <div class="hint">看清楚寬限期的「拖延效應」</div>
+    </div>
+    <div class="chart-container">
+      <canvas id="lineChart"></canvas>
+    </div>
+  </div>
+
+  <div class="footer">💡 小技巧：把參數設成朋友的實際數字，用數據說話更有震撼力。寬限期看似輕鬆，但會延後還款進度並增加總利息。</div>
+</div>
+
+<script>
+  function pmt(monthlyRate, nper, pv) {
+    if (Math.abs(monthlyRate) < 1e-12) return pv / nper;
+    const r = monthlyRate;
+    return pv * (r * Math.pow(1 + r, nper)) / (Math.pow(1 + r, nper) - 1);
+  }
+  function fmt(n) {
+    return n.toLocaleString('zh-TW', { maximumFractionDigits: 0 });
+  }
+  function byId(id){return document.getElementById(id)}
+
+  function simulate({loan, annualRate, years, graceYears, extraPayAnnual = 0, extraStartYear = 1}) {
+    const monthsTotal = years * 12;
+    const monthsGrace = Math.min(graceYears * 12, monthsTotal);
+    const monthsRepay = Math.max(0, monthsTotal - monthsGrace);
+    const mr = annualRate / 100 / 12;
+
+    const interestOnly = loan * mr;
+    let baseAmortPay = monthsRepay > 0 ? pmt(mr, monthsRepay, loan) : 0;
+
+    const monthlyPaySeries = [];
+    const principalRemaining = new Array(monthsTotal + 1).fill(0);
+    principalRemaining[0] = loan;
+    
+    let totalInterest = 0;
+    let actualMonths = 0;
+
+    for (let m = 1; m <= monthsTotal; m++) {
+      const prev = principalRemaining[m-1];
+      if (prev <= 0) break;
+      
+      const interest = prev * mr;
+      totalInterest += interest;
+
+      let pay = 0, principalPay = 0;
+      if (m <= monthsGrace) {
+        pay = interestOnly;
+        principalPay = 0;
+      } else {
+        pay = baseAmortPay;
+        principalPay = Math.max(0, pay - interest);
+        if (principalPay > prev) principalPay = prev;
+      }
+
+      // 提前還款（每年）
+      const currentYear = Math.ceil(m / 12);
+      if (extraPayAnnual > 0 && currentYear >= extraStartYear && m % 12 === 0) {
+        const extra = Math.min(extraPayAnnual, prev - principalPay);
+        principalPay += extra;
+        pay += extra;
+      }
+
+      principalRemaining[m] = Math.max(0, prev - principalPay);
+      monthlyPaySeries.push(pay);
+      actualMonths = m;
+      
+      if (principalRemaining[m] <= 0) break;
+    }
+
+    // 以年彙總
+    const monthlyPayByYear = [];
+    const annualTotal = [];
+    const principalEndOfYear = [];
+    const yearLabels = [];
+
+    for (let y = 1; y <= years; y++) {
+      const s = (y-1)*12, e = Math.min(y*12, actualMonths);
+      if (s >= actualMonths) break;
+      
+      const slice = monthlyPaySeries.slice(s, e);
+      const meanMonthly = slice.reduce((a,b)=>a+b, 0) / (slice.length || 1);
+      const totalYear = slice.reduce((a,b)=>a+b, 0);
+      monthlyPayByYear.push(meanMonthly);
+      annualTotal.push(totalYear);
+      principalEndOfYear.push(principalRemaining[e] || 0);
+      yearLabels.push(String(y));
+    }
+
+    return {
+      yearLabels,
+      monthlyPayByYear,
+      annualTotal,
+      principalEndOfYear,
+      principalRemaining,
+      monthsTotal: actualMonths,
+      monthsGrace,
+      totalInterest,
+      interestOnly,
+      baseAmortPay
+    };
+  }
+
+  let barChart, lineChart;
+
+  function renderBar(labels, data, graceYears, noGraceData = null) {
+    const ctx = byId('barChart').getContext('2d');
+    if (barChart) barChart.destroy();
+    
+    const datasets = [{
+      label: '每月繳款金額（元）',
+      data,
+      backgroundColor: data.map((_, i) => i < graceYears ? 'rgba(255, 184, 77, 0.8)' : 'rgba(125, 196, 255, 0.8)'),
+      borderColor: data.map((_, i) => i < graceYears ? 'rgba(255, 184, 77, 1)' : 'rgba(125, 196, 255, 1)'),
+      borderWidth: 1
+    }];
+
+    if (noGraceData) {
+      datasets.push({
+        label: '無寬限期月繳（對比）',
+        data: noGraceData,
+        backgroundColor: 'rgba(155, 176, 201, 0.3)',
+        borderColor: 'rgba(155, 176, 201, 0.8)',
+        borderWidth: 1
+      });
+    }
+
+    barChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { grid: { color: 'rgba(36,50,66,0.6)' } },
+          y: {
+            grid: { color: 'rgba(36,50,66,0.6)' },
+            ticks: { callback: v => fmt(v) }
+          }
+        },
+        plugins: {
+          tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}` } },
+          legend: { display: noGraceData ? true : false },
+          title: { display: true, text: '每月繳款金額對比' }
+        }
+      }
+    });
+  }
+
+  function renderLine(yearsCount, principalRemaining, noGracePrincipal = null) {
+    const labels = Array.from({length: yearsCount+1}, (_,i)=> String(i));
+    const yearly = [];
+    for (let y = 0; y <= yearsCount; y++) {
+      yearly.push(principalRemaining[y*12] ?? principalRemaining[principalRemaining.length-1] ?? 0);
+    }
+
+    const datasets = [{
+      label: '剩餘本金（有寬限期）',
+      data: yearly,
+      borderColor: 'rgba(125, 196, 255, 1)',
+      backgroundColor: 'rgba(125, 196, 255, 0.1)',
+      tension: 0.3,
+      borderWidth: 2,
+      pointRadius: 3
+    }];
+
+    if (noGracePrincipal) {
+      const noGraceYearly = [];
+      for (let y = 0; y <= yearsCount; y++) {
+        noGraceYearly.push(noGracePrincipal[y*12] ?? noGracePrincipal[noGracePrincipal.length-1] ?? 0);
+      }
+      datasets.push({
+        label: '剩餘本金（無寬限期）',
+        data: noGraceYearly,
+        borderColor: 'rgba(155, 176, 201, 0.8)',
+        backgroundColor: 'rgba(155, 176, 201, 0.05)',
+        tension: 0.3,
+        borderWidth: 2,
+        pointRadius: 3,
+        borderDash: [5, 5]
+      });
+    }
+
+    const ctx = byId('lineChart').getContext('2d');
+    if (lineChart) lineChart.destroy();
+    lineChart = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { grid: { color: 'rgba(36,50,66,0.6)' } },
+          y: {
+            grid: { color: 'rgba(36,50,66,0.6)' },
+            ticks: { callback: v => fmt(v) }
+          }
+        },
+        plugins: {
+          tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}` } },
+          legend: { display: noGracePrincipal ? true : false },
+          title: { display: true, text: '剩餘本金變化' }
+        }
+      }
+    });
+  }
+
+  function updateStats(graceRes, noGraceRes) {
+    byId('statsCard').style.display = 'block';
+    
+    byId('gracePayment').textContent = fmt(graceRes.interestOnly);
+    byId('repayPayment').textContent = fmt(graceRes.baseAmortPay);
+    
+    const increase = ((graceRes.baseAmortPay - graceRes.interestOnly) / graceRes.interestOnly * 100).toFixed(1);
+    byId('increasePercent').innerHTML = `<span class="stat-increase">↑ ${increase}%</span>`;
+    
+    byId('totalInterest').textContent = fmt(graceRes.totalInterest);
+    
+    const extraInterest = graceRes.totalInterest - noGraceRes.totalInterest;
+    byId('interestDiff').innerHTML = extraInterest > 0 
+      ? `比無寬限期多付 <span class="stat-increase">${fmt(extraInterest)}</span>`
+      : `與無寬限期相同`;
+
+    // 警告
+    const warningBox = byId('warningBox');
+    if (increase > 50) {
+      warningBox.classList.add('show');
+      byId('warningText').textContent = `攤還期月繳暴增 ${increase}%！請確保收入足以負擔。`;
+    } else {
+      warningBox.classList.remove('show');
+    }
+  }
+
+  function downloadCanvasPNG(canvasId, filename){
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = byId(canvasId).toDataURL('image/png');
+    link.click();
+  }
+
+  function exportCSV(rows, filename){
+    const content = rows.map(r => r.map(v => {
+      const s = (v ?? '').toString();
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+    }).join(',')).join('\n');
+
+    const blob = new Blob(["\ufeff" + content], {type:'text/csv;charset=utf-8;'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function runOnce() {
+    const loan  = Number(byId('loan').value);
+    const rate  = Number(byId('rate').value);
+    const years = Number(byId('years').value);
+    const grace = Number(byId('grace').value);
+    const showComp = byId('showComparison').checked;
+    const enableExtra = byId('enableExtraPay').checked;
+    const extraPay = enableExtra ? Number(byId('extraPay').value) : 0;
+    const extraStart = enableExtra ? Number(byId('extraStartYear').value) : 1;
+
+    if (!(loan > 0 && rate >= 0 && years > 0 && grace >= 0 && grace <= years)) {
+      alert('請確認參數範圍');
+      return;
+    }
+
+    const graceRes = simulate({loan, annualRate: rate, years, graceYears: grace, extraPayAnnual: extraPay, extraStartYear: extraStart});
+    const noGraceRes = simulate({loan, annualRate: rate, years, graceYears: 0});
+
+    renderBar(
+      graceRes.yearLabels, 
+      graceRes.monthlyPayByYear, 
+      grace,
+      showComp ? noGraceRes.monthlyPayByYear : null
+    );
+    
+    renderLine(
+      years, 
+      graceRes.principalRemaining,
+      showComp ? noGraceRes.principalRemaining : null
+    );
+
+    updateStats(graceRes, noGraceRes);
+
+    byId('noGraceLegend').style.display = showComp ? 'flex' : 'none';
+
+    window.__lastCSV = [
+      ['年份','有寬限-月繳','有寬限-年繳','有寬限-年末本金','無寬限-月繳','無寬限-年繳','無寬限-年末本金'],
+      ...graceRes.yearLabels.map((y, i) => [
+        y,
+        Math.round(graceRes.monthlyPayByYear[i]),
+        Math.round(graceRes.annualTotal[i]),
+        Math.round(graceRes.principalEndOfYear[i]),
+        Math.round(noGraceRes.monthlyPayByYear[i] || 0),
+        Math.round(noGraceRes.annualTotal[i] || 0),
+        Math.round(noGraceRes.principalEndOfYear[i] || 0)
+      ])
+    ];
+  }
+
+  byId('enableExtraPay').addEventListener('change', (e) => {
+    byId('extraPaySection').style.display = e.target.checked ? 'block' : 'none';
+  });
+
+  byId('run').addEventListener('click', runOnce);
+  byId('downloadBar').addEventListener('click', ()=>downloadCanvasPNG('barChart','每月繳款對比.png'));
+  byId('downloadLine').addEventListener('click', ()=>downloadCanvasPNG('lineChart','剩餘本金.png'));
+  byId('exportCsv').addEventListener('click', ()=>{
+    const rows = window.__lastCSV || [];
+    if (!rows.length) return alert('請先生成圖表');
+    exportCSV(rows, '房貸寬限期模擬.csv');
+  });
+
+  runOnce();
+</script>
+</body>
+</html>
