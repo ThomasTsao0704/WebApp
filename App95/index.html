@@ -403,10 +403,16 @@
       </div>
     </div>
 
-    <!-- 編輯 -->
+        <!-- 編輯 -->
     <div id="editModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
-      <div class="bg-white rounded-lg p-6 shadow-2xl max-w-2xl w-full mx-4">
+      <div class="bg-white rounded-lg p-6 shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <h2 class="text-xl font-bold mb-4">✏️ 編輯便利貼</h2>
+        <div class="mb-4">
+          <label class="block text-sm font-bold text-gray-700 mb-2">內容</label>
+          <textarea id="editContent" rows="6"
+            class="w-full border-2 border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-blue-500 resize-y"
+            placeholder="輸入便利貼內容..."></textarea>
+        </div>
         <div class="mb-4">
           <label class="block text-sm font-bold text-gray-700 mb-2">選擇顏色</label>
           <div class="grid grid-cols-4 gap-2">
