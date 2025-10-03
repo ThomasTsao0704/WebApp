@@ -10,34 +10,45 @@
       --bg: #0b0f14;
       --card: #121821;
       --muted: #9bb0c9;
-      --accent: #ffd24d; /* 黃色徽章 */
+      --accent: #ffd24d;
       --text: #e6edf6;
-      --up: #ef4444;     /* 漲紅 */
-      --down: #22c55e;   /* 跌綠 */
+      --up: #ef4444;
+      --down: #22c55e;
       --chip: #1f2a37;
     }
-    body{background:var(--bg);color:var(--text);}
+    body{background:var(--bg);color:var(--text);font-family:system-ui;}
     .card{background:var(--card);}
     .chip{background:var(--chip); color:#c7d2fe}
     .ring-soft{box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 8px 24px rgba(0,0,0,.35);}
     .badge { background: var(--accent); color: #000; }
     .heart-btn { transition: transform .15s ease; }
     .heart-btn:active { transform: scale(.9); }
+    .heart-btn.fav { color: #ec4899; }
     .grid-wrap { 
       display:grid; 
-      grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); 
+      grid-template-columns: repeat(auto-fill,minmax(280px,1fr)); 
       gap: 16px;
       padding: 16px;
       max-width: 1400px;
       margin: 0 auto;
+    }
+    .loading { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .5; }
     }
   </style>
 </head>
 <body>
   <header class="px-4 py-3 sticky top-0 z-10 backdrop-blur bg-black/30 border-b border-white/10">
     <div class="max-w-[1400px] mx-auto flex items-center justify-between">
-      <h1 class="text-xl font-semibold">集中市場｜公布處置有價證券（卡片面板）</h1>
-      <div class="text-sm text-gray-300" id="metaInfo">載入中…</div>
+      <h1 class="text-xl font-semibold">集中市場｜公布處置有價證券</h1>
+      <div class="flex items-center gap-4">
+        <button id="refreshBtn" class="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-sm">
+          🔄 重新整理
+        </button>
+        <div class="text-sm text-gray-300" id="metaInfo">載入中…</div>
+      </div>
     </div>
   </header>
 
@@ -49,54 +60,69 @@
         <div class="truncate">
           <div class="text-lg font-bold leading-6 truncate">
             <span class="stock-name">—</span>
-            <span class="text-gray-400 ml-1 stock-code">—</span>
+            <span class="text-gray-400 ml-1 text-base stock-code">—</span>
           </div>
           <div class="text-xs text-gray-400 mt-0.5">
             公布：<span class="announce-date">—</span>
           </div>
         </div>
-        <button class="heart-btn text-pink-400/70 hover:text-pink-300" title="加入最愛">❤</button>
+        <button class="heart-btn text-gray-500 hover:text-pink-400" title="加入最愛" data-code="">
+          ❤
+        </button>
       </div>
 
-      <div class="mt-2 flex items-center gap-2">
+      <div class="mt-3 flex items-center gap-2">
         <span class="price text-2xl font-bold">—</span>
         <span class="chg text-sm font-semibold">—</span>
         <span class="ml-auto badge px-2 py-0.5 rounded-full text-xs font-bold hidden" data-badge="interval"></span>
       </div>
 
-      <p class="text-gray-300 text-sm mt-1 status-line">—</p>
+      <p class="text-gray-300 text-sm mt-1 status-line">
+        <span class="reason-text">—</span>
+      </p>
 
-      <div class="text-center mt-1">
-        <span class="inline-block badge px-2 py-0.5 rounded text-xs font-bold countdown-badge">—</span>
+      <div class="text-center mt-2">
+        <span class="inline-block badge px-3 py-1 rounded text-xs font-bold countdown-badge">—</span>
       </div>
 
       <div class="border-t border-white/10 my-3"></div>
 
-      <div class="flex items-center gap-1 text-xs">
-        <span class="chip px-2 py-0.5 rounded">資</span>
-        <span class="chip px-2 py-0.5 rounded">券</span>
-        <span class="chip px-2 py-0.5 rounded">沖</span>
-        <span class="ml-auto text-gray-400">
-          成交值：<span class="turnover">—</span>｜週轉率：<span class="tratio">—</span>
+      <div class="flex items-center gap-1.5 text-xs flex-wrap">
+        <span class="chip px-2 py-0.5 rounded" title="融資">資</span>
+        <span class="chip px-2 py-0.5 rounded" title="融券">券</span>
+        <span class="chip px-2 py-0.5 rounded" title="當沖">沖</span>
+        <span class="ml-auto text-gray-400 text-right">
+          成交值：<span class="turnover">—</span><br>
+          週轉率：<span class="tratio">—</span>
         </span>
       </div>
 
-      <div class="mt-3 text-xs text-gray-400">
-        <div>處置條件：<span class="condition">—</span></div>
-        <div>處置期間：<span class="period">—</span></div>
-        <div>處置措施：<span class="measure">—</span></div>
+      <div class="mt-3 text-xs text-gray-400 space-y-1">
+        <div><strong>處置原因：</strong><span class="condition">—</span></div>
+        <div><strong>處置期間：</strong><span class="period">—</span></div>
+        <div><strong>處置措施：</strong><span class="measure">—</span></div>
       </div>
     </div>
   </template>
 
   <script>
-    // === 你可以把這段 proxy 改成你的 ===
     const PUNISH_API = 'https://cors-proxy.s01yg3642.workers.dev/?url=' +
       encodeURIComponent('https://openapi.twse.com.tw/v1/announcement/punish');
 
-    // ====== 工具函式 ======
+    // ===== 本地存儲最愛 =====
+    const FAV_KEY = 'twse_fav_stocks';
+    const getFavorites = () => JSON.parse(localStorage.getItem(FAV_KEY) || '[]');
+    const toggleFavorite = (code) => {
+      const favs = getFavorites();
+      const idx = favs.indexOf(code);
+      if (idx > -1) favs.splice(idx, 1);
+      else favs.push(code);
+      localStorage.setItem(FAV_KEY, JSON.stringify(favs));
+      return favs.includes(code);
+    };
+
+    // ===== 工具函式 =====
     const rocToAD = (roc) => {
-      // "114/10/02" -> "2025-10-02"
       if (!roc || typeof roc !== 'string') return null;
       const [y,m,d] = roc.split('/').map(v => parseInt(v,10));
       if (!y || !m || !d) return null;
@@ -115,17 +141,15 @@
       return { start: rocToAD(s), end: rocToAD(e), raw: periodRaw };
     };
 
-    // 粗略判斷撮合頻率徽章（5分盤/20分盤）
     const inferIntervalBadge = (measure) => {
       if (!measure) return null;
       const text = String(measure);
-      if (text.includes('20') && (text.includes('分鐘') || text.includes('分'))) return '20分盤';
-      if (text.includes('5')  && (text.includes('分鐘') || text.includes('分'))) return '5分盤';
+      if (text.includes('20') && text.includes('分鐘')) return '20分盤';
+      if (text.includes('五分鐘') || (text.includes('5') && text.includes('分鐘'))) return '5分盤';
       if (/人工管制|撮合/i.test(text)) return '人工管制';
       return null;
     };
 
-    // 狀態文案
     const makeCountdownText = (start, end) => {
       if (!start || !end) return '期間未明';
       const today = new Date();
@@ -134,127 +158,185 @@
       const toStart = daysBetween(today, dStart);
       const toEnd = daysBetween(today, dEnd);
 
-      if (toEnd < 0) return '已出關';
-      if (toEnd === 0) return '本日出關';
-      if (toStart > 0) return `${toStart} 日後開始`;
-      return `${toEnd} 日後出關`;
+      if (toEnd < 0) return '✅ 已出關';
+      if (toEnd === 0) return '🎉 本日出關';
+      if (toStart > 0) return `⏳ ${toStart} 日後開始`;
+      return `⏱️ ${toEnd} 日後出關`;
     };
 
-    // ====== 合併點：行情/量能 額外資訊 ======
-    // 之後你用自己 API 將下面物件替換掉（key 用股票代碼）
-    // e.g. marketExtras['8033'] = { price: 148.5, chgPct: 1.0, chg: -1.5, turnover: '1.32億', tratio: '0.58%' }
-    const marketExtras = {
-      // 範例：'8033': { price: 148.5, chg: -1.5, chgPct: 1.0, turnover: '1.32億', tratio: '0.58%' }
+    // ===== 模擬即時行情（請替換為真實 API）=====
+    const fetchMarketData = async (codes) => {
+      // 這裡你可以呼叫真實的台股 API
+      // 例如：https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_2330.tw
+      // 或使用其他資料來源
+      
+      // 目前返回模擬數據
+      const mockData = {};
+      for (const code of codes) {
+        if (Math.random() > 0.3) { // 70% 有數據
+          mockData[code] = {
+            price: (Math.random() * 200 + 50).toFixed(2),
+            chg: (Math.random() * 10 - 5).toFixed(2),
+            chgPct: (Math.random() * 10 - 5).toFixed(2),
+            turnover: (Math.random() * 5).toFixed(2) + '億',
+            tratio: (Math.random() * 2).toFixed(2) + '%'
+          };
+        }
+      }
+      return mockData;
     };
 
-    // ====== 主流程 ======
-    (async function main(){
+    // ===== 主流程 =====
+    async function loadData() {
       const meta = document.getElementById('metaInfo');
       const wrap = document.getElementById('cards');
-      const tpl  = document.getElementById('card-tpl');
+      const tpl = document.getElementById('card-tpl');
+      
+      wrap.innerHTML = '<div class="col-span-full text-center py-16 loading text-gray-400">載入中...</div>';
 
       let rows = [];
       try {
         const res = await fetch(PUNISH_API, { cache: 'no-store' });
         rows = await res.json();
         if (!Array.isArray(rows)) rows = [];
-        meta.textContent = `共 ${rows.length} 檔（${new Date().toLocaleString()}）`;
+        meta.textContent = `共 ${rows.length} 檔（${new Date().toLocaleString('zh-TW', {timeZone: 'Asia/Taipei'})})`;
       } catch (err) {
         console.error(err);
-        meta.textContent = '載入失敗（請檢查 CORS Proxy 或網路）';
-        rows = [];
+        meta.textContent = '載入失敗';
+        wrap.innerHTML = '<div class="col-span-full text-center py-16 text-red-400">⚠️ 載入失敗，請檢查網路或稍後再試</div>';
+        return;
       }
 
-      // 正規化欄位（盡量容錯不同命名）
+      // 正規化欄位（API 實際返回的欄位）
       const norm = rows.map(x => {
-        const get = (...keys) => keys.find(k => k in x) ? x[keys.find(k => k in x)] : null;
-        const announce = get('announce_date','ANN_DATE','公布日期');
-        const code     = String(get('stock_code','STOCK_NO','證券代號') || '').trim();
-        const name     = get('stock_name','STOCK_NAME','證券名稱') || '';
-        const cond     = get('condition','CONDITION','處置條件') || '';
-        const period   = get('period','PERIOD','處置期間') || '';
-        const measure  = get('measure','MEASURE','處置措施') || '';
+        const announce = x.Date || '';
+        const code = String(x.Code || '').trim();
+        const name = x.Name || '';
+        const reason = x.ReasonsOfDisposition || '';
+        const period = x.DispositionPeriod || '';
+        const measure = x.DispositionMeasures || '';
 
-        const {start,end,raw} = parsePeriod(period);
+        const {start, end, raw} = parsePeriod(period);
         const badge = inferIntervalBadge(measure);
         const cdText = makeCountdownText(start, end);
 
+        // 從 Date 轉換公布日期
+        let announceAD = '';
+        if (announce.length === 7) { // 1141001 格式
+          const y = parseInt(announce.substring(0, 3));
+          const m = announce.substring(3, 5);
+          const d = announce.substring(5, 7);
+          announceAD = `${y + 1911}-${m}-${d}`;
+        }
+
         return {
           announce_roc: announce,
-          announce_ad: rocToAD(announce),
-          code, name, condition: cond, period_raw: raw, start, end, measure, intervalBadge: badge, countdownText: cdText
+          announce_ad: announceAD,
+          code, name, reason, period_raw: raw, start, end, measure, 
+          intervalBadge: badge, countdownText: cdText
         };
       });
 
-      // 依出關日排序：尚在處置期的排前面
-      norm.sort((a,b)=>{
+      // 依出關日排序
+      norm.sort((a, b) => {
         const aEnd = a.end ? new Date(a.end).getTime() : Infinity;
         const bEnd = b.end ? new Date(b.end).getTime() : Infinity;
         return aEnd - bEnd;
       });
 
+      // 獲取所有股票代碼的行情
+      const codes = norm.map(r => r.code).filter(Boolean);
+      const marketData = await fetchMarketData(codes);
+      const favorites = getFavorites();
+
+      // 清空容器
+      wrap.innerHTML = '';
+
       // 繪製卡片
       for (const row of norm) {
         const $ = tpl.content.cloneNode(true);
+        
         $.querySelector('.stock-name').textContent = row.name || '—';
         $.querySelector('.stock-code').textContent = row.code || '—';
-        $.querySelector('.announce-date').textContent = row.announce_ad || (row.announce_roc || '—');
-        $.querySelector('.condition').textContent = row.condition || '—';
-        $.querySelector('.measure').textContent   = row.measure   || '—';
-        $.querySelector('.period').textContent    = row.period_raw || '—';
+        $.querySelector('.announce-date').textContent = row.announce_ad || '—';
+        $.querySelector('.reason-text').textContent = row.reason || '—';
+        $.querySelector('.measure').textContent = row.measure || '—';
+        $.querySelector('.period').textContent = row.period_raw || '—';
 
         // 倒數與徽章
         const cb = $.querySelector('.countdown-badge');
         cb.textContent = row.countdownText;
+        
         if (row.intervalBadge) {
           const ib = $.querySelector('[data-badge="interval"]');
           ib.textContent = row.intervalBadge;
           ib.classList.remove('hidden');
         }
 
-        // 行情合併（若有）
-        const extra = marketExtras[row.code] || null;
+        // 行情數據
+        const extra = marketData[row.code] || null;
         const priceEl = $.querySelector('.price');
-        const chgEl   = $.querySelector('.chg');
-        const tEl     = $.querySelector('.turnover');
-        const rEl     = $.querySelector('.tratio');
+        const chgEl = $.querySelector('.chg');
+        const tEl = $.querySelector('.turnover');
+        const rEl = $.querySelector('.tratio');
 
         if (extra) {
-          priceEl.textContent = (extra.price ?? '—');
-          tEl.textContent = (extra.turnover ?? '—');
-          rEl.textContent = (extra.tratio ?? '—');
+          priceEl.textContent = extra.price;
+          tEl.textContent = extra.turnover;
+          rEl.textContent = extra.tratio;
 
-          let chgStr = '—';
-          if (typeof extra.chgPct === 'number' && typeof extra.chg === 'number') {
-            const arrow = extra.chg >= 0 ? '▲' : '▼';
-            chgStr = `${arrow}${Math.abs(extra.chg)} (${(Math.abs(extra.chgPct)).toFixed(2)}%)`;
-          }
-          chgEl.textContent = chgStr;
+          const chgNum = parseFloat(extra.chg);
+          const arrow = chgNum >= 0 ? '▲' : '▼';
+          chgEl.textContent = `${arrow}${Math.abs(chgNum)} (${Math.abs(parseFloat(extra.chgPct)).toFixed(2)}%)`;
 
-          if (typeof extra.chg === 'number') {
-            if (extra.chg > 0) {
-              priceEl.style.color = 'var(--up)'; chgEl.style.color = 'var(--up)';
-            } else if (extra.chg < 0) {
-              priceEl.style.color = 'var(--down)'; chgEl.style.color = 'var(--down)';
-            }
+          if (chgNum > 0) {
+            priceEl.style.color = 'var(--up)';
+            chgEl.style.color = 'var(--up)';
+          } else if (chgNum < 0) {
+            priceEl.style.color = 'var(--down)';
+            chgEl.style.color = 'var(--down)';
           }
         } else {
           priceEl.textContent = '—';
-          chgEl.textContent   = '—';
-          tEl.textContent     = '—';
-          rEl.textContent     = '—';
+          chgEl.textContent = '無行情';
+          tEl.textContent = '—';
+          rEl.textContent = '—';
         }
 
-        document.getElementById('cards').appendChild($);
+        // 最愛按鈕
+        const heartBtn = $.querySelector('.heart-btn');
+        heartBtn.dataset.code = row.code;
+        if (favorites.includes(row.code)) {
+          heartBtn.classList.add('fav');
+        }
+
+        wrap.appendChild($);
       }
 
       if (!norm.length) {
-        document.getElementById('cards').innerHTML = `
+        wrap.innerHTML = `
           <div class="col-span-full text-center text-gray-400 py-16">
-            目前沒有取回任何處置資料。可能是 API 暫無資料或請稍後再試。
+            目前沒有處置股票資料
           </div>`;
       }
-    })();
+    }
+
+    // ===== 事件監聽 =====
+    document.getElementById('cards').addEventListener('click', (e) => {
+      const btn = e.target.closest('.heart-btn');
+      if (btn) {
+        const code = btn.dataset.code;
+        const isFav = toggleFavorite(code);
+        btn.classList.toggle('fav', isFav);
+      }
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+      loadData();
+    });
+
+    // 初始載入
+    loadData();
   </script>
 </body>
 </html>
