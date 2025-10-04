@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <title>作品案例｜問題→解法→成果｜Thomas</title>
+  <meta name="description" content="作品集以案例卡呈現：明確描述問題、採用技術解法與可量化成果。" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23F7F3EE'/><text x='50' y='62' text-anchor='middle' font-size='56' fill='%23A47449' font-family='Arial, Helvetica, sans-serif'>T</text></svg>">
+  <meta property="og:title" content="作品案例｜問題→解法→成果｜Thomas" />
+  <meta property="og:description" content="作品集以案例卡呈現：明確描述問題、採用技術解法與可量化成果。" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://dummyimage.com/1200x630/f7f3ee/a47449&text=Thomas" />
+  <meta property="og:locale" content="zh_TW" />
+  <meta name="theme-color" content="#F7F3EE" />
+  <link rel="canonical" href="https://thomastsao0704.github.io/WebApp/works.html"/>
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com" defer></script>
+  <style>
+    :root { --ring: 0 0 0 4px rgba(164,116,73,.28); }
+    .focus-ring:focus { outline: none; box-shadow: var(--ring); }
+    body { background-image: radial-gradient(40rem 40rem at -10% -10%, rgba(164,116,73,.12), transparent), radial-gradient(30rem 30rem at 110% -20%, rgba(125,155,122,.10), transparent); }
+    .sr-only:not(:focus):not(:active) { position: absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); border:0; }
+  </style>
+</head>
+<body class="bg-base text-ink font-noto">
+  <header class="sticky top-0 z-50 bg-base/80 backdrop-blur border-b border-ink/5 shadow-soft" role="navigation" aria-label="主選單">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="flex items-center justify-between h-16">
+        <a href="https://thomastsao0704.github.io/WebApp/index.html" class="flex items-center gap-3 group" aria-label="回首頁">
+          <div class="w-9 h-9 rounded-2xl bg-mist grid place-items-center shadow-card border border-ink/5">
+            <span class="font-black text-lg text-tea">T</span>
+          </div>
+            <span class="font-inter font-semibold tracking-wide">Thomas</span>
+          </a>
+        <nav class="hidden md:flex items-center gap-6 text-sm">
+          <a href="https://thomastsao0704.github.io/WebApp/index.html" class="hover:text-tea">首頁</a>
+          <a href="https://thomastsao0704.github.io/WebApp/works.html" aria-current="page" class="text-tea">作品</a>
+          <a href="https://thomastsao0704.github.io/WebApp/stocks.html" class="hover:text-tea">股票篩選</a>
+          <a href="https://thomastsao0704.github.io/WebApp/services.html" class="hover:text-tea">服務方案</a>
+          <a href="https://thomastsao0704.github.io/WebApp/blog.html" class="hover:text-tea">洞察</a>
+          <a href="https://thomastsao0704.github.io/WebApp/media-kit.html" class="hover:text-tea">Media Kit</a>
+          <a href="https://thomastsao0704.github.io/WebApp/contact.html" class="hover:text-tea">聯絡我</a>
+          <a href="https://thomastsao0704.github.io/WebApp/contact.html" class="ml-2 inline-flex items-center gap-2 bg-tea text-base px-4 py-2 rounded-xl focus-ring hover:bg-leaf transition">
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 4l8 8 8-8M4 20h16" stroke="currentColor" stroke-width="1.6"/></svg>
+            預約諮詢
+          </a>
+        </nav>
+        <button id="menuBtn" class="md:hidden p-2 rounded-lg hover:bg-mist" aria-label="開啟選單">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" aria-hidden="true" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="mobileMenu" class="md:hidden hidden border-t border-ink/5 bg-base/95">
+      <div class="max-w-6xl mx-auto px-4 py-4 grid gap-3 text-sm" role="menu">
+        <a href="https://thomastsao0704.github.io/WebApp/index.html" class="hover:text-tea">首頁</a>
+        <a href="https://thomastsao0704.github.io/WebApp/works.html" aria-current="page" class="text-tea">作品</a>
+        <a href="https://thomastsao0704.github.io/WebApp/stocks.html" class="hover:text-tea">股票篩選</a>
+        <a href="https://thomastsao0704.github.io/WebApp/services.html" class="hover:text-tea">服務方案</a>
+        <a href="https://thomastsao0704.github.io/WebApp/blog.html" class="hover:text-tea">洞察</a>
+        <a href="https://thomastsao0704.github.io/WebApp/media-kit.html" class="hover:text-tea">Media Kit</a>
+        <a href="https://thomastsao0704.github.io/WebApp/contact.html" class="inline-flex items-center justify-center gap-2 bg-tea text-base px-4 py-2 rounded-xl focus-ring hover:bg-leaf transition">預約諮詢</a>
+      </div>
+    </div>
+  </header>
+<main class="py-20" tabindex="-1">
+  <div class="max-w-6xl mx-auto px-4">
+    <header>
+      <h1 class="text-3xl font-extrabold">代表作品</h1>
+      <p class="text-subink mt-2">每張卡固定欄位：<strong>問題／情境</strong> → <strong>解法（技術棧）</strong> → <strong>成果</strong></p>
+    </header>
+
+    <section class="grid md:grid-cols-2 gap-6 mt-10" aria-label="案例列表">
+      <article class="rounded-[24px] overflow-hidden border border-ink/5 bg-white/70 shadow-card">
+        <div class="aspect-[16/9] bg-haze/50 grid place-items-center text-subink">佔位圖</div>
+        <div class="p-6">
+          <h2 class="font-bold text-lg">股票營收資料庫 & 技術指標儀表板</h2>
+          <dl class="mt-3 space-y-3 text-sm text-subink">
+            <div><dt class="font-semibold text-ink">問題／情境</dt><dd>零散報表與大量 CSV 造成分析斷層，難以追蹤均價與策略命中率。</dd></div>
+            <div><dt class="font-semibold text-ink">解法（技術棧）</dt><dd>Excel PowerPivot / Power BI、React + Recharts、CSV Pipeline、指標引擎。</dd></div>
+            <div><dt class="font-semibold text-ink">成果</dt><dd>建置可篩選/排行/趨勢儀表板；均價與策略命中徽章一目了然，決策時間縮短 60%。</dd></div>
+          </dl>
+          <p class="mt-3 text-xs text-subink">Demo 連結 / Repo（可選）</p>
+        </div>
+      </article>
+
+      <article class="rounded-[24px] overflow-hidden border border-ink/5 bg-white/70 shadow-card">
+        <div class="aspect-[16/9] bg-haze/50 grid place-items-center text-subink">佔位圖</div>
+        <div class="p-6">
+          <h2 class="font-bold text-lg">智能便利貼佈告欄（多風格主題版）</h2>
+          <dl class="mt-3 space-y-3 text-sm text-subink">
+            <div><dt class="font-semibold text-ink">問題／情境</dt><dd>部門溝通分散於聊天與紙張，缺乏統一視覺與互動規範。</dd></div>
+            <div><dt class="font-semibold text-ink">解法（技術棧）</dt><dd>React + Tailwind、可拖曳/縮放、快編輯、分區命名、CSV 匯入匯出。</dd></div>
+            <div><dt class="font-semibold text-ink">成果</dt><dd>團隊同步效率提升；多主題（工業金屬網、復古毛氈、手工縫線）提升參與度。</dd></div>
+          </dl>
+          <p class="mt-3 text-xs text-subink">Demo 連結 / Repo（可選）</p>
+        </div>
+      </article>
+
+      <article class="rounded-[24px] overflow-hidden border border-ink/5 bg-white/70 shadow-card">
+        <div class="aspect-[16/9] bg-haze/50 grid place-items-center text-subink">佔位圖</div>
+        <div class="p-6">
+          <h2 class="font-bold text-lg">餐飲採購資料庫系統</h2>
+          <dl class="mt-3 space-y-3 text-sm text-subink">
+            <div><dt class="font-semibold text-ink">問題／情境</dt><dd>採購憑記憶作業，價格波動與庫存盤點缺乏可視化。</dd></div>
+            <div><dt class="font-semibold text-ink">解法（技術棧）</dt><dd>Google Sheets API + Apps Script、IndexedDB、編碼（KI/VE/ME…）。</dd></div>
+            <div><dt class="font-semibold text-ink">成果</dt><dd>週期盤點與比價自動化，單次採購節省 10–15% 成本。</dd></div>
+          </dl>
+          <p class="mt-3 text-xs text-subink">Demo 連結 / Repo（可選）</p>
+        </div>
+      </article>
+
+      <article class="rounded-[24px] overflow-hidden border border-ink/5 bg-white/70 shadow-card">
+        <div class="aspect-[16/9] bg-haze/50 grid place-items-center text-subink">佔位圖</div>
+        <div class="p-6">
+          <h2 class="font-bold text-lg">個人品牌網站（Thomas）</h2>
+          <dl class="mt-3 space-y-3 text-sm text-subink">
+            <div><dt class="font-semibold text-ink">問題／情境</dt><dd>資訊分散，難以傳達價值定位與服務邏輯。</dd></div>
+            <div><dt class="font-semibold text-ink">解法（技術棧）</dt><dd>Notion 風格資訊架構、Tailwind UI、SEO 與分享卡、A11y 強化。</dd></div>
+            <div><dt class="font-semibold text-ink">成果</dt><dd>轉化流程清晰，洽談效率提升，詢問郵件更聚焦。</dd></div>
+          </dl>
+          <p class="mt-3 text-xs text-subink">Demo 連結 / Repo（可選）</p>
+        </div>
+      </article>
+    </section>
+  </div>
+</main>
+  <footer class="py-10 border-t border-ink/5 bg-white/60 backdrop-blur">
+    <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-subink">
+      <p>© <span id="year"></span> Thomas. All rights reserved.</p>
+      <div class="flex items-center gap-4">
+        <a href="#" class="hover:text-tea">回到頂部 ↑</a>
+        <a href="https://thomastsao0704.github.io/WebApp/privacy.html" class="hover:text-tea">隱私權與免責</a>
+      </div>
+    </div>
+  </footer>
+  <script defer>
+    document.addEventListener('DOMContentLoaded', () => { 
+      const y = document.getElementById('year'); if (y) y.textContent = new Date().getFullYear();
+      const btn = document.getElementById('menuBtn'); const menu = document.getElementById('mobileMenu');
+      btn && btn.addEventListener('click', () => menu.classList.toggle('hidden'));
+    });
+  </script>
+</body>
+</html>
