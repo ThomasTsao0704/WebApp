@@ -18,6 +18,36 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com" defer></script>
+      <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.tailwind) {
+        tailwind.config = {
+          theme: {
+            extend: {
+              colors: {
+                base: '#F7F3EE',
+                ink: '#2A2F36',
+                subink: '#5F6B7A',
+                tea: '#A47449',
+                mist: '#E9E3DC',
+                haze: '#DDE3EA',
+                leaf: '#7C9B7A'
+              },
+              borderRadius: { xl2: '1.5rem' },
+              boxShadow: {
+                soft: '0 20px 60px rgba(42,47,54,.10)',
+                card: '0 8px 30px rgba(42,47,54,.06)'
+              },
+              fontFamily: {
+                inter: ['Inter','system-ui','sans-serif'],
+                noto: ['Noto Sans TC','Inter','system-ui','sans-serif']
+              }
+            }
+          }
+        }
+      }
+    });
+  </script>
   <style>
     :root { --ring: 0 0 0 4px rgba(164,116,73,.28); }
     .focus-ring:focus { outline: none; box-shadow: var(--ring); }
