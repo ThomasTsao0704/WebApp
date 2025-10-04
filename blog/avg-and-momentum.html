@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <title>用均價與成交動能，快速篩出強勢股｜Thomas</title>
+  <meta name="description" content="以均價×成交動能確認趨勢，用最少指標提升決策穩定度。" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23F7F3EE'/><text x='50' y='62' text-anchor='middle' font-size='56' fill='%23A47449' font-family='Arial, Helvetica, sans-serif'>T</text></svg>">
+  <meta property="og:title" content="用均價與成交動能，快速篩出強勢股｜Thomas" />
+  <meta property="og:description" content="以均價×成交動能確認趨勢，用最少指標提升決策穩定度。" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://thomastsao0704.github.io/WebApp/og/og-blog.png" />
+  <meta property="og:locale" content="zh_TW" />
+  <meta name="theme-color" content="#F7F3EE" />
+  <link rel="canonical" href="https://thomastsao0704.github.io/WebApp/blog/avg-and-momentum.html"/>
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com" defer></script>
+      <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.tailwind) {
+        tailwind.config = {
+          theme: {
+            extend: {
+              colors: {
+                base: '#F7F3EE',
+                ink: '#2A2F36',
+                subink: '#5F6B7A',
+                tea: '#A47449',
+                mist: '#E9E3DC',
+                haze: '#DDE3EA',
+                leaf: '#7C9B7A'
+              },
+              borderRadius: { xl2: '1.5rem' },
+              boxShadow: {
+                soft: '0 20px 60px rgba(42,47,54,.10)',
+                card: '0 8px 30px rgba(42,47,54,.06)'
+              },
+              fontFamily: {
+                inter: ['Inter','system-ui','sans-serif'],
+                noto: ['Noto Sans TC','Inter','system-ui','sans-serif']
+              }
+            }
+          }
+        }
+      }
+    });
+  </script>
+  <style>
+    :root { --ring: 0 0 0 4px rgba(164,116,73,.28); }
+    .focus-ring:focus { outline: none; box-shadow: var(--ring); }
+    body { background-image: radial-gradient(40rem 40rem at -10% -10%, rgba(164,116,73,.12), transparent), radial-gradient(30rem 30rem at 110% -20%, rgba(125,155,122,.10), transparent); }
+    .sr-only:not(:focus):not(:active) { position: absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); border:0; }
+  </style>
+  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "用均價與成交動能，快速篩出強勢股", "datePublished": "2025-10-04", "dateModified": "2025-10-04", "author": {"@type": "Person", "name": "Thomas"}, "publisher": {"@type": "Organization", "name": "Thomas"}, "mainEntityOfPage": "https://thomastsao0704.github.io/WebApp/blog/avg-and-momentum.html", "image": "https://thomastsao0704.github.io/WebApp/og/og-blog.png", "description": "以均價×成交動能確認趨勢，用最少指標提升決策穩定度。"}</script>
+</head>
+<body class="bg-base text-ink font-noto">
+  <header class="sticky top-0 z-50 bg-base/80 backdrop-blur border-b border-ink/5 shadow-soft" role="navigation" aria-label="主選單">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="flex items-center justify-between h-16">
+        <a href="https://thomastsao0704.github.io/WebApp/index.html" class="flex items-center gap-3 group" aria-label="回首頁">
+          <div class="w-9 h-9 rounded-2xl bg-mist grid place-items-center shadow-card border border-ink/5">
+            <span class="font-black text-lg text-tea">T</span>
+          </div>
+            <span class="font-inter font-semibold tracking-wide">Thomas</span>
+          </a>
+        <nav class="hidden md:flex items-center gap-6 text-sm">
+          <a href="https://thomastsao0704.github.io/WebApp/index.html" class="hover:text-tea">首頁</a>
+          <a href="https://thomastsao0704.github.io/WebApp/works.html" class="hover:text-tea">作品</a>
+          <a href="https://thomastsao0704.github.io/WebApp/stocks.html" class="hover:text-tea">股票篩選</a>
+          <a href="https://thomastsao0704.github.io/WebApp/services.html" class="hover:text-tea">服務方案</a>
+          <a href="https://thomastsao0704.github.io/WebApp/blog.html" aria-current="page" class="text-tea">洞察</a>
+          <a href="https://thomastsao0704.github.io/WebApp/media-kit.html" class="hover:text-tea">Media Kit</a>
+          <a href="https://thomastsao0704.github.io/WebApp/contact.html" class="hover:text-tea">聯絡我</a>
+          <a href="https://thomastsao0704.github.io/WebApp/contact.html" class="ml-2 inline-flex items-center gap-2 bg-tea text-base px-4 py-2 rounded-xl focus-ring hover:bg-leaf transition">
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 4l8 8 8-8M4 20h16" stroke="currentColor" stroke-width="1.6"/></svg>
+            預約諮詢
+          </a>
+        </nav>
+        <button id="menuBtn" class="md:hidden p-2 rounded-lg hover:bg-mist" aria-label="開啟選單">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" aria-hidden="true" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="mobileMenu" class="md:hidden hidden border-t border-ink/5 bg-base/95">
+      <div class="max-w-6xl mx-auto px-4 py-4 grid gap-3 text-sm" role="menu">
+        <a href="https://thomastsao0704.github.io/WebApp/index.html" class="hover:text-tea">首頁</a>
+        <a href="https://thomastsao0704.github.io/WebApp/works.html" class="hover:text-tea">作品</a>
+        <a href="https://thomastsao0704.github.io/WebApp/stocks.html" class="hover:text-tea">股票篩選</a>
+        <a href="https://thomastsao0704.github.io/WebApp/services.html" class="hover:text-tea">服務方案</a>
+        <a href="https://thomastsao0704.github.io/WebApp/blog.html" aria-current="page" class="text-tea">洞察</a>
+        <a href="https://thomastsao0704.github.io/WebApp/media-kit.html" class="hover:text-tea">Media Kit</a>
+        <a href="https://thomastsao0704.github.io/WebApp/contact.html" class="inline-flex items-center justify-center gap-2 bg-tea text-base px-4 py-2 rounded-xl focus-ring hover:bg-leaf transition">預約諮詢</a>
+      </div>
+    </div>
+  </header>
+<main class="py-16" tabindex="-1">
+  <article class="max-w-3xl mx-auto px-4">
+    <header>
+      <h1 class="text-3xl font-extrabold">用均價與成交動能，快速篩出強勢股</h1>
+      <p class="mt-2 text-sm text-subink">發佈：2025-10-04</p>
+      <figure class="mt-6 rounded-xl overflow-hidden border border-ink/10 bg-mist/50">
+        <picture>
+          <source srcset="https://dummyimage.com/1600x640/dde3ea/2a2f36&text=均價↑+動能↑=趨勢確認&fm=avif" type="image/avif">
+          <source srcset="https://dummyimage.com/1600x640/dde3ea/2a2f36&text=均價↑+動能↑=趨勢確認&fm=webp" type="image/webp">
+          <img src="https://dummyimage.com/1600x640/dde3ea/2a2f36&text=均價↑+動能↑=趨勢確認" alt="用均價與成交動能，快速篩出強勢股 hero 圖" loading="lazy" class="w-full h-auto">
+        </picture>
+      </figure>
+    </header>
+    <section class="prose text-[15px] leading-relaxed mt-6 text-ink">
+      
+<p>股市每天有數百檔股票漲跌，若只看新聞或單日漲幅，很容易被雜訊誤導。很多投資人試圖依靠複雜模型或 AI 預測，卻因過度調參而難以長期穩定使用。</p>
+<p>我發現最簡單的兩個指標──<strong>均價</strong>與<strong>成交動能</strong>──反而能提供最穩定的訊號。均價代表市場的共識價格帶，動能則顯示買盤是否持續跟進。當兩者同步上升時，往往比單看股價更有意義。</p>
+<p>例如：即使短線有震盪，個股若呈現「均價抬升 + 動能放大」，通常是趨勢正在被市場買單；相反地，題材股如果僅有價漲但均價與動能沒有共振，回落的機率很高。</p>
+<p><strong>結論是：不用 50 個指標，兩個就夠。</strong>保持方法簡單、能重複，才是讓決策穩定的關鍵。</p>
+<p class="mt-4 text-tea font-medium">👉 想把這套方法轉成「每日自動化報表」？請看 <a href="https://thomastsao0704.github.io/WebApp/stocks.html" class="underline hover:text-leaf">股票篩選工具</a> 或 <a href="https://thomastsao0704.github.io/WebApp/services.html" class="underline hover:text-leaf">服務方案</a>。</p>
+
+    </section>
+    <nav class="mt-10 flex items-center justify-between text-sm">
+      <a href="https://thomastsao0704.github.io/WebApp/blog.html" class="underline hover:text-tea">&larr; 返回 Blog</a>
+      <a href="https://thomastsao0704.github.io/WebApp/blog/stickies-to-webapp.html" class="underline hover:text-tea">把「看不見」的流程畫出來：從 Stickies 到 WebApp &rarr;</a>
+    </nav>
+  </article>
+</main>
+  <footer class="py-10 border-t border-ink/5 bg-white/60 backdrop-blur">
+    <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-subink">
+      <p>© <span id="year"></span> Thomas. All rights reserved.</p>
+      <div class="flex items-center gap-4">
+        <a href="#" class="hover:text-tea">回到頂部 ↑</a>
+        <a href="https://thomastsao0704.github.io/WebApp/privacy.html" class="hover:text-tea">隱私權與免責</a>
+      </div>
+    </div>
+  </footer>
+  <script defer>
+    document.addEventListener('DOMContentLoaded', () => { 
+      const y = document.getElementById('year'); if (y) y.textContent = new Date().getFullYear();
+      const btn = document.getElementById('menuBtn'); const menu = document.getElementById('mobileMenu');
+      btn && btn.addEventListener('click', () => menu.classList.toggle('hidden'));
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <title>股票篩選｜台股資料分析 WebApp｜Thomas</title>
+  <meta name="description" content="預設載入內建 stocks.json（顯示 20 筆），提供分頁、匯入與友善空狀態。" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23F7F3EE'/><text x='50' y='62' text-anchor='middle' font-size='56' fill='%23A47449' font-family='Arial, Helvetica, sans-serif'>T</text></svg>">
+  <meta property="og:title" content="股票篩選｜台股資料分析 WebApp｜Thomas" />
+  <meta property="og:description" content="預設載入內建 stocks.json（顯示 20 筆），提供分頁、匯入與友善空狀態。" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://dummyimage.com/1200x630/f7f3ee/a47449&text=Thomas" />
+  <meta property="og:locale" content="zh_TW" />
+  <meta name="theme-color" content="#F7F3EE" />
+  <link rel="canonical" href="/stocks.html"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com" defer></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.tailwind) {
+        tailwind.config = {
+          theme: {
+            extend: {
+              colors: {
+                base: '#F7F3EE',
+                ink: '#2A2F36',
+                subink: '#5F6B7A',
+                tea: '#A47449',
+                mist: '#E9E3DC',
+                haze: '#DDE3EA',
+                leaf: '#7C9B7A'
+              },
+              borderRadius: { xl2: '1.5rem' },
+              boxShadow: {
+                soft: '0 20px 60px rgba(42,47,54,.10)',
+                card: '0 8px 30px rgba(42,47,54,.06)'
+              },
+              fontFamily: {
+                inter: ['Inter','system-ui','sans-serif'],
+                noto: ['Noto Sans TC','Inter','system-ui','sans-serif']
+              }
+            }
+          }
+        }
+      }
+    });
+  </script>
+  <style>
+    :root { --ring: 0 0 0 4px rgba(164,116,73,.28); }
+    .focus-ring:focus { outline: none; box-shadow: var(--ring); }
+    body { background-image: radial-gradient(40rem 40rem at -10% -10%, rgba(164,116,73,.12), transparent), radial-gradient(30rem 30rem at 110% -20%, rgba(125,155,122,.10), transparent); }
+    .sr-only:not(:focus):not(:active) { position: absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); border:0; }
+  </style>
+</head>
+<body class="bg-base text-ink font-noto">
+  <header class="sticky top-0 z-50 bg-base/80 backdrop-blur border-b border-ink/5 shadow-soft" role="navigation" aria-label="主選單">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="flex items-center justify-between h-16">
+        <a href="/index.html" class="flex items-center gap-3 group" aria-label="回首頁">
+          <div class="w-9 h-9 rounded-2xl bg-mist grid place-items-center shadow-card border border-ink/5">
+            <span class="font-black text-lg text-tea">T</span>
+          </div>
+          <span class="font-inter font-semibold tracking-wide">Thomas</span>
+        </a>
+        <nav class="hidden md:flex items-center gap-6 text-sm">
+          <a href="/index.html" class="hover:text-tea">首頁</a>
+          <a href="/works.html" class="hover:text-tea">作品</a>
+          <a href="/stocks.html" aria-current="page" class="text-tea">股票篩選</a>
+          <a href="/services.html" class="hover:text-tea">服務方案</a>
+          <a href="/blog.html" class="hover:text-tea">洞察</a>
+          <a href="/media-kit.html" class="hover:text-tea">Media Kit</a>
+          <a href="/contact.html" class="hover:text-tea">聯絡我</a>
+          <a href="/contact.html" class="ml-2 inline-flex items-center gap-2 bg-tea text-base px-4 py-2 rounded-xl focus-ring hover:bg-leaf transition">
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 4l8 8 8-8M4 20h16" stroke="currentColor" stroke-width="1.6"/></svg>
+            預約諮詢
+          </a>
+        </nav>
+        <button id="menuBtn" class="md:hidden p-2 rounded-lg hover:bg-mist" aria-label="開啟選單">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" aria-hidden="true" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="mobileMenu" class="md:hidden hidden border-t border-ink/5 bg-base/95">
+      <div class="max-w-6xl mx-auto px-4 py-4 grid gap-3 text-sm" role="menu">
+        <a href="/index.html" class="hover:text-tea">首頁</a>
+        <a href="/works.html" class="hover:text-tea">作品</a>
+        <a href="/stocks.html" class="hover:text-tea">股票篩選</a>
+        <a href="/services.html" class="hover:text-tea">服務方案</a>
+        <a href="/blog.html" class="hover:text-tea">洞察</a>
+        <a href="/media-kit.html" class="hover:text-tea">Media Kit</a>
+        <a href="/contact.html" class="inline-flex items-center justify-center gap-2 bg-tea text-base px-4 py-2 rounded-xl focus-ring hover:bg-leaf transition">預約諮詢</a>
+      </div>
+    </div>
+  </header>
+
+<main class="py-20" tabindex="-1">
+  <div class="max-w-6xl mx-auto px-4">
+    <header class="flex items-end justify-between gap-6">
+      <div>
+        <h1 class="text-3xl font-extrabold">股票篩選</h1>
+        <p class="text-subink mt-2">預設顯示內建資料（前 20 筆），先不套任何過濾條件。</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <label for="csvFile" class="sr-only">上傳 CSV</label>
+        <input id="csvFile" type="file" accept=".csv" class="block text-sm" aria-describedby="uploadHelp">
+        <button id="downloadSample" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-ink/10 hover:bg-haze/40 focus-ring text-sm">
+          下載範例 CSV
+        </button>
+      </div>
+    </header>
+
+    <p id="uploadHelp" class="text-xs text-subink mt-1">支援含欄位：code, name, industry, close, avg 等。</p>
+    <p id="importMsg" class="mt-2 text-sm" role="status" aria-live="polite"></p>
+
+    <section class="mt-6">
+      <div class="overflow-auto rounded-xl border border-ink/10 bg-white/80 shadow-card">
+        <table class="min-w-full text-sm">
+          <thead class="bg-mist/60 text-ink">
+            <tr>
+              <th class="text-left px-4 py-2">代碼</th>
+              <th class="text-left px-4 py-2">名稱</th>
+              <th class="text-left px-4 py-2">產業</th>
+              <th class="text-right px-4 py-2">收盤價</th>
+              <th class="text-right px-4 py-2">均價</th>
+            </tr>
+          </thead>
+          <tbody id="stocksBody"></tbody>
+        </table>
+        <div id="emptyState" class="hidden p-8 text-center text-subink">
+          沒有結果，請放寬篩選或上傳新資料。
+          <div class="mt-4 flex items-center justify-center gap-2">
+            <button id="resetBtn" class="px-3 py-2 rounded-lg border border-ink/10 hover:bg-haze/40 focus-ring text-sm">重置條件</button>
+            <button id="downloadSample2" class="px-3 py-2 rounded-lg border border-ink/10 hover:bg-haze/40 focus-ring text-sm">下載範例 CSV</button>
+          </div>
+        </div>
+      </div>
+
+      <nav class="mt-4 flex items-center justify-between" aria-label="分頁">
+        <button id="prevPage" class="px-3 py-2 rounded-lg border border-ink/10 hover:bg-haze/40 focus-ring text-sm" disabled>上一頁</button>
+        <p class="text-sm text-subink">第 <span id="pageNow">1</span> / <span id="pageTotal">1</span> 頁</p>
+        <button id="nextPage" class="px-3 py-2 rounded-lg border border-ink/10 hover:bg-haze/40 focus-ring text-sm">下一頁</button>
+      </nav>
+
+      <figure class="mt-6 rounded-xl border border-ink/10 bg-white/60 p-4">
+        <figcaption class="text-sm text-subink mb-2">匯入成功／失敗訊息與範例截圖</figcaption>
+        <picture>
+          <source srcset="https://dummyimage.com/1200x400/f0f0f0/aaa&text=Import+Preview&fm=avif" type="image/avif">
+          <source srcset="https://dummyimage.com/1200x400/f0f0f0/aaa&text=Import+Preview&fm=webp" type="image/webp">
+          <img src="https://dummyimage.com/1200x400/f0f0f0/aaa&text=Import+Preview" alt="匯入資料預覽示意圖" loading="lazy">
+        </picture>
+      </figure>
+    </section>
+  </div>
+</main>
+  <footer class="py-10 border-t border-ink/5 bg-white/60 backdrop-blur">
+    <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-subink">
+      <p>© <span id="year"></span> Thomas. All rights reserved.</p>
+      <div class="flex items-center gap-4">
+        <a href="#" class="hover:text-tea">回到頂部 ↑</a>
+        <a href="/privacy.html" class="hover:text-tea">隱私權與免責</a>
+      </div>
+    </div>
+  </footer>
+  <script defer>
+    document.addEventListener('DOMContentLoaded', () => { 
+      const y = document.getElementById('year'); if (y) y.textContent = new Date().getFullYear();
+      const btn = document.getElementById('menuBtn'); const menu = document.getElementById('mobileMenu');
+      btn && btn.addEventListener('click', () => menu.classList.toggle('hidden'));
+    });
+  </script>
+
+<script defer>
+  const PAGE_SIZE = 20;
+  let allData = [];
+  let page = 1;
+
+  async function loadDefault() { 
+    try {
+      const res = await fetch('/assets/stocks.json', { cache: 'no-store' });
+      allData = await res.json();
+      page = 1; render();
+    } catch (e) { 
+      console.error(e);
+      allData = []; render();
+    }
+  }
+
+  function render() { 
+    const body = document.getElementById('stocksBody');
+    const empty = document.getElementById('emptyState');
+    const totalPages = Math.max(1, Math.ceil(allData.length / PAGE_SIZE));
+    document.getElementById('pageTotal').textContent = totalPages;
+    document.getElementById('pageNow').textContent = page;
+
+    if (allData.length === 0) { 
+      body.innerHTML = '';
+      empty.classList.remove('hidden');
+    } else {
+      empty.classList.add('hidden');
+      const start = (page - 1) * PAGE_SIZE;
+      const items = allData.slice(start, start + PAGE_SIZE);
+      body.innerHTML = items.map(row => `
+        <tr class="border-t border-ink/5">
+          <td class="px-4 py-2">${row.code}</td>
+          <td class="px-4 py-2">${row.name}</td>
+          <td class="px-4 py-2">${row.industry || ''}</td>
+          <td class="px-4 py-2 text-right">${row.close ?? ''}</td>
+          <td class="px-4 py-2 text-right">${row.avg ?? ''}</td>
+        </tr>`).join('');
+    }
+
+    document.getElementById('prevPage').disabled = (page <= 1);
+    document.getElementById('nextPage').disabled = (page >= totalPages);
+  }
+
+  document.getElementById('prevPage').addEventListener('click', () => { page = Math.max(1, page-1); render(); });
+  document.getElementById('nextPage').addEventListener('click', () => { page = Math.min(Math.ceil(allData.length / PAGE_SIZE), page+1); render(); });
+  document.getElementById('resetBtn').addEventListener('click', () => { page = 1; render(); });
+
+  // Sample CSV
+  const sampleCsv = `code,name,industry,close,avg
+2330,台積電,半導體,860,845.5
+2454,聯發科,半導體,1300,1288.4
+1101,台泥,水泥,36.5,36.1`;
+
+  function downloadSample() { 
+    const blob = new Blob([sampleCsv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'sample_stocks.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+  document.getElementById('downloadSample').addEventListener('click', downloadSample);
+  document.getElementById('downloadSample2').addEventListener('click', downloadSample);
+
+  // CSV upload (basic)
+  document.getElementById('csvFile').addEventListener('change', async (e) => { 
+    const el = document.getElementById('importMsg');
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      const text = await f.text();
+      const [header, ...rows] = text.trim().split(/\r?\n/);
+      const cols = header.split(',');
+      const idx = { code: cols.indexOf('code'), name: cols.indexOf('name'), industry: cols.indexOf('industry'), close: cols.indexOf('close'), avg: cols.indexOf('avg') };
+      if (idx.code<0 || idx.name<0) throw new Error('缺少必要欄位 code/name');
+      allData = rows.map(r => { const c = r.split(','); return { code: c[idx.code], name: c[idx.name], industry: c[idx.industry]||'', close: +c[idx.close]||'', avg: +c[idx.avg]||'' }; });
+      page = 1; render();
+      el.textContent = `匯入成功，共 ${allData.length} 筆。`;
+    } catch (err) { 
+      console.error(err);
+      el.textContent = '匯入失敗：' + err.message;
+    }
+  });
+
+  loadDefault();
+</script>
+</body>
+</html>
