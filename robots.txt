@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://thomastsao0704.github.io/WebApp/sitemap.xml
