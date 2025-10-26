@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>完整交易分析管理系統</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .flex-col {
+            flex-direction: column;
+        }
+
+        .flex-1 {
+            flex: 1;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .items-start {
+            align-items: flex-start;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .gap-1 { gap: 0.25rem; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-3 { gap: 0.75rem; }
+        .gap-4 { gap: 1rem; }
+        .gap-6 { gap: 1.5rem; }
+
+        .h-screen {
+            height: 100vh;
+        }
+
+        .overflow-y-auto {
+            overflow-y: auto;
+        }
+
+        .p-2 { padding: 0.5rem; }
+        .p-3 { padding: 0.75rem; }
+        .p-4 { padding: 1rem; }
+        .p-6 { padding: 1.5rem; }
+        .p-8 { padding: 2rem; }
+        .p-12 { padding: 3rem; }
+
+        .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+        .px-4 { padding-left: 1rem; padding-right: 1rem; }
+        .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+        .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+
+        .m-0 { margin: 0; }
+        .mb-1 { margin-bottom: 0.25rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mb-3 { margin-bottom: 0.75rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-6 { margin-bottom: 1.5rem; }
+        .mt-1 { margin-top: 0.25rem; }
+        .mt-2 { margin-top: 0.5rem; }
+        .mt-3 { margin-top: 0.75rem; }
+        .mt-4 { margin-top: 1rem; }
+        .mt-6 { margin-top: 1.5rem; }
+        .mx-auto { margin-left: auto; margin-right: auto; }
+
+        .w-full { width: 100%; }
+
+        .space-y-2 > * + * { margin-top: 0.5rem; }
+        .space-y-3 > * + * { margin-top: 0.75rem; }
+        .space-y-6 > * + * { margin-top: 1.5rem; }
+
+        .text-xs { font-size: 0.75rem; }
+        .text-sm { font-size: 0.875rem; }
+        .text-base { font-size: 1rem; }
+        .text-lg { font-size: 1.125rem; }
+        .text-xl { font-size: 1.25rem; }
+        .text-2xl { font-size: 1.5rem; }
+        .text-3xl { font-size: 1.875rem; }
+        .text-4xl { font-size: 2.25rem; }
+
+        .font-semibold { font-weight: 600; }
+        .font-bold { font-weight: 700; }
+
+        .text-white { color: white; }
+        .text-gray-500 { color: #6b7280; }
+        .text-gray-600 { color: #4b5563; }
+        .text-gray-700 { color: #374151; }
+        .text-gray-800 { color: #1f2937; }
+        .text-gray-900 { color: #111827; }
+        .text-blue-100 { color: #dbeafe; }
+        .text-blue-500 { color: #3b82f6; }
+        .text-blue-600 { color: #2563eb; }
+        .text-blue-700 { color: #1d4ed8; }
+        .text-blue-800 { color: #1e40af; }
+        .text-blue-900 { color: #1e3a8a; }
+        .text-green-600 { color: #16a34a; }
+        .text-green-700 { color: #15803d; }
+        .text-green-800 { color: #166534; }
+        .text-green-900 { color: #14532d; }
+        .text-red-600 { color: #dc2626; }
+        .text-red-700 { color: #b91c1c; }
+        .text-red-800 { color: #991b1b; }
+        .text-red-900 { color: #7f1d1d; }
+        .text-yellow-700 { color: #a16207; }
+        .text-yellow-800 { color: #854d0e; }
+        .text-yellow-900 { color: #713f12; }
+        .text-orange-600 { color: #ea580c; }
+        .text-orange-700 { color: #c2410c; }
+        .text-purple-600 { color: #9333ea; }
+        .text-purple-700 { color: #7e22ce; }
+        .text-purple-900 { color: #581c87; }
+
+        .text-left { text-align: left; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+
+        .bg-gray-50 { background-color: #f9fafb; }
+        .bg-gray-100 { background-color: #f3f4f6; }
+        .bg-gray-200 { background-color: #e5e7eb; }
+        .bg-gray-300 { background-color: #d1d5db; }
+        .bg-white { background-color: white; }
+        .bg-blue-50 { background-color: #eff6ff; }
+        .bg-blue-100 { background-color: #dbeafe; }
+        .bg-blue-300 { background-color: #93c5fd; }
+        .bg-blue-500 { background-color: #3b82f6; }
+        .bg-blue-600 { background-color: #2563eb; }
+        .bg-green-50 { background-color: #f0fdf4; }
+        .bg-green-100 { background-color: #dcfce7; }
+        .bg-green-500 { background-color: #22c55e; }
+        .bg-green-600 { background-color: #16a34a; }
+        .bg-red-50 { background-color: #fef2f2; }
+        .bg-red-100 { background-color: #fee2e2; }
+        .bg-red-500 { background-color: #ef4444; }
+        .bg-yellow-50 { background-color: #fefce8; }
+        .bg-yellow-100 { background-color: #fef9c3; }
+        .bg-yellow-600 { background-color: #ca8a04; }
+        .bg-orange-50 { background-color: #fff7ed; }
+        .bg-orange-100 { background-color: #ffedd5; }
+        .bg-purple-50 { background-color: #faf5ff; }
+        .bg-purple-100 { background-color: #f3e8ff; }
+        .bg-purple-500 { background-color: #a855f7; }
+        .bg-purple-600 { background-color: #9333ea; }
+
+        .bg-gradient-blue-purple {
+            background: linear-gradient(to bottom, #2563eb, #9333ea);
+        }
+
+        .bg-gradient-blue-purple-r {
+            background: linear-gradient(to right, #2563eb, #9333ea);
+        }
+
+        .bg-gradient-blue {
+            background: linear-gradient(to right, #3b82f6, #2563eb);
+        }
+
+        .bg-gradient-purple {
+            background: linear-gradient(to right, #a855f7, #9333ea);
+        }
+
+        .bg-gradient-green {
+            background: linear-gradient(to right, #22c55e, #16a34a);
+        }
+
+        .bg-gradient-blue-br {
+            background: linear-gradient(to bottom right, #eff6ff, #dbeafe);
+        }
+
+        .bg-gradient-green-br {
+            background: linear-gradient(to bottom right, #f0fdf4, #dcfce7);
+        }
+
+        .bg-gradient-purple-br {
+            background: linear-gradient(to bottom right, #faf5ff, #f3e8ff);
+        }
+
+        .bg-gradient-orange-br {
+            background: linear-gradient(to bottom right, #fff7ed, #ffedd5);
+        }
+
+        .bg-gradient-blue-purple-lr {
+            background: linear-gradient(to right, #eff6ff, #faf5ff);
+        }
+
+        .rounded { border-radius: 0.25rem; }
+        .rounded-lg { border-radius: 0.5rem; }
+        .rounded-xl { border-radius: 0.75rem; }
+        .rounded-2xl { border-radius: 1rem; }
+        .rounded-full { border-radius: 9999px; }
+
+        .border { border: 1px solid #e5e7eb; }
+        .border-2 { border: 2px solid #e5e7eb; }
+        .border-4 { border: 4px solid #e5e7eb; }
+        .border-dashed { border-style: dashed; }
+        .border-gray-200 { border-color: #e5e7eb; }
+        .border-gray-300 { border-color: #d1d5db; }
+        .border-blue-300 { border-color: #93c5fd; }
+        .border-l-4 { border-left: 4px solid; }
+        .border-blue-500 { border-color: #3b82f6; }
+        .border-yellow-500 { border-color: #eab308; }
+        .border-red-500 { border-color: #ef4444; }
+
+        .shadow-lg {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .shadow-xl {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .transition-all {
+            transition: all 0.3s;
+        }
+
+        .transition-colors {
+            transition: color 0.3s, background-color 0.3s;
+        }
+
+        .transition-shadow {
+            transition: box-shadow 0.3s;
+        }
+
+        .cursor-pointer {
+            cursor: pointer;
+        }
+
+        button {
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="number"],
+        textarea {
+            font-family: inherit;
+            width: 100%;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        input[type="range"] {
+            width: 100%;
+        }
+
+        #sidebar {
+            transition: width 0.3s;
+        }
+
+        .sidebar-collapsed {
+            width: 5rem;
+        }
+
+        .sidebar-expanded {
+            width: 16rem;
+        }
+
+        .nav-btn {
+            background: transparent;
+            color: white;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-btn.active {
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        #fileDropZone {
+            border: 3px dashed #93c5fd;
+            transition: all 0.3s;
+        }
+
+        #fileDropZone.dragover {
+            border-color: #3b82f6;
+            background-color: #dbeafe;
+        }
+
+        .grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .grid-cols-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .grid-cols-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .col-span-2 {
+            grid-column: span 2;
+        }
+
+        @media (min-width: 768px) {
+            .md\\:grid-cols-2 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .md\\:grid-cols-3 {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .md\\:grid-cols-4 {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        label {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        <!-- 側邊欄 -->
+        <div id="sidebar" class="sidebar-expanded bg-gradient-blue-purple text-white transition-all flex flex-col">
+            <div class="p-6 flex items-center justify-between">
+                <h1 id="sidebarTitle" class="text-xl font-bold">交易系統</h1>
+                <button onclick="toggleSidebar()" class="p-2 rounded-lg transition-colors" style="background: rgba(255,255,255,0.1);">
+                    <svg id="menuIcon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <nav class="flex-1 px-3">
+                <button onclick="switchModule('dashboard')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 mb-2 rounded-xl" data-module="dashboard">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    <span class="nav-label">儀表板</span>
+                </button>
+                <button onclick="switchModule('upload')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 mb-2 rounded-xl" data-module="upload">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <span class="nav-label">上傳CSV</span>
+                </button>
+                <button onclick="switchModule('analysis')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 mb-2 rounded-xl" data-module="analysis">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                    <span class="nav-label">數據分析</span>
+                </button>
+                <button onclick="switchModule('journal')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 mb-2 rounded-xl" data-module="journal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    <span class="nav-label">交易日誌</span>
+                </button>
+                <button onclick="switchModule('knowledge')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 mb-2 rounded-xl" data-module="knowledge">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                    <span class="nav-label">知識庫</span>
+                </button>
+                <button onclick="switchModule('settings')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 mb-2 rounded-xl" data-module="settings">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v6m0 6v6m-9-9h6m6 0h6"></path></svg>
+                    <span class="nav-label">設定</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- 主內容區 -->
+        <div class="flex-1 overflow-y-auto">
+            <div id="mainContent" class="p-8"></div>
+        </div>
+    </div>
+
+    <script>
+        // ========== 簡易CSV解析器 ==========
+        function parseCSV(text) {
+            const lines = text.split('\n');
+            const result = [];
+            const headers = lines[0].split(',').map(h => h.trim());
+            
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                
+                const values = lines[i].split(',');
+                const row = {};
+                
+                headers.forEach((header, index) => {
+                    row[header] = values[index] ? values[index].trim() : '';
+                });
+                
+                result.push(row);
+            }
+            
+            return result;
+        }
+
+        // ========== 數據存儲 ==========
+        let appData = {
+            dailyJournals: [],
+            rawTrades: [],
+            monthlyData: {},
+            strategies: [
+                {
+                    id: 1,
+                    name: '突破買進策略',
+                    description: '當股價突破前高且量能放大時買進',
+                    successRate: 60,
+                    avgProfit: 3500,
+                    totalPnL: 18500,
+                    trades: 15
+                }
+            ],
+            mistakes: []
+        };
+
+        // ========== CSV上傳與解析 ==========
+        function renderUpload() {
+            const content = `
+                <div class="space-y-6">
+                    <h1 class="text-3xl font-bold text-gray-800">📤 上傳交易CSV</h1>
+
+                    <div class="bg-white rounded-xl shadow-lg p-8">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">上傳您的交易記錄</h2>
+                        <p class="text-gray-600 mb-6">支持券商匯出的CSV格式,系統會自動分析並整合到各個模組中</p>
+                        
+                        <div id="fileDropZone" class="border-4 border-dashed border-blue-300 rounded-xl p-12 text-center cursor-pointer bg-blue-50 transition-all">
+                            <input type="file" id="csvFileInput" accept=".csv" class="hidden" onchange="handleFileSelect(event)">
+                            <label for="csvFileInput" class="cursor-pointer">
+                                <svg class="mx-auto text-blue-500 mb-4" xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                <p class="text-xl font-semibold text-gray-700 mb-2">點擊或拖放CSV文件</p>
+                                <p class="text-sm text-gray-500">支持格式:CSV(與您上傳的券商格式相同)</p>
+                            </label>
+                        </div>
+
+                        <div id="uploadStatus" class="mt-6"></div>
+                    </div>
+
+                    ${appData.rawTrades.length > 0 ? `
+                        <div class="bg-white rounded-xl shadow-lg p-8">
+                            <h2 class="text-xl font-bold text-gray-800 mb-4">📊 已上傳的數據</h2>
+                            <div class="grid md:grid-cols-3 gap-4">
+                                <div class="bg-blue-50 p-4 rounded-lg">
+                                    <p class="text-sm text-blue-700 mb-1">總交易筆數</p>
+                                    <p class="text-3xl font-bold text-blue-900">${appData.rawTrades.length}</p>
+                                </div>
+                                <div class="bg-green-50 p-4 rounded-lg">
+                                    <p class="text-sm text-green-700 mb-1">交易月份</p>
+                                    <p class="text-3xl font-bold text-green-900">${Object.keys(appData.monthlyData).length}</p>
+                                </div>
+                                <div class="bg-purple-50 p-4 rounded-lg">
+                                    <p class="text-sm text-purple-700 mb-1">交易股票</p>
+                                    <p class="text-3xl font-bold text-purple-900">${getUniqueStocks().length}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6">
+                                <h3 class="font-bold text-gray-800 mb-3">按月份顯示</h3>
+                                <div class="space-y-2">
+                                    ${Object.keys(appData.monthlyData).sort().reverse().map(month => {
+                                        const data = appData.monthlyData[month];
+                                        return `
+                                            <div class="bg-gray-50 p-4 rounded-lg flex justify-between items-center">
+                                                <div>
+                                                    <p class="font-bold text-gray-800">${formatMonth(month)}</p>
+                                                    <p class="text-sm text-gray-600">${data.trades}筆交易</p>
+                                                </div>
+                                                <div class="text-right">
+                                                    <p class="text-lg font-bold ${data.totalPnL >= 0 ? 'text-green-600' : 'text-red-600'}">
+                                                        ${data.totalPnL >= 0 ? '+' : ''}$${data.totalPnL.toLocaleString()}
+                                                    </p>
+                                                    <p class="text-sm text-gray-600">勝率 ${data.winRate.toFixed(1)}%</p>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <div class="bg-gradient-blue-purple-lr rounded-xl p-6 border-l-4 border-blue-500">
+                        <h3 class="font-bold text-blue-900 mb-2">💡 使用說明</h3>
+                        <ul class="space-y-2 text-blue-800">
+                            <li>• 上傳CSV後,系統會自動分析您的交易記錄</li>
+                            <li>• 可以上傳多個月份的CSV,系統會自動整合</li>
+                            <li>• 分析結果會顯示在「數據分析」模組中</li>
+                            <li>• 支持的欄位:交易日期、商品、數量、單價、應收付金額等</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            document.getElementById('mainContent').innerHTML = content;
+            setupDragAndDrop();
+        }
+
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('fileDropZone');
+            if (!dropZone) return;
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.classList.add('dragover');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.classList.remove('dragover');
+                }, false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFile(files[0]);
+                }
+            }, false);
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            const statusDiv = document.getElementById('uploadStatus');
+            statusDiv.innerHTML = `
+                <div class="bg-blue-100 p-4 rounded-lg">
+                    <p class="text-blue-800 font-semibold">⏳ 正在解析文件:${file.name}</p>
+                </div>
+            `;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const csvData = parseCSV(e.target.result);
+                    processCSVData(csvData);
+                    statusDiv.innerHTML = `
+                        <div class="bg-green-100 p-4 rounded-lg">
+                            <p class="text-green-800 font-semibold">✅ 成功解析 ${csvData.length} 筆交易記錄!</p>
+                            <button onclick="switchModule('analysis')" class="mt-3 px-4 py-2 bg-green-600 text-white rounded-lg">
+                                查看分析結果 →
+                            </button>
+                        </div>
+                    `;
+                    saveData();
+                    renderUpload();
+                } catch (error) {
+                    statusDiv.innerHTML = `
+                        <div class="bg-red-100 p-4 rounded-lg">
+                            <p class="text-red-800 font-semibold">❌ 解析失敗:${error.message}</p>
+                        </div>
+                    `;
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function processCSVData(data) {
+            data.forEach(row => {
+                const cleanRow = {};
+                Object.keys(row).forEach(key => {
+                    cleanRow[key.trim()] = row[key];
+                });
+
+                if (!cleanRow['櫃員序號'] && cleanRow['類別'] === '現股當沖') {
+                    const pnl = parseFloat(cleanRow['應收付金額']?.replace(/,/g, '') || 0);
+                    const date = cleanRow['交易日期'];
+                    const stock = cleanRow['商品'];
+                    
+                    if (date && stock) {
+                        appData.rawTrades.push({
+                            date: formatDate(date),
+                            stock: stock,
+                            pnl: pnl,
+                            market: cleanRow['市場別'],
+                            type: cleanRow['類別']
+                        });
+                    }
+                }
+            });
+
+            organizeByMonth();
+        }
+
+        function organizeByMonth() {
+            appData.monthlyData = {};
+            
+            appData.rawTrades.forEach(trade => {
+                const month = trade.date.substring(0, 7);
+                
+                if (!appData.monthlyData[month]) {
+                    appData.monthlyData[month] = {
+                        trades: 0,
+                        totalPnL: 0,
+                        wins: 0,
+                        losses: 0,
+                        winRate: 0,
+                        stocks: new Set()
+                    };
+                }
+                
+                const monthData = appData.monthlyData[month];
+                monthData.trades++;
+                monthData.totalPnL += trade.pnl;
+                monthData.stocks.add(trade.stock);
+                
+                if (trade.pnl > 0) {
+                    monthData.wins++;
+                } else if (trade.pnl < 0) {
+                    monthData.losses++;
+                }
+                
+                monthData.winRate = (monthData.wins / monthData.trades) * 100;
+            });
+        }
+
+        function formatDate(dateStr) {
+            const str = dateStr.toString();
+            return `${str.substring(0, 4)}-${str.substring(4, 6)}-${str.substring(6, 8)}`;
+        }
+
+        function formatMonth(monthStr) {
+            const [year, month] = monthStr.split('-');
+            return `${year}年${parseInt(month)}月`;
+        }
+
+        function getUniqueStocks() {
+            const stocks = new Set();
+            appData.rawTrades.forEach(trade => stocks.add(trade.stock));
+            return Array.from(stocks);
+        }
+
+        // ========== 數據分析 ==========
+        function renderAnalysis() {
+            if (Object.keys(appData.monthlyData).length === 0) {
+                document.getElementById('mainContent').innerHTML = `
+                    <div class="space-y-6">
+                        <h1 class="text-3xl font-bold text-gray-800">📊 數據分析</h1>
+                        <div class="bg-yellow-50 border-l-4 border-yellow-500 p-6 rounded-lg">
+                            <p class="text-yellow-800 font-semibold mb-2">⚠️ 尚未上傳交易數據</p>
+                            <p class="text-yellow-700 mb-4">請先上傳CSV文件以查看分析結果</p>
+                            <button onclick="switchModule('upload')" class="px-4 py-2 bg-yellow-600 text-white rounded-lg">
+                                前往上傳 →
+                            </button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const months = Object.keys(appData.monthlyData).sort();
+            const latestMonth = months[months.length - 1];
+            const prevMonth = months[months.length - 2];
+
+            let content = `
+                <div class="space-y-6">
+                    <h1 class="text-3xl font-bold text-gray-800">📊 數據分析</h1>
+            `;
+
+            if (prevMonth) {
+                const current = appData.monthlyData[latestMonth];
+                const previous = appData.monthlyData[prevMonth];
+                
+                content += `
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">📈 月度對比:${formatMonth(prevMonth)} vs ${formatMonth(latestMonth)}</h2>
+                        <div class="grid md:grid-cols-4 gap-4">
+                            <div class="bg-gradient-blue-br p-6 rounded-xl">
+                                <p class="text-sm text-blue-700 mb-2">總損益</p>
+                                <p class="text-2xl font-bold text-blue-900">$${current.totalPnL.toLocaleString()}</p>
+                                <div class="flex items-center gap-1 mt-2">
+                                    ${current.totalPnL > previous.totalPnL ? 
+                                        '<svg class="text-green-600" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"></polyline></svg>' :
+                                        '<svg class="text-red-600" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>'
+                                    }
+                                    <span class="${current.totalPnL > previous.totalPnL ? 'text-green-600' : 'text-red-600'} font-semibold">
+                                        ${current.totalPnL > previous.totalPnL ? '+' : ''}$${(current.totalPnL - previous.totalPnL).toLocaleString()}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="bg-gradient-green-br p-6 rounded-xl">
+                                <p class="text-sm text-green-700 mb-2">勝率</p>
+                                <p class="text-2xl font-bold text-green-900">${current.winRate.toFixed(1)}%</p>
+                                <div class="flex items-center gap-1 mt-2">
+                                    ${current.winRate > previous.winRate ?
+                                        '<svg class="text-green-600" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"></polyline></svg>' :
+                                        '<svg class="text-red-600" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>'
+                                    }
+                                    <span class="${current.winRate > previous.winRate ? 'text-green-600' : 'text-red-600'} font-semibold">
+                                        ${current.winRate > previous.winRate ? '+' : ''}${(current.winRate - previous.winRate).toFixed(1)}%
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="bg-gradient-purple-br p-6 rounded-xl">
+                                <p class="text-sm text-purple-700 mb-2">交易次數</p>
+                                <p class="text-2xl font-bold text-purple-900">${current.trades}次</p>
+                                <div class="flex items-center gap-1 mt-2">
+                                    <span class="text-gray-600 font-semibold">${current.trades > previous.trades ? '+' : ''}${current.trades - previous.trades}次</span>
+                                </div>
+                            </div>
+                            <div class="bg-gradient-orange-br p-6 rounded-xl">
+                                <p class="text-sm text-orange-700 mb-2">交易股票</p>
+                                <p class="text-2xl font-bold text-orange-900">${current.stocks.size}</p>
+                                <div class="flex items-center gap-1 mt-2">
+                                    <span class="text-gray-600 font-semibold">${current.stocks.size}種股票</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            content += `
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">📅 歷史數據總覽</h2>
+                    <div class="space-y-3">
+                        ${months.reverse().map(month => {
+                            const data = appData.monthlyData[month];
+                            return `
+                                <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <div>
+                                            <h3 class="text-xl font-bold text-gray-800">${formatMonth(month)}</h3>
+                                            <p class="text-sm text-gray-600">${data.trades}筆交易 • ${data.stocks.size}種股票</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-3xl font-bold ${data.totalPnL >= 0 ? 'text-green-600' : 'text-red-600'}">
+                                                ${data.totalPnL >= 0 ? '+' : ''}$${data.totalPnL.toLocaleString()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-4">
+                                        <div class="bg-white p-3 rounded-lg">
+                                            <p class="text-sm text-gray-600">勝率</p>
+                                            <p class="text-lg font-bold ${data.winRate >= 50 ? 'text-green-600' : 'text-red-600'}">${data.winRate.toFixed(1)}%</p>
+                                        </div>
+                                        <div class="bg-white p-3 rounded-lg">
+                                            <p class="text-sm text-gray-600">獲利次數</p>
+                                            <p class="text-lg font-bold text-green-600">${data.wins}次</p>
+                                        </div>
+                                        <div class="bg-white p-3 rounded-lg">
+                                            <p class="text-sm text-gray-600">虧損次數</p>
+                                            <p class="text-lg font-bold text-red-600">${data.losses}次</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+
+            content += `</div>`;
+            document.getElementById('mainContent').innerHTML = content;
+        }
+
+        // ========== 側邊欄控制 ==========
+        let sidebarOpen = true;
+
+        function toggleSidebar() {
+            sidebarOpen = !sidebarOpen;
+            const sidebar = document.getElementById('sidebar');
+            const title = document.getElementById('sidebarTitle');
+            const labels = document.querySelectorAll('.nav-label');
+            const icon = document.getElementById('menuIcon');
+
+            if (sidebarOpen) {
+                sidebar.classList.remove('sidebar-collapsed');
+                sidebar.classList.add('sidebar-expanded');
+                title.classList.remove('hidden');
+                labels.forEach(label => label.classList.remove('hidden'));
+                icon.innerHTML = '<line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>';
+            } else {
+                sidebar.classList.remove('sidebar-expanded');
+                sidebar.classList.add('sidebar-collapsed');
+                title.classList.add('hidden');
+                labels.forEach(label => label.classList.add('hidden'));
+                icon.innerHTML = '<line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line>';
+            }
+        }
+
+        // ========== 模組切換 ==========
+        function switchModule(moduleName) {
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.dataset.module === moduleName) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            const content = document.getElementById('mainContent');
+            content.innerHTML = '';
+            content.classList.add('fade-in');
+
+            switch(moduleName) {
+                case 'dashboard':
+                    renderDashboard();
+                    break;
+                case 'upload':
+                    renderUpload();
+                    break;
+                case 'analysis':
+                    renderAnalysis();
+                    break;
+                case 'journal':
+                    renderJournal();
+                    break;
+                case 'knowledge':
+                    renderKnowledge();
+                    break;
+                case 'settings':
+                    renderSettings();
+                    break;
+            }
+        }
+
+        // ========== 儀表板 ==========
+        function renderDashboard() {
+            const hasData = Object.keys(appData.monthlyData).length > 0;
+            let stats = { totalPnL: 0, trades: 0, winRate: 0, wins: 0, losses: 0 };
+            
+            if (hasData) {
+                const latestMonth = Object.keys(appData.monthlyData).sort().pop();
+                stats = appData.monthlyData[latestMonth];
+            }
+
+            const content = `
+                <div class="space-y-6">
+                    <div class="bg-gradient-blue-purple-r rounded-2xl p-8 text-white shadow-xl">
+                        <h1 class="text-4xl font-bold mb-2">歡迎回來! 👋</h1>
+                        <p class="text-blue-100 text-lg">今天準備好交易了嗎?讓我們來看看您的績效概況</p>
+                    </div>
+
+                    ${!hasData ? `
+                        <div class="bg-yellow-50 border-l-4 border-yellow-500 p-6 rounded-lg">
+                            <p class="text-yellow-800 font-semibold mb-2">⚠️ 尚未上傳交易數據</p>
+                            <p class="text-yellow-700 mb-4">請先上傳CSV文件以查看完整分析</p>
+                            <button onclick="switchModule('upload')" class="px-6 py-3 bg-yellow-600 text-white rounded-lg">
+                                立即上傳 →
+                            </button>
+                        </div>
+                    ` : `
+                        <div class="grid md:grid-cols-4 gap-4">
+                            <div class="bg-white p-6 rounded-xl shadow-lg transition-shadow">
+                                <p class="text-gray-600 text-sm mb-1">最新月份損益</p>
+                                <p class="text-3xl font-bold ${stats.totalPnL >= 0 ? 'text-green-600' : 'text-red-600'}">
+                                    ${stats.totalPnL >= 0 ? '+' : ''}$${stats.totalPnL.toLocaleString()}
+                                </p>
+                                <p class="text-sm text-gray-500 mt-2">${stats.trades}筆交易</p>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-lg transition-shadow">
+                                <p class="text-gray-600 text-sm mb-1">勝率</p>
+                                <p class="text-3xl font-bold text-orange-600">${stats.winRate.toFixed(1)}%</p>
+                                <p class="text-sm text-gray-500 mt-2">${stats.wins}勝 / ${stats.losses}敗</p>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-lg transition-shadow">
+                                <p class="text-gray-600 text-sm mb-1">交易月份</p>
+                                <p class="text-3xl font-bold text-blue-600">${Object.keys(appData.monthlyData).length}</p>
+                                <p class="text-sm text-gray-500 mt-2">已上傳數據</p>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-lg transition-shadow">
+                                <p class="text-gray-600 text-sm mb-1">總交易筆數</p>
+                                <p class="text-3xl font-bold text-purple-600">${appData.rawTrades.length}</p>
+                                <p class="text-sm text-gray-500 mt-2">累計交易</p>
+                            </div>
+                        </div>
+                    `}
+
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">🚀 快速操作</h2>
+                        <div class="grid md:grid-cols-3 gap-4">
+                            <button onclick="switchModule('upload')" class="bg-gradient-blue text-white p-6 rounded-xl transition-all text-left">
+                                <svg class="mb-3" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                <p class="font-bold text-lg mb-1">上傳CSV</p>
+                                <p class="text-sm text-blue-100">匯入交易記錄</p>
+                            </button>
+                            <button onclick="switchModule('analysis')" class="bg-gradient-purple text-white p-6 rounded-xl transition-all text-left">
+                                <svg class="mb-3" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                                <p class="font-bold text-lg mb-1">查看數據分析</p>
+                                <p class="text-sm text-purple-100">月度對比與趨勢</p>
+                            </button>
+                            <button onclick="switchModule('journal')" class="bg-gradient-green text-white p-6 rounded-xl transition-all text-left">
+                                <svg class="mb-3" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                <p class="font-bold text-lg mb-1">交易日誌</p>
+                                <p class="text-sm text-green-100">記錄交易心得</p>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('mainContent').innerHTML = content;
+        }
+
+        // ========== 交易日誌 ==========
+        function renderJournal() {
+            const content = `
+                <div class="space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h1 class="text-3xl font-bold text-gray-800">📅 交易日誌</h1>
+                        <button onclick="showAddJournalForm()" class="flex items-center gap-2 px-6 py-3 bg-gradient-blue-purple-r text-white rounded-xl transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            新增日誌
+                        </button>
+                    </div>
+
+                    <div id="journalFormContainer"></div>
+
+                    ${appData.dailyJournals.length === 0 ? `
+                        <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-12 text-center">
+                            <p class="text-gray-600 text-lg mb-4">尚未新增任何交易日誌</p>
+                            <button onclick="showAddJournalForm()" class="px-6 py-3 bg-blue-600 text-white rounded-lg">
+                                新增第一筆日誌
+                            </button>
+                        </div>
+                    ` : appData.dailyJournals.map(journal => `
+                        <div class="bg-white p-6 rounded-xl shadow-lg transition-shadow">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 class="text-xl font-bold text-gray-800">${journal.date}</h3>
+                                    <div class="flex gap-2 mt-2">
+                                        ${journal.trades.map(trade => `
+                                            <span class="px-3 py-1 rounded-full text-sm ${trade.includes('+') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                                                ${trade}
+                                            </span>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                <div class="text-2xl font-bold ${journal.pnl > 0 ? 'text-green-600' : 'text-red-600'}">
+                                    ${journal.pnl > 0 ? '+' : ''}$${journal.pnl.toLocaleString()}
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4 mt-4">
+                                <div>
+                                    <div class="text-sm text-gray-600 mb-1">市場狀況</div>
+                                    <div class="font-semibold">${journal.marketCondition}</div>
+                                </div>
+                                <div>
+                                    <div class="text-sm text-gray-600 mb-1">情緒指數</div>
+                                    <span class="font-bold">${journal.emotion}/10</span>
+                                </div>
+                            </div>
+
+                            <div class="mt-4">
+                                <div class="text-sm text-gray-600 mb-1">心理狀態</div>
+                                <div class="bg-gray-50 p-3 rounded-lg">${journal.psychology}</div>
+                            </div>
+
+                            <div class="mt-4 bg-yellow-50 p-3 rounded-lg border-l-4 border-yellow-500">
+                                <div class="text-sm text-yellow-800 font-semibold mb-1">💡 學到的教訓</div>
+                                <div class="text-yellow-900">${journal.lessons}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            document.getElementById('mainContent').innerHTML = content;
+        }
+
+        function showAddJournalForm() {
+            const formHTML = `
+                <div class="bg-white p-6 rounded-xl shadow-lg border-2 border-blue-300 mb-6">
+                    <h3 class="text-xl font-bold mb-4 text-blue-600">新增每日日誌</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <input type="date" id="newDate" class="p-3 border rounded-lg col-span-2">
+                        <input type="text" id="newTrade" placeholder="交易股票(例:2330 台積電 +$5,000)" class="p-3 border rounded-lg col-span-2">
+                        <input type="text" id="newMarket" placeholder="市場狀況" class="p-3 border rounded-lg col-span-2">
+                        <div class="col-span-2">
+                            <label class="mb-2 font-semibold" style="display:block;">情緒指數 (1-10):<span id="emotionValue">5</span></label>
+                            <input type="range" id="newEmotion" min="1" max="10" value="5" class="w-full" oninput="document.getElementById('emotionValue').textContent = this.value">
+                        </div>
+                        <textarea id="newPsychology" placeholder="心理狀態與交易決策" class="p-3 border rounded-lg col-span-2" rows="3"></textarea>
+                        <input type="number" id="newPnl" placeholder="當日損益" class="p-3 border rounded-lg">
+                        <input type="text" id="newLessons" placeholder="學到的教訓" class="p-3 border rounded-lg">
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                        <button onclick="saveNewJournal()" class="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg">
+                            儲存
+                        </button>
+                        <button onclick="renderJournal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg">
+                            取消
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('journalFormContainer').innerHTML = formHTML;
+        }
+
+        function saveNewJournal() {
+            const newJournal = {
+                id: Date.now(),
+                date: document.getElementById('newDate').value,
+                trades: [document.getElementById('newTrade').value],
+                marketCondition: document.getElementById('newMarket').value,
+                emotion: parseInt(document.getElementById('newEmotion').value),
+                psychology: document.getElementById('newPsychology').value,
+                pnl: parseFloat(document.getElementById('newPnl').value),
+                lessons: document.getElementById('newLessons').value
+            };
+            appData.dailyJournals.unshift(newJournal);
+            saveData();
+            renderJournal();
+            alert('日誌已儲存!');
+        }
+
+        // ========== 知識庫 ==========
+        function renderKnowledge() {
+            const content = `
+                <div class="space-y-6">
+                    <h1 class="text-3xl font-bold text-gray-800">📚 交易知識庫</h1>
+
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">📖 交易策略</h2>
+                        ${appData.strategies.map(strategy => `
+                            <div class="bg-white p-6 rounded-xl shadow-lg mb-4 border border-gray-200">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 class="text-xl font-bold text-gray-800">${strategy.name}</h3>
+                                        <p class="text-gray-600 mt-1">${strategy.description}</p>
+                                    </div>
+                                    <div class="text-2xl font-bold ${strategy.successRate >= 50 ? 'text-green-600' : 'text-red-600'}">
+                                        ${strategy.successRate}%
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    ${appData.mistakes.length > 0 ? `
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <h2 class="text-xl font-bold text-gray-800 mb-4">⚠️ 常見錯誤</h2>
+                            ${appData.mistakes.map(mistake => `
+                                <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-red-500 mb-4">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h3 class="text-xl font-bold text-red-600">${mistake.title}</h3>
+                                            <div class="text-sm text-gray-600 mt-1">${mistake.date} · ${mistake.stock}</div>
+                                        </div>
+                                        <div class="text-2xl font-bold text-red-600">${mistake.loss.toLocaleString()}</div>
+                                    </div>
+                                    <div class="space-y-3">
+                                        <div>
+                                            <div class="text-sm text-gray-600 mb-1">錯誤描述</div>
+                                            <div class="bg-red-50 p-3 rounded-lg text-red-900">${mistake.description}</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm text-gray-600 mb-1">💡 學到的教訓</div>
+                                            <div class="bg-yellow-50 p-3 rounded-lg text-yellow-900 font-semibold">${mistake.lesson}</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm text-gray-600 mb-1">🛡️ 預防措施</div>
+                                            <div class="bg-green-50 p-3 rounded-lg text-green-900 font-semibold">${mistake.prevention}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            document.getElementById('mainContent').innerHTML = content;
+        }
+
+        // ========== 設定 ==========
+        function renderSettings() {
+            const content = `
+                <div class="space-y-6">
+                    <h1 class="text-3xl font-bold text-gray-800">⚙️ 設定與工具</h1>
+
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <h2 class="text-xl font-bold text-gray-800 mb-4">🔥 資料管理</h2>
+                            <div class="space-y-3">
+                                <button onclick="exportData()" class="w-full bg-blue-500 text-white p-4 rounded-lg text-left">
+                                    <p class="font-bold">匯出所有數據</p>
+                                    <p class="text-sm text-blue-100">JSON格式備份</p>
+                                </button>
+                                <button onclick="clearData()" class="w-full bg-red-500 text-white p-4 rounded-lg text-left">
+                                    <p class="font-bold">清除所有數據</p>
+                                    <p class="text-sm text-red-100">恢復到初始狀態</p>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <h2 class="text-xl font-bold text-gray-800 mb-4">ℹ️ 系統資訊</h2>
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">版本</span>
+                                    <span class="font-bold">2.0.0</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">交易筆數</span>
+                                    <span class="font-bold">${appData.rawTrades.length}筆</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">交易日誌</span>
+                                    <span class="font-bold">${appData.dailyJournals.length}筆</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">交易月份</span>
+                                    <span class="font-bold">${Object.keys(appData.monthlyData).length}個月</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-blue-purple-r rounded-xl p-8 text-white">
+                        <h2 class="text-2xl font-bold mb-4">💼 完整交易分析管理系統 v2.0</h2>
+                        <p class="text-blue-100 mb-4">新增功能:CSV上傳與自動分析</p>
+                        <ul class="text-blue-100 space-y-2">
+                            <li>✅ 支持上傳多個月份的CSV文件</li>
+                            <li>✅ 自動分析並整合交易數據</li>
+                            <li>✅ 月度對比與趨勢分析</li>
+                            <li>✅ 數據自動保存在瀏覽器中</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            document.getElementById('mainContent').innerHTML = content;
+        }
+
+        // ========== 數據持久化 ==========
+        function loadData() {
+            const saved = localStorage.getItem('tradingAppData');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                appData = parsed;
+                
+                // 恢復Set對象
+                Object.keys(appData.monthlyData).forEach(month => {
+                    if (appData.monthlyData[month].stocks && Array.isArray(appData.monthlyData[month].stocks)) {
+                        appData.monthlyData[month].stocks = new Set(appData.monthlyData[month].stocks);
+                    }
+                });
+            }
+        }
+
+        function saveData() {
+            const dataToSave = JSON.parse(JSON.stringify(appData));
+            
+            // 將Set轉換為Array以便JSON序列化
+            Object.keys(dataToSave.monthlyData).forEach(month => {
+                if (dataToSave.monthlyData[month].stocks instanceof Set) {
+                    dataToSave.monthlyData[month].stocks = Array.from(dataToSave.monthlyData[month].stocks);
+                }
+            });
+            
+            localStorage.setItem('tradingAppData', JSON.stringify(dataToSave));
+        }
+
+        function exportData() {
+            const dataToExport = JSON.parse(JSON.stringify(appData));
+            
+            // 將Set轉換為Array
+            Object.keys(dataToExport.monthlyData).forEach(month => {
+                if (dataToExport.monthlyData[month].stocks instanceof Set) {
+                    dataToExport.monthlyData[month].stocks = Array.from(dataToExport.monthlyData[month].stocks);
+                }
+            });
+            
+            const dataStr = JSON.stringify(dataToExport, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'trading_data_backup_' + new Date().toISOString().split('T')[0] + '.json';
+            link.click();
+            alert('數據已匯出!');
+        }
+
+        function clearData() {
+            if (confirm('確定要清除所有數據嗎?此操作無法恢復!')) {
+                localStorage.removeItem('tradingAppData');
+                location.reload();
+            }
+        }
+
+        // ========== 初始化 ==========
+        loadData();
+        switchModule('dashboard');
+    </script>
+</body>
+</html>

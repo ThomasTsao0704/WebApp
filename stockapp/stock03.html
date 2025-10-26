@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>產業排行儀表板</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            background: linear-gradient(45deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(180deg); }
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 30px;
+            padding: 30px;
+            min-height: 800px;
+        }
+
+        .sidebar {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .control-group {
+            margin-bottom: 30px;
+        }
+
+        .control-group h3 {
+            color: #2a5298;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            border-bottom: 2px solid #e3f2fd;
+            padding-bottom: 8px;
+        }
+
+        .industry-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .industry-item {
+            padding: 12px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .industry-item:hover {
+            background: #e3f2fd;
+            transform: translateX(5px);
+        }
+
+        .industry-item.active {
+            background: linear-gradient(45deg, #2a5298, #1e3c72);
+            color: white;
+            border-color: #2a5298;
+            box-shadow: 0 5px 15px rgba(42, 82, 152, 0.3);
+        }
+
+        .industry-change {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .change-positive { color: #4caf50; }
+        .change-negative { color: #f44336; }
+        .industry-item.active .industry-change { color: #fff; }
+
+        .frequency-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .freq-btn {
+            padding: 8px 16px;
+            border: 2px solid #2a5298;
+            background: white;
+            color: #2a5298;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .freq-btn:hover {
+            background: #e3f2fd;
+            transform: translateY(-2px);
+        }
+
+        .freq-btn.active {
+            background: #2a5298;
+            color: white;
+            box-shadow: 0 5px 15px rgba(42, 82, 152, 0.3);
+        }
+
+        .charts-container {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .chart-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(45deg, #2a5298, #667eea);
+        }
+
+        .chart-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #2a5298;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-title::before {
+            content: '📊';
+            font-size: 1.2rem;
+        }
+
+        .kline-chart { height: 400px; }
+        .indicator-chart { height: 300px; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            border-left: 4px solid #2a5298;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2a5298;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #2a5298;
+            font-size: 1.1rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e3f2fd;
+            border-top: 4px solid #2a5298;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .sidebar {
+                position: static;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>📈 產業排行分析</h1>
+            <p>即時產業表現追蹤與技術分析</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="control-group">
+                    <h3>🏭 產業選擇</h3>
+                    <div class="industry-list" id="industryList">
+                        <!-- 動態生成 -->
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>⏰ 時間頻率</h3>
+                    <div class="frequency-controls">
+                        <button class="freq-btn active" data-freq="1D">日線</button>
+                        <button class="freq-btn" data-freq="1W">週線</button>
+                        <button class="freq-btn" data-freq="1M">月線</button>
+                        <button class="freq-btn" data-freq="5min">5分</button>
+                        <button class="freq-btn" data-freq="15min">15分</button>
+                        <button class="freq-btn" data-freq="1H">1小時</button>
+                    </div>
+                </div>
+
+                <div id="statsContainer"></div>
+            </div>
+            
+            <div class="charts-container">
+                <div class="chart-panel">
+                    <div class="chart-title" id="klineTitle">產業指數 K 線圖</div>
+                    <div id="klineChart" class="kline-chart"></div>
+                </div>
+                
+                <div class="chart-panel">
+                    <div class="chart-title">自訂技術指標</div>
+                    <div id="indicatorChart" class="indicator-chart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模擬數據生成
+        const industries = [
+            { name: '半導體', code: 'SEMI', change: 3.9, pe: 24.7 },
+            { name: '金融保險', code: 'FINANCE', change: 1.2, pe: 13.8 },
+            { name: '電子零組件', code: 'ELEC', change: -2.1, pe: 18.5 },
+            { name: '生技醫療', code: 'BIO', change: 5.7, pe: 31.2 },
+            { name: '傳統產業', code: 'TRAD', change: -0.8, pe: 15.3 },
+            { name: '航運業', code: 'SHIP', change: 2.4, pe: 8.9 }
+        ];
+
+        let currentIndustry = 'SEMI';
+        let currentFreq = '1D';
+
+        // 生成模擬 K 線數據
+        function generateKlineData(days = 60) {
+            const data = [];
+            let basePrice = 1000 + Math.random() * 500;
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - days);
+
+            for (let i = 0; i < days; i++) {
+                const date = new Date(startDate);
+                date.setDate(date.getDate() + i);
+                
+                const volatility = 0.02 + Math.random() * 0.03;
+                const change = (Math.random() - 0.5) * volatility;
+                
+                const open = basePrice;
+                const close = open * (1 + change);
+                const high = Math.max(open, close) * (1 + Math.random() * 0.02);
+                const low = Math.min(open, close) * (1 - Math.random() * 0.02);
+                const volume = 10000 + Math.random() * 50000;
+
+                data.push({
+                    date: date.toISOString().split('T')[0],
+                    open, high, low, close, volume
+                });
+
+                basePrice = close;
+            }
+            return data;
+        }
+
+        // 生成技術指標數據
+        function generateIndicatorData(klineData) {
+            const sma20 = [];
+            const rsi = [];
+            const macd = [];
+            
+            for (let i = 0; i < klineData.length; i++) {
+                // SMA20
+                if (i >= 19) {
+                    const sum = klineData.slice(i-19, i+1).reduce((acc, d) => acc + d.close, 0);
+                    sma20.push(sum / 20);
+                } else {
+                    sma20.push(null);
+                }
+                
+                // 簡化 RSI (模擬)
+                rsi.push(30 + Math.random() * 40);
+                
+                // 簡化 MACD (模擬)
+                macd.push((Math.random() - 0.5) * 20);
+            }
+            
+            return { sma20, rsi, macd };
+        }
+
+        // 初始化產業列表
+        function initIndustryList() {
+            const container = document.getElementById('industryList');
+            container.innerHTML = industries.map(industry => `
+                <div class="industry-item ${industry.code === currentIndustry ? 'active' : ''}" 
+                    data-code="${industry.code}">
+                    <span>${industry.name}</span>
+                    <span class="industry-change ${industry.change >= 0 ? 'change-positive' : 'change-negative'}">
+                        ${industry.change > 0 ? '+' : ''}${industry.change}%
+                    </span>
+                </div>
+            `).join('');
+
+            // 添加點擊事件
+            container.querySelectorAll('.industry-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    currentIndustry = item.dataset.code;
+                    updateActiveIndustry();
+                    updateCharts();
+                });
+            });
+        }
+
+        // 更新活躍產業
+        function updateActiveIndustry() {
+            document.querySelectorAll('.industry-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.code === currentIndustry);
+            });
+        }
+
+        // 初始化頻率控制
+        function initFrequencyControls() {
+            document.querySelectorAll('.freq-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    currentFreq = btn.dataset.freq;
+                    document.querySelectorAll('.freq-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    updateCharts();
+                });
+            });
+        }
+
+        // 更新圖表
+        function updateCharts() {
+            const industry = industries.find(i => i.code === currentIndustry);
+            const klineData = generateKlineData();
+            const indicators = generateIndicatorData(klineData);
+            
+            updateKlineChart(klineData, industry);
+            updateIndicatorChart(klineData, indicators, industry);
+            updateStats(industry, klineData);
+        }
+
+        // 更新 K 線圖
+        function updateKlineChart(data, industry) {
+            const title = document.getElementById('klineTitle');
+            title.textContent = `${industry.name} - ${currentFreq} K線圖`;
+
+            const trace = {
+                x: data.map(d => d.date),
+                open: data.map(d => d.open),
+                high: data.map(d => d.high),
+                low: data.map(d => d.low),
+                close: data.map(d => d.close),
+                type: 'candlestick',
+                name: industry.name,
+                increasing: { line: { color: '#26a69a' } },
+                decreasing: { line: { color: '#ef5350' } }
+            };
+
+            const volumeTrace = {
+                x: data.map(d => d.date),
+                y: data.map(d => d.volume),
+                type: 'bar',
+                name: '成交量',
+                yaxis: 'y2',
+                opacity: 0.3,
+                marker: { color: '#42a5f5' }
+            };
+
+            const layout = {
+                title: {
+                    text: `${industry.name} 價量走勢 (${currentFreq})`,
+                    font: { size: 16, color: '#2a5298' }
+                },
+                xaxis: { title: '日期', rangeslider: { visible: false } },
+                yaxis: { title: '價格', side: 'left' },
+                yaxis2: { title: '成交量', overlaying: 'y', side: 'right' },
+                margin: { l: 50, r: 50, t: 50, b: 50 },
+                plot_bgcolor: '#fafafa',
+                paper_bgcolor: 'white',
+                font: { family: 'Microsoft JhengHei' }
+            };
+
+            Plotly.newPlot('klineChart', [trace, volumeTrace], layout, {responsive: true});
+        }
+
+        // 更新指標圖
+        function updateIndicatorChart(klineData, indicators, industry) {
+            const smaTrace = {
+                x: klineData.map(d => d.date),
+                y: indicators.sma20,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'SMA20',
+                line: { color: '#ff9800', width: 2 }
+            };
+
+            const rsiTrace = {
+                x: klineData.map(d => d.date),
+                y: indicators.rsi,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'RSI',
+                yaxis: 'y2',
+                line: { color: '#9c27b0', width: 2 }
+            };
+
+            const macdTrace = {
+                x: klineData.map(d => d.date),
+                y: indicators.macd,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'MACD',
+                yaxis: 'y3',
+                line: { color: '#4caf50', width: 2 }
+            };
+
+            const layout = {
+                title: {
+                    text: `${industry.name} 技術指標分析`,
+                    font: { size: 16, color: '#2a5298' }
+                },
+                xaxis: { title: '日期' },
+                yaxis: { title: 'SMA20', side: 'left', color: '#ff9800' },
+                yaxis2: { title: 'RSI', overlaying: 'y', side: 'right', color: '#9c27b0', range: [0, 100] },
+                yaxis3: { title: 'MACD', overlaying: 'y', side: 'right', position: 0.85, color: '#4caf50' },
+                margin: { l: 50, r: 80, t: 50, b: 50 },
+                plot_bgcolor: '#fafafa',
+                paper_bgcolor: 'white',
+                font: { family: 'Microsoft JhengHei' },
+                legend: { x: 0, y: 1.1, orientation: 'h' }
+            };
+
+            Plotly.newPlot('indicatorChart', [smaTrace, rsiTrace, macdTrace], layout, {responsive: true});
+        }
+
+        // 更新統計數據
+        function updateStats(industry, klineData) {
+            const latest = klineData[klineData.length - 1];
+            const prev = klineData[klineData.length - 2];
+            const changePercent = ((latest.close - prev.close) / prev.close * 100).toFixed(2);
+            
+            const statsHtml = `
+                <div class="control-group">
+                    <h3>📊 即時數據</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value">${latest.close.toFixed(2)}</div>
+                            <div class="stat-label">最新價格</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value ${changePercent >= 0 ? 'change-positive' : 'change-negative'}">
+                                ${changePercent > 0 ? '+' : ''}${changePercent}%
+                            </div>
+                            <div class="stat-label">單日漲跌</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${industry.pe}</div>
+                            <div class="stat-label">本益比</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${(latest.volume/1000).toFixed(1)}K</div>
+                            <div class="stat-label">成交量</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('statsContainer').innerHTML = statsHtml;
+        }
+
+        // 初始化應用
+        function init() {
+            initIndustryList();
+            initFrequencyControls();
+            updateCharts();
+        }
+
+        // 啟動應用
+        init();
+
+        // 模擬即時更新 (每30秒)
+        setInterval(() => {
+            if (Math.random() > 0.7) { // 30% 機率更新
+                updateCharts();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>
