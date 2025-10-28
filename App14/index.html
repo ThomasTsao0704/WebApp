@@ -1,199 +1,382 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
+<!DOCTYPE html><html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>TPEx 平均日交易量 Top 10</title>
+  <title>TWSE 處置股 ＋ 當沖券差借券 Top10（整合單檔）</title>
+  <!-- Tailwind for quick layout/utility -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", Arial, sans-serif;
-           background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); min-height: 100vh; color: #333; }
-    .container { max-width: 800px; margin: 0 auto; padding: 20px; }
-    .header { text-align: center; color: #fff; margin-bottom: 20px; }
-    .header h1 { font-size: 1.8rem; text-shadow: 2px 2px 4px rgba(0,0,0,.3); margin-bottom: 8px; }
-    .header p { opacity: .9; font-size: 14px; }
-    .update-time { display: inline-block; margin-top: 10px; padding: 6px 14px; border-radius: 20px;
-                   background: rgba(255,255,255,.2); backdrop-filter: blur(10px); font-size: 13px; }
-    .controls { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 15px; 
-                box-shadow: 0 8px 24px rgba(0,0,0,.08); text-align: center; }
-    button { padding: 12px 20px; font-size: 14px; border-radius: 8px; cursor: pointer; 
-             border: none; background: #667eea; color: #fff; font-weight: 600; 
-             transition: all 0.2s; margin: 0 5px; }
-    button:hover { background: #5a6fd8; transform: translateY(-1px); }
-    .table-section { background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.08); overflow: hidden; }
-    .section-header { background: linear-gradient(135deg,#667eea,#764ba2); color: #fff; 
-                     padding: 15px 20px; font-weight: 600; font-size: 16px; }
-    table { width: 100%; border-collapse: collapse; }
-    th { background: #f8f9fa; color: #666; font-size: 13px; font-weight: 600; 
-         text-align: left; padding: 12px 15px; border-bottom: 2px solid #dee2e6; }
-    td { padding: 12px 15px; border-bottom: 1px solid #eee; }
-    tr:hover { background: #f8f9ff; }
-    .rank { background: linear-gradient(135deg, #ffd700, #ffed4e); color: #333; 
-            font-weight: bold; text-align: center; border-radius: 50%; 
-            width: 25px; height: 25px; line-height: 25px; font-size: 12px; }
-    .rank.top3 { background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: #fff; }
-    .volume { font-weight: 600; color: #2d3436; }
-    .date-info { text-align: center; background: #e8f4f8; padding: 10px; 
-                 color: #2d3436; font-size: 14px; font-weight: 500; }
-    .alert { margin: 15px 0; padding: 12px 16px; border-radius: 8px; 
-             background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; 
-             text-align: center; display: none; }
-    .alert.success { background: #e8f5e9; border-color: #a5d6a7; color: #2e7d32; }
-    .alert.info { background: #e3f2fd; border-color: #90caf9; color: #1565c0; }
+    /* ===== Global shell (do NOT theme inner apps here) ===== */
+    :root{ --shell-bg:#0b0f14; --shell-fg:#e6edf6; --tab:#1a2330; --tab-on:#334155; }
+    body{ background:var(--shell-bg); color:var(--shell-fg); font-family:system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", Arial, sans-serif; }
+    .shell{ max-width:1400px; margin:0 auto; padding:12px; }
+    .tab-btn{ background:var(--tab); color:#cbd5e1; }
+    .tab-btn.active{ background:var(--tab-on); color:#fff; }/* =========================
+   App #1: TWSE 處置股卡片面板
+   Namespaced with .twseapp
+==========================*/
+.twseapp{ --bg:#0b0f14; --card:#121821; --muted:#9bb0c9; --accent:#ffd24d; --text:#e6edf6; --up:#ef4444; --down:#22c55e; --chip:#1f2a37; }
+.twseapp{ background:var(--bg); color:var(--text); border-radius:16px; overflow:hidden; }
+.twseapp .card{ background:var(--card); }
+.twseapp .chip{ background:var(--chip); color:#c7d2fe }
+.twseapp .ring-soft{ box-shadow:0 0 0 1px rgba(255,255,255,.06), 0 8px 24px rgba(0,0,0,.35); }
+.twseapp .badge{ background:var(--accent); color:#000; }
+.twseapp .heart-btn{ transition: transform .15s ease; }
+.twseapp .heart-btn:active{ transform: scale(.9); }
+.twseapp .heart-btn.fav{ color:#ec4899; }
+.twseapp .grid-wrap{ display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px; padding:16px; }
+.twseapp .loading{ animation:pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+@keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.5} }
+
+/* =========================
+   App #2: 當沖券差借券費率 Top 10
+   Namespaced with .feeapp
+==========================*/
+.feeapp{ background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); border-radius:16px; overflow:hidden; }
+.feeapp .container{ max-width:1000px; margin:0 auto; padding:20px; }
+.feeapp .header{ text-align:center; color:#fff; margin-bottom:20px; }
+.feeapp .header h1{ font-size:1.6rem; text-shadow:2px 2px 4px rgba(0,0,0,.3); margin-bottom:8px; }
+.feeapp .header p{ opacity:.9; font-size:14px; }
+.feeapp .update-time{ display:inline-block; margin-top:10px; padding:6px 14px; border-radius:20px; background:rgba(255,255,255,.2); backdrop-filter:blur(10px); font-size:13px; }
+.feeapp .controls{ background:#fff; padding:15px; border-radius:12px; margin-bottom:15px; box-shadow:0 8px 24px rgba(0,0,0,.08); }
+.feeapp .date-selector{ display:flex; align-items:center; justify-content:center; gap:15px; margin-bottom:15px; flex-wrap:wrap; }
+.feeapp .date-selector label{ font-weight:600; color:#333; }
+.feeapp .date-selector select{ padding:8px 12px; border:2px solid #dee2e6; border-radius:8px; font-size:14px; background:#fff; min-width:160px; }
+.feeapp .button-group{ text-align:center; }
+.feeapp button{ padding:12px 20px; font-size:14px; border-radius:8px; cursor:pointer; border:none; background:#667eea; color:#fff; font-weight:600; transition:all .2s; margin:0 5px; }
+.feeapp button:hover{ background:#5a6fd8; transform:translateY(-1px); }
+.feeapp .loading{ color:#666; text-align:center; padding:20px; background:#fff; border-radius:12px; }
+.feeapp .table-section{ background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.08); overflow:hidden; }
+.feeapp .section-header{ background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; padding:15px 20px; font-weight:600; font-size:16px; }
+.feeapp table{ width:100%; border-collapse:collapse; }
+.feeapp th{ background:#f8f9fa; color:#666; font-size:13px; font-weight:600; text-align:left; padding:12px 15px; border-bottom:2px solid #dee2e6; }
+.feeapp td{ padding:12px 15px; border-bottom:1px solid #eee; }
+.feeapp tr:hover{ background:#f8f9ff; }
+.feeapp .rank{ background:linear-gradient(135deg,#ffd700,#ffed4e); color:#333; font-weight:bold; text-align:center; border-radius:50%; width:25px; height:25px; line-height:25px; font-size:12px; margin:0 auto; }
+.feeapp .rank.top3{ background:linear-gradient(135deg,#ff6b6b,#ee5a24); color:#fff; }
+.feeapp .qty{ font-weight:600; color:#2d3436; }
+.feeapp .fee{ color:#e17055; font-weight:500; }
+.feeapp .date-info{ text-align:center; background:#e8f4f8; padding:10px; color:#2d3436; font-size:14px; font-weight:500; }
+.feeapp .alert{ margin:15px 0; padding:12px 16px; border-radius:8px; background:#fff3cd; border:1px solid #ffeaa7; color:#856404; text-align:center; display:none; }
+.feeapp .alert.success{ background:#e8f5e9; border-color:#a5d6a7; color:#2e7d32; }
+.feeapp .alert.error{ background:#ffebee; border-color:#ffcdd2; color:#c62828; }
+
   </style>
 </head>
 <body>
+  <header class="sticky top-0 z-20 bg-black/40 backdrop-blur border-b border-white/10">
+    <div class="shell flex items-center justify-between gap-4 py-3">
+      <h1 class="text-lg sm:text-xl font-semibold">📊 TWSE 處置股 ＋ 借券 Top10｜整合面板</h1>
+      <nav class="flex items-center gap-2">
+        <button class="tab-btn px-3 py-1.5 rounded-md text-sm active" data-target="#view-twse">處置股卡片</button>
+        <button class="tab-btn px-3 py-1.5 rounded-md text-sm" data-target="#view-fee">當沖券差 Top10</button>
+      </nav>
+    </div>
+  </header>  <main class="shell space-y-4">
+    <!-- App #1: TWSE 處置股卡片面板 -->
+    <section id="view-twse" class="twseapp">
+      <header class="px-4 py-3 bg-black/30 border-b border-white/10">
+        <div class="max-w-[1400px] mx-auto flex items-center justify-between">
+          <h2 class="text-base sm:text-lg font-semibold">集中市場｜公布處置有價證券</h2>
+          <div class="flex items-center gap-3 sm:gap-4">
+            <span class="hidden sm:inline text-xs text-gray-400">出關日 = 處置結束日 + 1 交易日（含休市判斷）</span>
+            <button id="refreshBtn" class="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-sm">🔄 重新整理</button>
+            <div class="text-sm text-gray-300" id="metaInfo">載入中…</div>
+          </div>
+        </div>
+      </header><main class="grid-wrap" id="cards"></main>
+
+  <template id="card-tpl">
+    <div class="card ring-soft rounded-2xl p-4">
+      <div class="flex items-start justify-between gap-3">
+        <div class="truncate">
+          <div class="text-lg font-bold leading-6 truncate">
+            <span class="stock-name">—</span>
+            <span class="text-gray-400 ml-1 text-base stock-code">—</span>
+          </div>
+          <div class="text-xs text-gray-400 mt-0.5">公布：<span class="announce-date">—</span></div>
+        </div>
+        <button class="heart-btn text-gray-500 hover:text-pink-400" title="加入最愛" data-code="">❤</button>
+      </div>
+
+      <div class="mt-3 flex items-center gap-2">
+        <span class="price text-2xl font-bold">—</span>
+        <span class="chg text-sm font-semibold">—</span>
+        <span class="ml-auto badge px-2 py-0.5 rounded-full text-xs font-bold hidden" data-badge="interval"></span>
+      </div>
+
+      <p class="text-gray-300 text-sm mt-1 status-line"><span class="reason-text">—</span></p>
+
+      <div class="text-center mt-2 flex items-center justify-center gap-2 flex-wrap">
+        <span class="inline-block badge px-3 py-1 rounded text-xs font-bold countdown-badge">—</span>
+        <span class="inline-block bg-emerald-300 text-emerald-900 px-3 py-1 rounded text-xs font-bold outdate-badge" title="實際出關日（結束日 +1 交易日）">—</span>
+      </div>
+
+      <div class="border-t border-white/10 my-3"></div>
+
+      <div class="flex items-center gap-1.5 text-xs flex-wrap">
+        <span class="chip px-2 py-0.5 rounded" title="融資">資</span>
+        <span class="chip px-2 py-0.5 rounded" title="融券">券</span>
+        <span class="chip px-2 py-0.5 rounded" title="當沖">沖</span>
+        <span class="ml-auto text-gray-400 text-right">
+          成交值：<span class="turnover">—</span><br>
+          週轉率：<span class="tratio">—</span>
+        </span>
+      </div>
+
+      <div class="mt-3 text-xs text-gray-400 space-y-1">
+        <div><strong>處置原因：</strong><span class="condition">—</span></div>
+        <div><strong>處置期間：</strong><span class="period">—</span></div>
+        <div><strong>處置措施：</strong><span class="measure">—</span></div>
+      </div>
+    </div>
+  </template>
+</section>
+
+<!-- App #2: 當沖券差借券 Top 10 -->
+<section id="view-fee" class="feeapp hidden">
   <div class="container">
     <div class="header">
-      <h1>📈 TPEx 平均日交易量 Top 10</h1>
-      <p>櫃買中心平均日交易量排行榜（示範資料）</p>
-      <div class="update-time" id="lastUpdate">資料時間：2025/08/21</div>
+      <h2>🏆 當沖券差借券股數 Top 10</h2>
+      <p>依「券差日期」選擇並顯示當日加總最多的前10名</p>
+      <div class="update-time" id="lastUpdate">準備載入資料...</div>
     </div>
 
     <div class="controls">
-      <button id="btnExport">📥 匯出 CSV</button>
-      <button id="btnInfo">ℹ️ 關於 CORS 問題</button>
+      <div class="date-selector">
+        <label for="dateSelect">📅 券差日期：</label>
+        <select id="dateSelect">
+          <option value="">請先載入資料</option>
+        </select>
+      </div>
+      <div class="button-group">
+        <button id="btnRefresh">🔄 重新抓取</button>
+        <button id="btnExport">📥 匯出 CSV</button>
+      </div>
     </div>
 
     <div id="alertMsg" class="alert"></div>
+    <div id="loadingMsg" class="loading">載入中，請稍候...</div>
 
-    <div class="table-section">
-      <div class="section-header">
-        <span>📊 平均日交易量排行榜 Top 10</span>
-      </div>
-      <div class="date-info">資料日期：2025/08/21 (三)</div>
+    <div class="table-section" id="tableSection" style="display:none;">
+      <div class="section-header"><span>📊 借券股數排行榜</span></div>
+      <div class="date-info" id="dateInfo"></div>
       <table>
         <thead>
           <tr>
-            <th style="width: 60px; text-align: center;">排名</th>
+            <th style="width:60px;text-align:center;">排名</th>
             <th>證券代號</th>
-            <th>公司名稱</th>
-            <th style="text-align: right;">平均日交易量</th>
+            <th>證券名稱</th>
+            <th style="text-align:right;">借券股數</th>
+            <th style="text-align:right;">平均費率</th>
+            <th style="text-align:center;">來源</th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
       </table>
     </div>
-
-    <div style="background: #fff; margin-top: 15px; padding: 15px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.08);">
-      <h3 style="color: #667eea; margin-bottom: 10px;">🎯 學習重點</h3>
-      <p style="color: #666; line-height: 1.6;">
-        這個範例展示了 <strong>CORS (跨來源資源共享)</strong> 的實際問題。
-        雖然 API 本身正常運作，但瀏覽器的安全機制阻止了跨域請求。
-        在實際開發中，通常需要：
-      </p>
-      <ul style="color: #666; margin-top: 10px; padding-left: 20px;">
-        <li>後端設定適當的 CORS 標頭</li>
-        <li>使用伺服器端代理</li>
-        <li>或建立自己的 API 端點</li>
-      </ul>
-    </div>
   </div>
+</section>
 
-  <script>
-    // 格式化數字
-    const nf = new Intl.NumberFormat('zh-TW', { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 2 
+  </main>  <!-- Scripts: keep each app in an IIFE to avoid globals -->  <script>
+  // ===== Shell tab switching =====
+  document.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.tab-btn');
+    if(!btn) return;
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const target = btn.getAttribute('data-target');
+    document.querySelectorAll('main > section').forEach(sec=>{
+      sec.classList.toggle('hidden', '#'+sec.id !== target);
     });
-    
-    // 顯示訊息
-    const showAlert = (msg, type='info') => {
-      const el = document.getElementById('alertMsg');
-      el.textContent = msg;
-      el.className = `alert ${type}`;
-      el.style.display = 'block';
-      setTimeout(() => el.style.display = 'none', 5000);
-    };
+  });
+  </script>  <script>
+  /* =============================================
+     App #1: TWSE 處置股卡片面板（自 TWSE.html 整合）
+     - 延後一交易日出關
+     - 跨年穩健（今年＋明年休市表）
+     - 出關徽章
+  ==============================================*/
+  (()=>{
+    // ===== API =====
+    const PUNISH_API = 'https://cors-proxy.s01yg3642.workers.dev/?url=' +
+      encodeURIComponent('https://openapi.twse.com.tw/v1/announcement/punish');
+    const HOLIDAY_API = 'https://cors-proxy.s01yg3642.workers.dev/?url=' +
+      encodeURIComponent('https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule');
 
-    // 使用從 API 抓取的實際資料
-    const SAMPLE_DATA = [
-      {"Date":"1140821","Rank":"1","SecuritiesCompanyCode":"5371","CompanyName":"中強光電","AverageDailyTradingVolume":"87912.11"},
-      {"Date":"1140821","Rank":"2","SecuritiesCompanyCode":"5309","CompanyName":"系統電子","AverageDailyTradingVolume":"49496.71"},
-      {"Date":"1140821","Rank":"3","SecuritiesCompanyCode":"6140","CompanyName":"訊達電腦","AverageDailyTradingVolume":"42168.66"},
-      {"Date":"1140821","Rank":"4","SecuritiesCompanyCode":"5498","CompanyName":"凱崴","AverageDailyTradingVolume":"35269.99"},
-      {"Date":"1140821","Rank":"5","SecuritiesCompanyCode":"3294","CompanyName":"英濟","AverageDailyTradingVolume":"31611.40"},
-      {"Date":"1140821","Rank":"6","SecuritiesCompanyCode":"3297","CompanyName":"杭特電子","AverageDailyTradingVolume":"30266.49"},
-      {"Date":"1140821","Rank":"7","SecuritiesCompanyCode":"5314","CompanyName":"世紀*","AverageDailyTradingVolume":"27905.85"},
-      {"Date":"1140821","Rank":"8","SecuritiesCompanyCode":"5251","CompanyName":"天鉞電","AverageDailyTradingVolume":"26170.03"},
-      {"Date":"1140821","Rank":"9","SecuritiesCompanyCode":"4931","CompanyName":"新盛力","AverageDailyTradingVolume":"23464.92"},
-      {"Date":"1140821","Rank":"10","SecuritiesCompanyCode":"5392","CompanyName":"能率","AverageDailyTradingVolume":"23241.93"}
-    ];
+    // ===== 本地存儲最愛 =====
+    const FAV_KEY='twse_fav_stocks';
+    const getFavorites = () => JSON.parse(localStorage.getItem(FAV_KEY) || '[]');
+    const toggleFavorite = (code)=>{ const favs=getFavorites(); const i=favs.indexOf(code); if(i>-1)favs.splice(i,1); else favs.push(code); localStorage.setItem(FAV_KEY, JSON.stringify(favs)); return favs.includes(code); };
 
-    // 渲染表格
-    function renderTable() {
-      const tbody = document.getElementById('tbody');
-      
-      tbody.innerHTML = SAMPLE_DATA.map((item, index) => {
-        const rank = parseInt(item.Rank);
-        const rankClass = rank <= 3 ? 'rank top3' : 'rank';
-        const volume = parseFloat(item.AverageDailyTradingVolume);
-        
-        return `
-          <tr>
-            <td style="text-align: center;">
-              <div class="${rankClass}">${rank}</div>
-            </td>
-            <td><strong>${item.SecuritiesCompanyCode}</strong></td>
-            <td>${item.CompanyName || '-'}</td>
-            <td style="text-align: right;" class="volume">${nf.format(volume)}</td>
-          </tr>
-        `;
-      }).join('');
+    // ===== 日期工具 =====
+    const daysBetween=(d1,d2)=>{ const ms=(new Date(d2).setHours(0,0,0,0))-(new Date(d1).setHours(0,0,0,0)); return Math.round(ms/86400000); };
+    const normalizeToISO=(s)=>{ if(!s) return null; const str=String(s).trim(); if(/^\d{4}-\d{2}-\d{2}$/.test(str)) return str; if(/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(str)){ const [y,m,d]=str.split('/').map(n=>parseInt(n,10)); return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;} if(/^\d{3}\/\d{1,2}\/\d{1,2}$/.test(str)){ const [y,m,d]=str.split('/').map(n=>parseInt(n,10)); const yyyy=y+1911; return `${yyyy}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;} const t=new Date(str); if(!isNaN(t)){ const y=t.getFullYear(), m=t.getMonth()+1, d=t.getDate(); return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;} return null; };
+    const parsePeriod=(periodRaw)=>{ if(!periodRaw||!periodRaw.includes('～')) return {start:null,end:null,raw:periodRaw||''}; const [s,e]=periodRaw.split('～').map(s=>s.trim()); const rocToAD=(roc)=>{ if(!roc||typeof roc!== 'string') return null; const [y,m,d]=roc.split('/').map(v=>parseInt(v,10)); if(!y||!m||!d) return null; return `${y+1911}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }; return { start:rocToAD(s), end:rocToAD(e), raw:periodRaw}; };
+    const inferIntervalBadge=(measure)=>{ if(!measure) return null; const text=String(measure); if(text.includes('20')&&text.includes('分鐘')) return '20分盤'; if(text.includes('五分鐘')||(text.includes('5')&&text.includes('分鐘'))) return '5分盤'; if(/人工管制|撮合/i.test(text)) return '人工管制'; return null; };
+
+    // ===== 休市表（跨年穩健＋快取） =====
+    const HOLIDAY_CACHE_KEY='twse_holidays_cache_v1'; const HOLIDAY_CACHE_TTL_MS=24*60*60*1000;
+    async function fetchHolidaySet(){
+      try{ const cached=JSON.parse(localStorage.getItem(HOLIDAY_CACHE_KEY)||'null'); if(cached && (Date.now()-cached.ts)<HOLIDAY_CACHE_TTL_MS && Array.isArray(cached.list)){ return new Set(cached.list); } }catch{}
+      let isoList=[]; try{ const res=await fetch(HOLIDAY_API,{cache:'no-store'}); const rows=await res.json(); const arr=Array.isArray(rows)?rows:[]; const thisYear=new Date().getFullYear(); const nextYear=thisYear+1; for(const r of arr){ const rawDate=r.date||r.HolidayDate||r.holidayDate||r['日期']||r['Date']||''; const isOpenVal=(r.isOpen ?? r.Open ?? r.open ?? r['是否開市'] ?? r['IsOpen']); const isOpen=String(isOpenVal).toLowerCase()==='y' || String(isOpenVal).toLowerCase()==='true'; const iso=normalizeToISO(rawDate); if(!iso) continue; const y=parseInt(iso.slice(0,4),10); if((y===thisYear||y===nextYear) && !isOpen) isoList.push(iso); } }catch(e){ console.warn('Holiday API 失敗，將退回週末判斷：', e); isoList=[]; }
+      try{ localStorage.setItem(HOLIDAY_CACHE_KEY, JSON.stringify({ts:Date.now(), list:isoList})); }catch{}
+      return new Set(isoList);
+    }
+    function isTradingDay(date, holidays){ const wk=date.getDay(); if(wk===0||wk===6) return false; const iso=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`; return !holidays.has(iso); }
+    function nextTradingDayFromEnd(endDate, holidays){ const d=new Date(endDate); d.setHours(0,0,0,0); d.setDate(d.getDate()+1); while(!isTradingDay(d,holidays)){ d.setDate(d.getDate()+1);} return d; }
+    const formatISO=(d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const makeCountdownLabel=(today,start,out)=>{ const toStart=daysBetween(today,start); const toOut=daysBetween(today,out); if(toOut<0) return '✅ 已出關'; if(toOut===0) return '🎉 本日出關'; if(toStart>0) return `⏳ ${toStart} 日後開始`; return `⏱️ ${toOut} 日後出關`; };
+
+    // ===== 模擬即時行情（可替換為真實 API） =====
+    const fetchMarketData=async(codes)=>{ const mock={}; for(const code of codes){ if(Math.random()>0.3){ mock[code]={ price:(Math.random()*200+50).toFixed(2), chg:(Math.random()*10-5).toFixed(2), chgPct:(Math.random()*10-5).toFixed(2), turnover:(Math.random()*5).toFixed(2)+'億', tratio:(Math.random()*2).toFixed(2)+'%' }; } } return mock; };
+
+    async function loadData(){
+      const meta=document.getElementById('metaInfo');
+      const wrap=document.getElementById('cards');
+      const tpl=document.getElementById('card-tpl');
+      wrap.innerHTML='<div class="col-span-full text-center py-16 loading text-gray-400">載入中...</div>';
+      const holidaySet=await fetchHolidaySet();
+      let rows=[]; try{ const res=await fetch(PUNISH_API,{cache:'no-store'}); rows=await res.json(); if(!Array.isArray(rows)) rows=[]; meta.textContent=`共 ${rows.length} 檔（${new Date().toLocaleString('zh-TW',{timeZone:'Asia/Taipei'})}）`; }catch(err){ console.error(err); meta.textContent='載入失敗'; wrap.innerHTML='<div class="col-span-full text-center py-16 text-red-400">⚠️ 載入失敗，請檢查網路或稍後再試</div>'; return; }
+      const norm=rows.map(x=>{
+        const announce=x.Date||''; const code=String(x.Code||'').trim(); const name=x.Name||''; const reason=x.ReasonsOfDisposition||''; const period=x.DispositionPeriod||''; const measure=x.DispositionMeasures||'';
+        const {start,end,raw}=parsePeriod(period); const badge=inferIntervalBadge(measure);
+        let announceAD=''; if(announce && announce.length===7){ const y=parseInt(announce.substring(0,3)); const m=announce.substring(3,5); const d=announce.substring(5,7); announceAD=`${y+1911}-${m}-${d}`; }
+        let outDateISO='—'; let countdownText='期間未明';
+        if(start && end){ const outDate=nextTradingDayFromEnd(new Date(end), holidaySet); outDateISO=formatISO(outDate); countdownText=makeCountdownLabel(new Date(new Date().setHours(0,0,0,0)), new Date(start), outDate); }
+        return { announce_roc:announce, announce_ad:announceAD, code, name, reason, period_raw:raw, start, end, measure, intervalBadge:badge, outDateISO, countdownText };
+      });
+      norm.sort((a,b)=>{ const aKey=a.outDateISO && a.outDateISO!=='—' ? new Date(a.outDateISO).getTime() : Infinity; const bKey=b.outDateISO && b.outDateISO!=='—' ? new Date(b.outDateISO).getTime() : Infinity; return aKey-bKey; });
+      const codes=norm.map(r=>r.code).filter(Boolean); const marketData=await fetchMarketData(codes); const favorites=getFavorites();
+      wrap.innerHTML='';
+      for(const row of norm){ const $=tpl.content.cloneNode(true); $.querySelector('.stock-name').textContent=row.name||'—'; $.querySelector('.stock-code').textContent=row.code||'—'; $.querySelector('.announce-date').textContent=row.announce_ad||'—'; $.querySelector('.reason-text').textContent=row.reason||'—'; $.querySelector('.measure').textContent=row.measure||'—'; $.querySelector('.period').textContent=row.period_raw||'—';
+        const cb=$.querySelector('.countdown-badge'); cb.textContent=row.countdownText; const outBadge=$.querySelector('.outdate-badge'); outBadge.textContent=row.outDateISO!=='—'?`出關日：${row.outDateISO}`:'出關日：—';
+        if(row.intervalBadge){ const ib=$.querySelector('[data-badge="interval"]'); ib.textContent=row.intervalBadge; ib.classList.remove('hidden'); }
+        const extra=marketData[row.code]||null; const priceEl=$.querySelector('.price'); const chgEl=$.querySelector('.chg'); const tEl=$.querySelector('.turnover'); const rEl=$.querySelector('.tratio');
+        if(extra){ priceEl.textContent=extra.price; tEl.textContent=extra.turnover; rEl.textContent=extra.tratio; const chgNum=parseFloat(extra.chg); const arrow=chgNum>=0?'▲':'▼'; chgEl.textContent=`${arrow}${Math.abs(chgNum)} (${Math.abs(parseFloat(extra.chgPct)).toFixed(2)}%)`; if(chgNum>0){ priceEl.style.color='var(--up)'; chgEl.style.color='var(--up)'; } else if(chgNum<0){ priceEl.style.color='var(--down)'; chgEl.style.color='var(--down)'; } } else { priceEl.textContent='—'; chgEl.textContent='無行情'; tEl.textContent='—'; rEl.textContent='—'; }
+        const heartBtn=$.querySelector('.heart-btn'); heartBtn.dataset.code=row.code; if(favorites.includes(row.code)) heartBtn.classList.add('fav');
+        document.getElementById('cards').appendChild($);
+      }
+      if(!norm.length){ wrap.innerHTML='<div class="col-span-full text-center text-gray-400 py-16">目前沒有處置股票資料</div>'; }
     }
 
-    // 匯出 CSV
-    function exportCSV() {
-      const header = ['排名', '證券代號', '公司名稱', '平均日交易量'];
-      const rows = SAMPLE_DATA.map((item) => [
-        item.Rank,
-        item.SecuritiesCompanyCode,
-        item.CompanyName || '',
-        item.AverageDailyTradingVolume
-      ]);
+    document.getElementById('cards').addEventListener('click',(e)=>{ const btn=e.target.closest('.heart-btn'); if(btn){ const code=btn.dataset.code; const isFav=toggleFavorite(code); btn.classList.toggle('fav', isFav); }});
+    document.getElementById('refreshBtn').addEventListener('click', ()=> loadData());
+    // load immediately when tab is visible on first render
+    loadData();
+  })();
+  </script>  <script>
+  /* ==================================================
+     App #2: 當沖券差借券費率 Top 10（自 index.html 整合）
+     - 解析 TWSE / TPEx HTML 表格
+     - 日期下拉、Top10 聚合、CSV 匯出
+  ===================================================*/
+  (()=>{
+    const nf = new Intl.NumberFormat('zh-TW');
+    const showAlert=(msg,type='info')=>{ const el=document.getElementById('alertMsg'); el.textContent=msg; el.className=`alert ${type}`; el.style.display='block'; setTimeout(()=>el.style.display='none',3000); };
+    const updateClock=()=>{ const el=document.getElementById('lastUpdate'); if(!el) return; el.textContent='最後更新：'+ new Date().toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}); };
+    const toNum=v=> Number(String(v ?? '').replace(/[\,\s%]/g,'')) || 0;
+    const rocToISO=(s)=>{ const m=String(s).match(/(\d{2,3})[\/年.-](\d{1,2})[\/月.-](\d{1,2})/); if(!m) return ''; const y=(+m[1]+1911).toString().padStart(4,'0'); const mm=m[2].padStart(2,'0'); const dd=m[3].padStart(2,'0'); return `${y}-${mm}-${dd}`; };
 
-      const csv = [
-        `# TPEx 平均日交易量 Top 10`,
-        `# 日期: 2025/08/21`,
-        `# 匯出時間: ${new Date().toLocaleString('zh-TW')}`,
-        '',
-        header.join(','),
-        ...rows.map(row => 
-          row.map(cell => 
-            typeof cell === 'string' && cell.includes(',') 
-              ? `"${cell.replace(/"/g, '""')}"` 
-              : cell
-          ).join(',')
-        )
-      ].join('\n');
+    // 資料來源（官方 HTML）
+    const URL_TPEX='https://www.tpex.org.tw/www/zh-tw/intraday/fee?id=&response=html';
+    const URL_TWSE='https://www.twse.com.tw/rwd/zh/dayTrading/BFIF8U?response=html';
 
-      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `TPEx平均日交易量Top10_20250821.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      
-      showAlert('已匯出 CSV 檔案', 'success');
+    async function fetchHTML(url){
+      try{ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error(`HTTP ${r.status}`); return await r.text(); }
+      catch(e){ const proxy='https://api.allorigins.win/raw?url='+encodeURIComponent(url); const r2=await fetch(proxy,{cache:'no-store'}); if(!r2.ok) throw new Error(`Proxy HTTP ${r2.status}`); return await r2.text(); }
     }
 
-    // 顯示 CORS 說明
-    function showCorsInfo() {
-      showAlert('CORS 阻止了直接的 API 請求。這是瀏覽器的安全機制，用來防止惡意網站存取其他網域的資源。實際開發中需要後端配合設定 CORS 標頭。', 'info');
+    function parseFeeTable(htmlText, source){
+      const doc=new DOMParser().parseFromString(htmlText,'text/html');
+      const tables=Array.from(doc.querySelectorAll('table'));
+      let table=tables.find(t=> /券差日期/.test(t.textContent) && /證券代號/.test(t.textContent));
+      if(!table) return [];
+      const headerTr=Array.from(table.querySelectorAll('thead tr, tr')).find(tr=>{ const ths=Array.from(tr.querySelectorAll('th')); if(ths.length<4) return false; if(ths.some(th=>th.hasAttribute('colspan'))) return false; const text=ths.map(th=>th.textContent.trim()).join(','); return /券差日期/.test(text) && /證券代號/.test(text); });
+      if(!headerTr) return [];
+      const headers=Array.from(headerTr.querySelectorAll('th')).map(th=>th.textContent.trim());
+      const idx=(re)=> headers.findIndex(h=>re.test(h));
+      const iDate=idx(/券差日期/), iCode=idx(/證券代號/), iName=idx(/證券名稱/), iQty=idx(/(投資人)?借券股數/), iFee=idx(/(投資人)?借券費率/);
+      const bodyTrs = Array.from(table.querySelectorAll('tbody tr')).length ? Array.from(table.querySelectorAll('tbody tr')) : Array.from(table.querySelectorAll('tr')).filter(tr=> tr.querySelectorAll('td').length);
+      const rows=[]; for(const tr of bodyTrs){ const tds=Array.from(tr.querySelectorAll('td,th')).map(td=>td.textContent.trim()); if(!tds.length) continue; const dateStr=tds[iDate]||''; const code=tds[iCode]||''; const name=tds[iName]||''; const qty=toNum(tds[iQty]); let feeRaw=(tds[iFee]??'').replace('%','').trim(); const fee = feeRaw===''? null : Number(feeRaw); if(!dateStr || !code) continue; const iso=rocToISO(dateStr); rows.push({ date:dateStr, dateISO:iso, source, code, name, qty, fee }); }
+      return rows;
     }
 
-    // 初始化
-    document.addEventListener('DOMContentLoaded', () => {
-      renderTable();
+    // 狀態
+    let ALL_ROWS=[]; let AVAILABLE_DATES=[]; let TOP10_DATA=[]; let CURRENT_DATE_ISO='';
+
+    function computeTop10ByDate(dateISO){
+      const rows=ALL_ROWS.filter(r=>r.dateISO===dateISO);
+      const codeMap=new Map();
+      for(const row of rows){ if(!codeMap.has(row.code)){ codeMap.set(row.code,{ code:row.code, name:row.name, totalQty:0, fees:[], sources:new Set()}); }
+        const item=codeMap.get(row.code); item.totalQty+=row.qty; if(row.fee!==null) item.fees.push(row.fee); item.sources.add(row.source);
+      }
+      TOP10_DATA = Array.from(codeMap.values()).map(item=>({ ...item, avgFee:item.fees.length? item.fees.reduce((a,b)=>a+b,0)/item.fees.length : null, sourcesText:Array.from(item.sources).join(', ') })).sort((a,b)=> b.totalQty - a.totalQty).slice(0,10);
+    }
+
+    function renderTable(){
+      const tbody=document.getElementById('tbody');
+      const dateInfo=document.getElementById('dateInfo');
+      const displayStr=AVAILABLE_DATES.find(d=>d.iso===CURRENT_DATE_ISO)?.display || CURRENT_DATE_ISO;
+      dateInfo.textContent=`資料日期：${displayStr}（共 ${TOP10_DATA.length} 名）`;
+      tbody.innerHTML = TOP10_DATA.map((item, i)=>{ const rank=i+1; const rankClass=rank<=3? 'rank top3':'rank'; const feeText=item.avgFee!==null? `${item.avgFee.toFixed(2)}%`:'-'; return `
+        <tr>
+          <td><div class="${rankClass}">${rank}</div></td>
+          <td><strong>${item.code}</strong></td>
+          <td>${item.name || '-'}</td>
+          <td style="text-align:right;" class="qty">${nf.format(item.totalQty)}</td>
+          <td style="text-align:right;" class="fee">${feeText}</td>
+          <td style="text-align:center; font-size:12px; color:#666;">${item.sourcesText}</td>
+        </tr>`; }).join('');
+      document.getElementById('loadingMsg').style.display='none';
+      document.getElementById('tableSection').style.display='block';
+    }
+
+    function exportCSV(){
+      if(TOP10_DATA.length===0){ showAlert('沒有可匯出的資料','error'); return; }
+      const header=['排名','證券代號','證券名稱','借券股數','平均費率(%)','來源'];
+      const rows=TOP10_DATA.map((item,i)=>[ i+1, item.code, item.name||'', item.totalQty, item.avgFee!==null? item.avgFee.toFixed(2):'', item.sourcesText ]);
+      const csv=[ header.join(','), ...rows.map(r=> r.map(cell=> typeof cell==='string' && cell.includes(',') ? `"${cell.replace(/"/g,'""')}"` : cell ).join(',')) ].join('\n');
+      const blob=new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+      const displayStr=AVAILABLE_DATES.find(d=>d.iso===CURRENT_DATE_ISO)?.display?.replace(/[\/年月]/g,'-').replace(/日/,'') || CURRENT_DATE_ISO;
+      a.download=`當沖券差Top10_${displayStr}.csv`; document.body.appendChild(a); a.click(); a.remove(); showAlert('已匯出 CSV 檔案','success');
+    }
+
+    function buildDateSelect(){
+      const sel=document.getElementById('dateSelect');
+      sel.innerHTML = AVAILABLE_DATES.map(d=>`<option value="${d.iso}">${d.display}</option>`).join('');
+      sel.value=CURRENT_DATE_ISO;
+      sel.onchange=()=>{ CURRENT_DATE_ISO=sel.value; computeTop10ByDate(CURRENT_DATE_ISO); renderTable(); };
+    }
+
+    async function loadData(){
+      const loading=document.getElementById('loadingMsg');
+      const table=document.getElementById('tableSection');
+      loading.style.display='block'; table.style.display='none';
+      try{
+        const [tpexHTML, twseHTML] = await Promise.all([ fetchHTML(URL_TPEX), fetchHTML(URL_TWSE) ]);
+        const tpexRows = parseFeeTable(tpexHTML, 'TPEx');
+        const twseRows = parseFeeTable(twseHTML, 'TWSE');
+        ALL_ROWS=[...tpexRows, ...twseRows];
+        if(!ALL_ROWS.length) throw new Error('未取得任何資料');
+        const dateSet=new Map();
+        for(const r of ALL_ROWS){ if(r.dateISO) dateSet.set(r.dateISO, r.date); }
+        AVAILABLE_DATES = Array.from(dateSet.entries()).map(([iso,display])=>({iso, display})).sort((a,b)=> a.iso < b.iso ? 1 : -1);
+        if(!AVAILABLE_DATES.length) throw new Error('找不到有效日期');
+        CURRENT_DATE_ISO=AVAILABLE_DATES[0].iso; // 預設最新
+        computeTop10ByDate(CURRENT_DATE_ISO); buildDateSelect(); renderTable(); updateClock();
+        showAlert(`載入成功！共 ${ALL_ROWS.length} 筆原始列，日期數：${AVAILABLE_DATES.length}`,'success');
+      }catch(e){ console.error(e); showAlert('載入失敗：'+e.message,'error'); document.getElementById('loadingMsg').innerHTML='<div style="color:#c62828;">❌ 載入失敗</div>'; }
+    }
+
+    // 綁定
+    document.addEventListener('DOMContentLoaded', ()=>{
+      document.getElementById('btnRefresh').addEventListener('click', loadData);
       document.getElementById('btnExport').addEventListener('click', exportCSV);
-      document.getElementById('btnInfo').addEventListener('click', showCorsInfo);
-      
-      // 顯示歡迎訊息
-      setTimeout(() => {
-        showAlert('載入完成！這是使用實際 API 資料的示範版本。', 'success');
-      }, 500);
+      // 預先載入一次（切到此分頁即可直接用）
+      loadData();
     });
-  </script>
-</body>
+  })();
+  </script></body>
 </html>
