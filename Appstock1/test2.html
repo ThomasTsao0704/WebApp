@@ -406,9 +406,14 @@
                     type: 'line',
                     label: '52H',
                     data: h52Arr,
-                    borderWidth: 1.5,
-                    borderDash: [4, 3],
-                    pointRadius: 0
+                    // --- 顏色與樣式修改處 ---
+                    borderColor: '#007ACC', // 改為深藍色
+                    backgroundColor: 'rgba(0, 122, 204, 0.2)', // 藍色的半透明填充
+                    borderWidth: 2,
+                    tension: 0, // 設為 0，線段之間將是直線連接 (不平滑)
+                    fill: true,
+                    pointRadius: 3 // 顯示半徑為 3 像素的數據點
+                    // ----------------------
                 });
             }
             if (show.avg3 && avg3Arr.some(v => v != null)) {
@@ -416,9 +421,14 @@
                     type: 'line',
                     label: '平均價3[0]',
                     data: avg3Arr,
-                    borderWidth: 1.5,
-                    borderDash: [6, 4],
-                    pointRadius: 0
+                    // --- 顏色與樣式修改處 ---
+                    borderColor: '#007ACC', // 改為深藍色
+                    backgroundColor: 'rgba(0, 122, 204, 0.2)', // 藍色的半透明填充
+                    borderWidth: 2,
+                    tension: 0, // 設為 0，線段之間將是直線連接 (不平滑)
+                    fill: true,
+                    pointRadius: 3 // 顯示半徑為 3 像素的數據點
+                    // ----------------------
                 });
             }
             if (show.avg5 && avg5Arr.some(v => v != null)) {
@@ -426,9 +436,14 @@
                     type: 'line',
                     label: '平均價5[1]',
                     data: avg5Arr,
-                    borderWidth: 1.5,
-                    borderDash: [8, 5],
-                    pointRadius: 0
+                    // --- 顏色與樣式修改處 ---
+                    borderColor: '#b33a1e', // 改為深藍色
+                    backgroundColor: 'rgba(0, 122, 204, 0.2)', // 藍色的半透明填充
+                    borderWidth: 2,
+                    tension: 0, // 設為 0，線段之間將是直線連接 (不平滑)
+                    fill: true,
+                    pointRadius: 3 // 顯示半徑為 3 像素的數據點
+                    // ----------------------
                 });
             }
             if (show.vol && vols.some(v => v != null)) {
