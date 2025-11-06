@@ -169,7 +169,12 @@
       margin-top: 20px;
       line-height: 1.5;
     }
-
+        .container { max-width: 1200px; margin: 0 auto; background: var(--panel-bg); border-radius: 15px;
+            padding: 30px; box-shadow: var(--panel-shadow); border: 1px solid var(--panel-border); }
+        .header { background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            padding: 20px; border-radius: 10px; color: var(--header-text); margin-bottom: 30px;
+            display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 1.8em; }
     code {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
         "Liberation Mono", "Courier New", monospace;
@@ -184,11 +189,9 @@
 <body>
   <div class="container">
         <div class="header">
-            <h1>📈 儀表板</h1>
+            <h1>📈 股票市場資料上傳器</h1>
             <a href="index.html" class="btn-back">← 返回首頁</a>
         </div>
-  <div class="page">
-    <h1>股票市場資料上傳器</h1>
     <div class="subtitle">
       將每日成交資訊（CSV / Excel / GitHub 靜態資料庫）統一匯入瀏覽器
       localStorage，供其他報表頁面使用。
@@ -254,7 +257,6 @@
       <code>JSON.parse(localStorage.getItem('stockMarketData_v3') || '[]')</code>
       直接讀取。
     </div>
-  </div>
   </div>
   <!-- 第三方函式庫：PapaParse & XLSX -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
@@ -642,4 +644,5 @@
   </script>
 </body>
 </html>
+
 
