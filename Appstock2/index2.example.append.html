@@ -1,0 +1,2685 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>整合股票分析系統 v3.0 Pro - 修正版</title>
+
+    <!-- 第三方函式庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script type="module" src="./js/main.js"></script>
+
+    <style>
+        :root {
+            /* light theme (default) */
+            --bg-gradient-start: #667eea;
+            --bg-gradient-end: #764ba2;
+            --page-bg: #ffffff;
+            --panel-bg: #ffffff;
+            --panel-border: rgba(0, 0, 0, 0.05);
+            --panel-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            --header-text: #ffffff;
+            --tab-border: #667eea;
+            --tab-bg: #f0f0f0;
+            --tab-bg-hover: #e0e0e0;
+            --tab-active-text: #ffffff;
+            --section-bg: #f8f9fa;
+            --text-main: #333;
+            --text-dim: #666;
+            --table-head-bg-start: #667eea;
+            --table-head-bg-end: #764ba2;
+            --table-head-text: #ffffff;
+            --row-hover-bg: #f5f5f5;
+            --metric-border-left: #667eea;
+            --trend-pos: #e74c3c;
+            --trend-neg: #27ae60;
+            --trend-neutral: #7f8c8d;
+            --btn-bg-start: #667eea;
+            --btn-bg-end: #764ba2;
+            --btn-text: #ffffff;
+            --btn-secondary-bg: #6c757d;
+
+            --alert-success-bg: #d4edda;
+            --alert-success-text: #155724;
+            --alert-success-border: #c3e6cb;
+
+            --alert-info-bg: #d1ecf1;
+            --alert-info-text: #0c5460;
+            --alert-info-border: #bee5eb;
+
+            --alert-warning-bg: #fff3cd;
+            --alert-warning-text: #856404;
+            --alert-warning-border: #ffeeba;
+
+            --alert-danger-bg: #f8d7da;
+            --alert-danger-text: #721c24;
+            --alert-danger-border: #f5c6cb;
+
+            --record-card-border-left: #28a745;
+        }
+
+        /* dark theme */
+        body.dark {
+            --bg-gradient-start: #1f2937;
+            --bg-gradient-end: #111827;
+            --page-bg: #1e1e2e;
+            --panel-bg: #2a2a3a;
+            --panel-border: rgba(255, 255, 255, 0.07);
+            --panel-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            --header-text: #f0f0f0;
+            --tab-border: #4f46e5;
+            --tab-bg: #3a3a4a;
+            --tab-bg-hover: #4a4a5f;
+            --tab-active-text: #fff;
+            --section-bg: #3a3a4a;
+            --text-main: #f0f0f0;
+            --text-dim: #a0a0b8;
+            --table-head-bg-start: #4f46e5;
+            --table-head-bg-end: #6d28d9;
+            --table-head-text: #ffffff;
+            --row-hover-bg: rgba(255, 255, 255, 0.05);
+            --metric-border-left: #4f46e5;
+            --trend-pos: #ff6b6b;
+            --trend-neg: #4ade80;
+            --trend-neutral: #94a3b8;
+            --btn-bg-start: #4f46e5;
+            --btn-bg-end: #6d28d9;
+            --btn-text: #ffffff;
+            --btn-secondary-bg: #6b7280;
+
+            --alert-success-bg: rgba(16, 185, 129, 0.15);
+            --alert-success-text: #6ee7b7;
+            --alert-success-border: rgba(16, 185, 129, 0.4);
+
+            --alert-info-bg: rgba(59, 130, 246, 0.15);
+            --alert-info-text: #93c5fd;
+            --alert-info-border: rgba(59, 130, 246, 0.4);
+
+            /* 夜間模式下的警示黃額外強化對比 */
+            --alert-warning-bg: rgba(245, 158, 11, 0.15);
+            --alert-warning-text: #fbbf24;
+            --alert-warning-border: rgba(245, 158, 11, 0.4);
+
+            --alert-danger-bg: rgba(239, 68, 68, 0.15);
+            --alert-danger-text: #fca5a5;
+            --alert-danger-border: rgba(239, 68, 68, 0.4);
+
+            --record-card-border-left: #10b981;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--text-main);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--panel-bg);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: var(--panel-shadow);
+            border: 1px solid var(--panel-border);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            padding: 30px;
+            border-radius: 10px;
+            color: var(--header-text);
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: #fff;
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        body.dark .theme-toggle {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.4);
+            color: #fff;
+        }
+
+        /* 全域搜尋框 */
+        .global-search {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 250px;
+        }
+
+        .global-search input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.25);
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .global-search input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        #searchResults {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 5px;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .search-result-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--panel-border);
+            color: var(--text-main);
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .search-result-item:hover {
+            background: var(--row-hover-bg);
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--tab-border);
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            background: var(--tab-bg);
+            border: none;
+            border-radius: 8px 8px 0 0;
+            font-size: 16px;
+            transition: all 0.2s;
+            color: var(--text-main);
+        }
+
+        .tab:hover {
+            background: var(--tab-bg-hover);
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            color: var(--tab-active-text);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s;
+            color: var(--text-main);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .upload-section {
+            background: var(--section-bg);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, var(--btn-bg-start) 0%, var(--btn-bg-end) 100%);
+            color: var(--btn-text);
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+
+        .upload-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .metric-card {
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid var(--metric-border-left);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-label {
+            color: var(--text-dim);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--panel-bg);
+            color: var(--text-main);
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--panel-border);
+            font-size: 14px;
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--table-head-bg-start) 0%, var(--table-head-bg-end) 100%);
+            color: var(--table-head-text);
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        tr:hover {
+            background: var(--row-hover-bg);
+        }
+
+        .trend-positive {
+            color: var(--trend-pos);
+            font-weight: bold;
+        }
+
+        .trend-negative {
+            color: var(--trend-neg);
+            font-weight: bold;
+        }
+
+        .trend-neutral {
+            color: var(--trend-neutral);
+            font-weight: bold;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            color: var(--text-main);
+            min-width: 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: var(--text-main);
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            background: var(--panel-bg);
+            color: var(--text-main);
+        }
+
+        body.dark .form-group input,
+        body.dark .form-group select,
+        body.dark .form-group textarea {
+            border-color: #4b5563;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--btn-bg-start) 0%, var(--btn-bg-end) 100%);
+            color: var(--btn-text);
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 10px 5px 0 0;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        .btn-secondary {
+            background: var(--btn-secondary-bg);
+            color: #fff;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: #fff;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: #fff;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            margin: 2px;
+        }
+
+        .filters {
+            background: var(--section-bg);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .records-actions-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .alert-success {
+            background: var(--alert-success-bg);
+            color: var(--alert-success-text);
+            border: 1px solid var(--alert-success-border);
+        }
+
+        .alert-info {
+            background: var(--alert-info-bg);
+            color: var(--alert-info-text);
+            border: 1px solid var(--alert-info-border);
+        }
+
+        .alert-warning {
+            background: var(--alert-warning-bg);
+            color: var(--alert-warning-text);
+            border: 1px solid var(--alert-warning-border);
+        }
+
+        .alert-danger {
+            background: var(--alert-danger-bg);
+            color: var(--alert-danger-text);
+            border: 1px solid var(--alert-danger-border);
+        }
+
+        .record-card {
+            background: var(--section-bg);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid var(--record-card-border-left);
+            margin-bottom: 15px;
+            color: var(--text-main);
+        }
+
+        .record-card h3 {
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .record-card p {
+            font-size: 14px;
+            line-height: 1.4;
+            margin: 4px 0;
+            color: var(--text-main);
+        }
+
+        .chart-wrapper {
+            background: var(--panel-bg);
+            border-radius: 10px;
+            border: 1px solid var(--panel-border);
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .footer {
+            text-align: center;
+            color: var(--text-dim);
+            padding: 20px;
+            margin-top: 30px;
+            border-top: 1px solid var(--panel-border);
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .clickable-stock {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .helper-text {
+            font-size: 12px;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+
+        /* 資料管理區塊樣式 */
+        .data-management {
+            background: var(--section-bg);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .data-info-box {
+            background: var(--panel-bg);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid var(--panel-border);
+        }
+
+        .data-info-box h4 {
+            margin-bottom: 10px;
+            color: var(--text-main);
+            font-size: 14px;
+        }
+
+        .data-info-box p {
+            font-size: 13px;
+            color: var(--text-dim);
+            margin: 5px 0;
+        }
+
+        .storage-usage {
+            margin-top: 10px;
+            padding: 10px;
+            background: var(--section-bg);
+            border-radius: 5px;
+        }
+
+        .storage-bar {
+            height: 20px;
+            background: var(--panel-border);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .storage-bar-fill {
+            height: 100%;
+            background: linear-gradient(135deg, var(--btn-bg-start) 0%, var(--btn-bg-end) 100%);
+            transition: width 0.3s;
+        }
+
+        /* Modal 樣式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal-content {
+            background: var(--panel-bg);
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            box-shadow: var(--panel-shadow);
+            animation: slideIn 0.3s;
+            border: 1px solid var(--panel-border);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: var(--text-main);
+        }
+
+        .modal-close {
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--text-dim);
+        }
+
+        .modal-close:hover {
+            color: var(--text-main);
+        }
+
+        .radio-group {
+            margin: 15px 0;
+        }
+
+        .radio-group label {
+            display: block;
+            padding: 12px;
+            margin: 8px 0;
+            background: var(--section-bg);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-main);
+            font-size: 14px;
+        }
+
+        .radio-group label:hover {
+            background: var(--row-hover-bg);
+        }
+
+        .radio-group input[type="radio"] {
+            margin-right: 10px;
+        }
+
+        /* 警示卡片 */
+        .alert-card {
+            background: var(--section-bg);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #f39c12;
+            position: relative;
+            font-size: 13px;
+            line-height: 1.4;
+            color: var(--text-main);
+        }
+
+        .alert-card.triggered {
+            border-left-color: #e74c3c;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.8;
+            }
+        }
+
+        .alert-card h4 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        .alert-card p {
+            font-size: 13px;
+            color: var(--text-dim);
+            margin: 4px 0;
+        }
+
+        .alert-card .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        /* 持股卡片 */
+        .holding-card {
+            background: var(--section-bg);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #28a745;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            color: var(--text-main);
+        }
+
+        .holding-card.profit {
+            border-left-color: #e74c3c;
+        }
+
+        .holding-card.loss {
+            border-left-color: #27ae60;
+        }
+
+        .holding-info {
+            font-size: 13px;
+            color: var(--text-main);
+        }
+
+        .holding-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        /* 儀表板網格 */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .dashboard-widget {
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--panel-border);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .dashboard-widget h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: var(--text-main);
+            border-bottom: 2px solid var(--tab-border);
+            padding-bottom: 10px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--panel-border);
+            font-size: 13px;
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: var(--text-dim);
+            font-size: 13px;
+        }
+
+        .stat-value {
+            color: var(--text-main);
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        /* 標籤 */
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            margin: 2px;
+        }
+
+        .badge-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .badge-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .badge-warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        body.dark .badge-warning {
+            color: #000;
+        }
+
+        .badge-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        /* 驗證報告 */
+        .validation-report {
+            background: var(--section-bg);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .validation-item {
+            padding: 8px;
+            margin: 5px 0;
+            border-left: 3px solid var(--panel-border);
+            background: var(--panel-bg);
+            border-radius: 4px;
+            font-size: 13px;
+            color: var(--text-main);
+        }
+
+        .validation-item.error {
+            border-left-color: #dc3545;
+        }
+
+        .validation-item.warning {
+            border-left-color: #ffc107;
+        }
+
+        .validation-item.success {
+            border-left-color: #28a745;
+        }
+
+        /* RWD 優化：行動裝置縮小字級、縮 padding */
+        @media (max-width:768px) {
+
+            th,
+            td {
+                font-size: 12px;
+                padding: 8px;
+            }
+
+            .metric-value {
+                font-size: 22px;
+            }
+
+            .metric-label {
+                font-size: 12px;
+            }
+
+            .metrics {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+
+            .tab {
+                font-size: 14px;
+                padding: 10px 14px;
+            }
+
+            .global-search {
+                position: static;
+                width: 100%;
+                margin-bottom: 15px;
+            }
+
+            .theme-toggle {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+            }
+
+            .header {
+                padding-top: 60px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <div class="header">
+            <!-- 全域搜尋 -->
+            <div class="global-search">
+                <input type="text" id="globalSearchInput" placeholder="🔍 搜尋股票代碼或名稱...">
+                <div id="searchResults"></div>
+            </div>
+
+            <h1>🚀 整合股票市場分析與紀錄系統 <span style="font-size:0.6em;opacity:.8;">v3.0 Pro</span></h1>
+            <p>專業投資決策支持平台 - 警示系統｜投資組合追蹤｜批次比較｜視覺化儀表板</p>
+
+            <button class="theme-toggle" id="themeToggleBtn">🌙 夜間模式</button>
+        </div>
+
+        <!-- 資料管理中心 -->
+        <div class="data-management">
+            <h3 style="margin-bottom:15px;">💾 資料管理中心</h3>
+
+            <div class="data-info-box">
+                <h4>📊 市場資料狀態</h4>
+                <p>已載入資料筆數: <strong id="dataCount">0</strong></p>
+                <p>資料日期範圍: <strong id="dateRange">尚未載入</strong></p>
+                <p>涵蓋股票數量: <strong id="stockCount">0</strong></p>
+                <p>最後更新時間: <strong id="lastUpdate">-</strong></p>
+                <div style="margin-top:10px;">
+                    <button class="btn btn-secondary" onclick="showDataDetails()">查看詳細資料</button>
+                    <button class="btn btn-danger" onclick="clearMarketData()">清空市場資料</button>
+                </div>
+            </div>
+
+            <div class="data-info-box">
+                <h4>📝 個人紀錄狀態</h4>
+                <p>分析紀錄數量: <strong id="recordCount">0</strong></p>
+                <div class="storage-usage">
+                    <p style="font-size:12px;margin-bottom:5px;">儲存空間使用率</p>
+                    <div class="storage-bar">
+                        <div class="storage-bar-fill" id="storageBar" style="width: 0%"></div>
+                    </div>
+                    <p style="font-size:11px;margin-top:5px;color:var(--text-dim);">
+                        已使用 <span id="storageUsed">0</span> KB / 約 5120 KB 可用
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 上傳資料 -->
+        <div class="upload-section">
+            <h3 style="margin-bottom:10px;">📦 資料來源設定</h3>
+            <input type="file" id="fileInput" class="file-input" accept=".csv,.xlsx,.xls">
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                選擇檔案 (CSV 或 Excel)
+            </button>
+            <span id="fileName" style="margin-left: 15px; color: var(--text-dim); font-size:14px;"></span>
+
+            <div style="margin-top:15px;font-size:12px;color:var(--text-dim);line-height:1.5;">
+                <div>⚠ 檔案需至少包含以下欄位：日期 / 代碼 / 收盤價 / 漲跌幅 / 成交量。</div>
+                <div>💡 上傳新檔案時，系統會詢問是否要合併或覆蓋現有資料。</div>
+            </div>
+        </div>
+
+        <!-- 導覽分頁 -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab(0)">📊 視覺化儀表板</button>
+            <button class="tab" onclick="switchTab(1)">📈 漲跌股分析</button>
+            <button class="tab" onclick="switchTab(2)">🎯 概念股追蹤</button>
+            <button class="tab" onclick="switchTab(3)">📉 成交紀錄分析</button>
+            <button class="tab" onclick="switchTab(4)">🔄 批次比較</button>
+            <button class="tab" onclick="switchTab(5)">💼 投資組合</button>
+            <button class="tab" onclick="switchTab(6)">🔔 警示系統</button>
+            <button class="tab" onclick="switchTab(7)">📝 新增分析紀錄</button>
+            <button class="tab" onclick="switchTab(8)">📚 瀏覽分析紀錄</button>
+        </div>
+
+        <!-- Tab 0: 視覺化儀表板 -->
+        <div id="tab0" class="tab-content active">
+            <h2>📊 市場視覺化儀表板</h2>
+            <div id="dashboardContent">
+                <!-- 將由 updateDashboard() 動態產生 -->
+            </div>
+        </div>
+
+        <!-- Tab 1: 漲跌股分析 -->
+        <div id="tab1" class="tab-content">
+            <h2>📈 漲跌股分析模組</h2>
+            <div class="filters">
+                <div class="form-group">
+                    <label>漲停門檻 (%)</label>
+                    <input type="number" id="limitUpThreshold" value="9.9" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>排序方式</label>
+                    <select id="sortBy">
+                        <option value="漲跌幅">漲跌幅</option>
+                        <option value="成交量">成交量</option>
+                    </select>
+                </div>
+            </div>
+            <div id="limitUpStats" class="metrics"></div>
+            <div id="limitUpTable" class="table-container"></div>
+        </div>
+
+        <!-- Tab 2: 概念股追蹤 -->
+        <div id="tab2" class="tab-content">
+            <h2>🎯 概念股追蹤模組</h2>
+            <div class="filters">
+                <div class="form-group">
+                    <label>概念股主題</label>
+                    <select id="conceptSelect">
+                        <option value="AI人工智慧">AI人工智慧</option>
+                        <option value="電動車">電動車</option>
+                        <option value="半導體">半導體</option>
+                        <option value="5G通訊">5G通訊</option>
+                    </select>
+                </div>
+            </div>
+            <div id="conceptStats" class="metrics"></div>
+            <div id="conceptTable" class="table-container"></div>
+        </div>
+
+        <!-- Tab 3: 成交紀錄分析 -->
+        <div id="tab3" class="tab-content">
+            <h2>📉 成交紀錄分析模組</h2>
+            <div class="filters">
+                <div class="form-group">
+                    <label>股票代碼</label>
+                    <input type="text" id="stockCode" placeholder="例: 2330">
+                </div>
+                <div class="form-group">
+                    <label>分析天數</label>
+                    <input type="number" id="analysisDays" value="20" min="5" max="60">
+                </div>
+                <button class="btn" onclick="analyzeStock()">開始分析</button>
+                <div class="helper-text" style="grid-column:1/-1;">
+                    點分析後，下方會顯示「走勢圖 + 詳細表格」。
+                </div>
+            </div>
+
+            <div id="stockStats" class="metrics"></div>
+
+            <div class="chart-wrapper" id="chartWrapper" style="display:none;">
+                <h3 style="font-size:16px;margin-bottom:10px;color:var(--text-main);">📉 收盤價走勢</h3>
+                <canvas id="priceChart" height="120"></canvas>
+                <div class="helper-text" style="margin-top:8px;">
+                    線圖按時間排序（左→右），搭配下方表格的逐日明細。
+                </div>
+            </div>
+
+            <div id="stockTable" class="table-container"></div>
+        </div>
+
+        <!-- Tab 4: 批次比較 -->
+        <div id="tab4" class="tab-content">
+            <h2>🔄 批次股票比較分析</h2>
+            <div class="filters">
+                <div class="form-group" style="grid-column: 1/-1;">
+                    <label>輸入多個股票代碼（用逗號或空格分隔）</label>
+                    <input type="text" id="compareStocks" placeholder="例: 2330, 2454, 3034, 2379">
+                </div>
+                <div class="form-group">
+                    <label>比較期間（天）</label>
+                    <input type="number" id="compareDays" value="30" min="5" max="90">
+                </div>
+                <button class="btn" onclick="compareMultipleStocks()">開始比較</button>
+                <div class="helper-text" style="grid-column:1/-1;">
+                    輸入多個代碼後，系統會顯示報酬率、波動率等比較結果。
+                </div>
+            </div>
+            <div id="compareResults"></div>
+        </div>
+
+        <!-- Tab 5: 投資組合 -->
+        <div id="tab5" class="tab-content">
+            <h2>💼 投資組合追蹤</h2>
+
+            <div class="filters">
+                <h3 style="grid-column:1/-1;margin-bottom:10px;">新增持股</h3>
+                <div class="form-group">
+                    <label>股票代碼</label>
+                    <input type="text" id="portfolioCode" placeholder="2330">
+                </div>
+                <div class="form-group">
+                    <label>股票名稱</label>
+                    <input type="text" id="portfolioName" placeholder="台積電">
+                </div>
+                <div class="form-group">
+                    <label>持有股數</label>
+                    <input type="number" id="portfolioShares" placeholder="100" min="1">
+                </div>
+                <div class="form-group">
+                    <label>平均成本</label>
+                    <input type="number" id="portfolioCost" placeholder="580" step="0.01">
+                </div>
+                <button class="btn btn-success" onclick="addToPortfolio()" style="grid-column:1/-1;">➕ 新增持股</button>
+            </div>
+
+            <div id="portfolioSummary" class="metrics"></div>
+            <div id="portfolioList"></div>
+        </div>
+
+        <!-- Tab 6: 警示系統 -->
+        <div id="tab6" class="tab-content">
+            <h2>🔔 價格警示系統</h2>
+
+            <div class="filters">
+                <h3 style="grid-column:1/-1;margin-bottom:10px;">新增價格警示</h3>
+                <div class="form-group">
+                    <label>股票代碼</label>
+                    <input type="text" id="alertCode" placeholder="2330">
+                </div>
+                <div class="form-group">
+                    <label>股票名稱</label>
+                    <input type="text" id="alertName" placeholder="台積電">
+                </div>
+                <div class="form-group">
+                    <label>警示類型</label>
+                    <select id="alertType">
+                        <option value="above">突破價格（≥）</option>
+                        <option value="below">跌破價格（≤）</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>目標價格</label>
+                    <input type="number" id="alertPrice" placeholder="600" step="0.01">
+                </div>
+                <button class="btn btn-success" onclick="addAlert()" style="grid-column:1/-1;">➕ 新增警示</button>
+            </div>
+
+            <div style="margin:20px 0;">
+                <button class="btn btn-secondary" onclick="checkAllAlerts()">🔍 立即檢查所有警示</button>
+                <span style="margin-left:10px;color:var(--text-dim);font-size:13px;">
+                    （根據目前市場資料檢查）
+                </span>
+            </div>
+
+            <div id="alertsList"></div>
+        </div>
+
+        <!-- Tab 7: 新增分析紀錄 -->
+        <div id="tab7" class="tab-content">
+            <h2>📝 新增股票分析紀錄</h2>
+            <form id="recordForm">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group">
+                        <label>分析日期</label>
+                        <input type="date" id="recordDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>股票代號</label>
+                        <input type="text" id="recordStockCode" placeholder="例: 2330" required>
+                    </div>
+                    <div class="form-group">
+                        <label>股票名稱</label>
+                        <input type="text" id="recordStockName" placeholder="例: 台積電">
+                    </div>
+                    <div class="form-group">
+                        <label>信心度 (1-10)</label>
+                        <input type="range" id="recordConfidence" min="1" max="10" value="5">
+                        <span id="confidenceValue">5</span>/10
+                    </div>
+                    <div class="form-group">
+                        <label>目標價</label>
+                        <input type="number" id="recordTargetPrice" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>停損價</label>
+                        <input type="number" id="recordStopLoss" step="0.01">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>預判方向與進場理由</label>
+                    <textarea id="recordPrediction" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>分析內容</label>
+                    <textarea id="recordAnalysis" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>額外備註</label>
+                    <textarea id="recordNotes"></textarea>
+                </div>
+                <button type="submit" class="btn">💾 新增記錄</button>
+            </form>
+            <div class="helper-text" style="margin-top:10px;">
+                紀錄只存在這台裝置瀏覽器的 localStorage，建議定期備份。
+            </div>
+        </div>
+
+        <!-- Tab 8: 瀏覽分析紀錄 -->
+        <div id="tab8" class="tab-content">
+            <h2>📚 瀏覽分析紀錄</h2>
+            <div class="filters records-actions-row">
+                <div class="form-group">
+                    <label>股票代號篩選</label>
+                    <select id="filterStock">
+                        <option value="">全部</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>最低信心度</label>
+                    <input type="number" id="filterConfidence" value="1" min="1" max="10">
+                </div>
+
+                <button class="btn btn-secondary" onclick="exportRecordsCSV()">匯出 CSV</button>
+                <button class="btn" onclick="exportRecordsJSON()">備份 JSON</button>
+
+                <div class="form-group" style="margin-top:10px;">
+                    <label style="font-weight:bold;">還原備份 (JSON)</label>
+                    <input type="file" id="importJsonInput" accept="application/json">
+                    <button class="btn" onclick="importRecordsJSON()">匯入還原</button>
+                </div>
+
+                <div class="helper-text" style="grid-column:1/-1;margin-top:5px;">
+                    小提醒：這些交易筆記相當於你的「投資黑盒紀錄」。建議定期備份，以免清除瀏覽器資料時遺失。
+                </div>
+            </div>
+
+            <div id="recordsList"></div>
+        </div>
+
+        <!-- Modal: 合併資料 -->
+        <div id="mergeModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>📦 資料合併選項</h3>
+                    <span class="modal-close" onclick="closeMergeModal()">&times;</span>
+                </div>
+                <p style="color:var(--text-dim);margin-bottom:15px;">
+                    偵測到系統中已有 <strong id="existingDataCount">0</strong> 筆市場資料，
+                    新檔案包含 <strong id="newDataCount">0</strong> 筆資料。
+                </p>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="mergeOption" value="merge" checked>
+                        <strong>智慧合併</strong> - 保留舊資料，新增或更新重複的日期與代碼
+                    </label>
+                    <label>
+                        <input type="radio" name="mergeOption" value="replace">
+                        <strong>完全覆蓋</strong> - 清空舊資料，僅保留新檔案內容
+                    </label>
+                    <label>
+                        <input type="radio" name="mergeOption" value="append">
+                        <strong>直接新增</strong> - 保留所有舊資料，直接追加新資料（可能產生重複）
+                    </label>
+                </div>
+
+                <div style="margin-top:20px;text-align:right;">
+                    <button class="btn btn-secondary" onclick="closeMergeModal()">取消</button>
+                    <button class="btn" onclick="confirmMerge()">確認載入</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: 驗證報告（預留，供資料清理） -->
+        <div id="validationModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🔍 資料驗證報告</h3>
+                    <span class="modal-close" onclick="closeValidationModal()">&times;</span>
+                </div>
+                <div id="validationResults"></div>
+                <div style="margin-top:20px;text-align:right;">
+                    <button class="btn btn-secondary" onclick="closeValidationModal()">關閉</button>
+                    <button class="btn btn-danger" onclick="executeDataClean()">執行清理</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>📊 整合股票市場分析與紀錄系統 v3.0 Pro | 修正版</p>
+            <p>✨ 警示系統｜投資組合追蹤｜批次比較｜資料驗證｜全域搜尋｜視覺化儀表板</p>
+            <p>🌙 支援夜間模式 / 本地化備份 / 走勢圖視覺化 / 智慧資料合併</p>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 全域變數 ====================
+        let marketData = [];          // 市場資料（CSV / Excel 載入後）
+        let pendingNewData = [];      // 待合併的新資料暫存
+        let personalRecords = [];     // 個人分析紀錄
+        let portfolio = [];           // 投資組合
+        let alerts = [];              // 價格警示
+        let priceChart = null;        // Chart.js 物件
+        let lastAnalyzedStockData = []; // 最近一次 analyzeStock() 使用的切片
+
+        const STORAGE_KEYS = {
+            MARKET_DATA: 'stockMarketData_v3',
+            PERSONAL_RECORDS: 'stockRecords_v3',
+            PORTFOLIO: 'stockPortfolio_v3',
+            ALERTS: 'priceAlerts_v3',
+            THEME: 'theme_dark'
+        };
+
+        // 概念股定義（集中管理，避免硬編 in-function）
+        const CONCEPTS = {
+            'AI人工智慧': ['2330', '2454', '3034', '2379', '3661', '6669', '4904'],
+            '電動車': ['2317', '1513', '6116', '1102', '5871', '2308', '1519'],
+            '半導體': ['2330', '2454', '3034', '2303', '3711', '6770', '3443'],
+            '5G通訊': ['2454', '2474', '3044', '2345', '2449', '6188', '3661']
+        };
+
+        // ==================== 初始化 ====================
+        initializeApp();
+
+        function initializeApp() {
+            // 主題載入
+            if (localStorage.getItem(STORAGE_KEYS.THEME) === '1') {
+                document.body.classList.add('dark');
+            }
+            updateThemeToggleButton();
+
+            // 載入所有資料
+            loadMarketData();
+            loadPersonalRecords();
+            loadPortfolio();
+            loadAlerts();
+
+            // 初始化日期欄位（建立新紀錄）
+            const recordDate = document.getElementById('recordDate');
+            if (recordDate) recordDate.valueAsDate = new Date();
+
+            // 更新首頁統計/畫面
+            updateDataManagementUI();
+            updateDashboard();
+            updateLimitUpAnalysis();
+            updateConceptStocks();
+            updateRecordsList();
+            updatePortfolioDisplay();
+            updateAlertsDisplay();
+
+            // 設定事件監聽
+            setupEventListeners();
+        }
+
+        function setupEventListeners() {
+            // 主題切換
+            document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
+
+            // 信心度滑桿同步數字
+            document.getElementById('recordConfidence').addEventListener('input', (e) => {
+                document.getElementById('confidenceValue').textContent = e.target.value;
+            });
+
+            // 檔案上傳
+            document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+
+            // 新增紀錄表單送出
+            document.getElementById('recordForm').addEventListener('submit', handleRecordSubmit);
+
+            // 全域搜尋欄
+            const searchInput = document.getElementById('globalSearchInput');
+            searchInput.addEventListener('input', handleGlobalSearch);
+            searchInput.addEventListener('focus', handleGlobalSearch);
+
+            // 點擊外面區域就關閉搜尋結果下拉
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.global-search')) {
+                    document.getElementById('searchResults').style.display = 'none';
+                }
+            });
+
+            // 概念股選單即時切換
+            document.getElementById('conceptSelect').addEventListener('change', updateConceptStocks);
+
+            // 漲跌股參數變更即時更新
+            document.getElementById('limitUpThreshold').addEventListener('change', updateLimitUpAnalysis);
+            document.getElementById('sortBy').addEventListener('change', updateLimitUpAnalysis);
+        }
+
+        // ==================== 分頁切換 ====================
+        function switchTab(index) {
+            // tab 按鈕
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach((t, i) => {
+                if (i === index) t.classList.add('active');
+                else t.classList.remove('active');
+            });
+
+            // tab 內容
+            for (let i = 0; i <= 8; i++) {
+                const panel = document.getElementById('tab' + i);
+                if (!panel) continue;
+                if (i === index) panel.classList.add('active');
+                else panel.classList.remove('active');
+            }
+        }
+
+        // ==================== 主題管理 ====================
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            const isDark = document.body.classList.contains('dark');
+            localStorage.setItem(STORAGE_KEYS.THEME, isDark ? '1' : '0');
+            updateThemeToggleButton();
+
+            // 重新調整圖表配色
+            if (lastAnalyzedStockData && lastAnalyzedStockData.length > 0) {
+                rebuildChart(lastAnalyzedStockData);
+            }
+        }
+
+        function updateThemeToggleButton() {
+            const btn = document.getElementById('themeToggleBtn');
+            const darkMode = document.body.classList.contains('dark');
+            btn.textContent = darkMode ? '☀️ 日間模式' : '🌙 夜間模式';
+        }
+
+        // ==================== 儀表板產生 ====================
+        function updateDashboard() {
+            const el = document.getElementById('dashboardContent');
+            if (!el) return;
+
+            if (marketData.length === 0) {
+                el.innerHTML = `
+                    <div class="alert alert-info">
+                        尚未載入市場資料。請先上傳 CSV / Excel。
+                    </div>`;
+                return;
+            }
+
+            // 取得最近日期的一批資料，當作當日市場快照
+            const allDates = [...new Set(marketData.map(d => d.日期))].sort();
+            const latestDate = allDates[allDates.length - 1];
+            const todayRows = marketData.filter(d => d.日期 === latestDate);
+
+            // 計算一些市場指標
+            const upCount = todayRows.filter(r => r.漲跌幅 >= 0).length;
+            const downCount = todayRows.filter(r => r.漲跌幅 < 0).length;
+            const avgChange = (todayRows.reduce((sum, r) => sum + (parseFloat(r.漲跌幅) || 0), 0) / todayRows.length).toFixed(2);
+
+            // 取前五大量、前五漲幅
+            const topVolume = [...todayRows]
+                .sort((a, b) => (b.成交量 || 0) - (a.成交量 || 0))
+                .slice(0, 5);
+
+            const topGainers = [...todayRows]
+                .sort((a, b) => (b.漲跌幅 || 0) - (a.漲跌幅 || 0))
+                .slice(0, 5);
+
+            el.innerHTML = `
+            <div class="dashboard-grid">
+                <div class="dashboard-widget">
+                    <h3>📈 今日市場概況 (${latestDate})</h3>
+                    <div class="stat-row"><div class="stat-label">上漲家數</div><div class="stat-value">${upCount}</div></div>
+                    <div class="stat-row"><div class="stat-label">下跌家數</div><div class="stat-value">${downCount}</div></div>
+                    <div class="stat-row"><div class="stat-label">平均漲跌幅</div><div class="stat-value">${avgChange}%</div></div>
+                </div>
+
+                <div class="dashboard-widget">
+                    <h3>🔥 成交量前五</h3>
+                    ${topVolume.map(r => `
+                        <div class="stat-row">
+                            <div class="stat-label clickable-stock" data-code="${r.代碼}" data-name="${r.商品}">
+                                ${r.代碼} ${r.商品 || ''}
+                            </div>
+                            <div class="stat-value">${(r.成交量 || 0).toLocaleString()}</div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div class="dashboard-widget">
+                    <h3>🚀 漲幅前五</h3>
+                    ${topGainers.map(r => `
+                        <div class="stat-row">
+                            <div class="stat-label clickable-stock" data-code="${r.代碼}" data-name="${r.商品}">
+                                ${r.代碼} ${r.商品 || ''}
+                            </div>
+                            <div class="stat-value trend-positive">+${(r.漲跌幅 || 0).toFixed(2)}%</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            `;
+
+            attachStockClickHandlers();
+        }
+
+        // ==================== 資料持久化：市場資料 ====================
+        function loadMarketData() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEYS.MARKET_DATA);
+                if (!stored) { marketData = []; return; }
+
+                const parsed = JSON.parse(stored);
+                if (parsed.version && parsed.data) {
+                    marketData = parsed.data;
+                } else {
+                    // 舊版遷移
+                    marketData = Array.isArray(parsed) ? parsed : [];
+                    saveMarketData();
+                }
+            } catch (e) {
+                console.error('❌ 載入市場資料失敗:', e);
+                if (confirm('市場資料載入失敗，是否清空重新開始？')) {
+                    marketData = [];
+                    localStorage.removeItem(STORAGE_KEYS.MARKET_DATA);
+                }
+            }
+        }
+
+        function saveMarketData() {
+            try {
+                const dataToSave = {
+                    version: '2.0',
+                    lastUpdate: new Date().toISOString(),
+                    recordCount: marketData.length,
+                    data: marketData
+                };
+
+                const jsonString = JSON.stringify(dataToSave);
+
+                // 簡單空間檢查：接近 localStorage 上限 (~5MB)
+                const sizeInBytes = new Blob([jsonString]).size;
+                if (sizeInBytes > 4.5 * 1024 * 1024) {
+                    throw new Error('QuotaExceeded');
+                }
+
+                localStorage.setItem(STORAGE_KEYS.MARKET_DATA, jsonString);
+                updateDataManagementUI();
+                return true;
+            } catch (e) {
+                console.error('❌ 儲存失敗:', e);
+                if (e.name === 'QuotaExceededError' || e.message === 'QuotaExceeded') {
+                    alert('⚠️ 儲存空間已滿！建議匯出備份後刪除部分舊資料。');
+                } else {
+                    alert('儲存失敗：' + e.message);
+                }
+                return false;
+            }
+        }
+
+        // ==================== 個人紀錄 ====================
+        function loadPersonalRecords() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEYS.PERSONAL_RECORDS);
+                if (!stored) { personalRecords = []; return; }
+
+                const parsed = JSON.parse(stored);
+                if (parsed.version && parsed.records) {
+                    personalRecords = parsed.records;
+                } else {
+                    personalRecords = Array.isArray(parsed) ? parsed : [];
+                    savePersonalRecords();
+                }
+            } catch (e) {
+                console.error('❌ 載入個人紀錄失敗:', e);
+                if (confirm('個人紀錄載入失敗，是否清空重新開始？')) {
+                    personalRecords = [];
+                    localStorage.removeItem(STORAGE_KEYS.PERSONAL_RECORDS);
+                }
+            }
+        }
+
+        function savePersonalRecords() {
+            try {
+                const dataToSave = {
+                    version: '2.0',
+                    lastUpdate: new Date().toISOString(),
+                    recordCount: personalRecords.length,
+                    records: personalRecords
+                };
+                localStorage.setItem(STORAGE_KEYS.PERSONAL_RECORDS, JSON.stringify(dataToSave));
+                updateDataManagementUI();
+                return true;
+            } catch (e) {
+                console.error('❌ 儲存個人紀錄失敗:', e);
+                if (e.name === 'QuotaExceededError') {
+                    alert('⚠️ 儲存空間已滿！請匯出備份後刪除部分舊紀錄。');
+                } else {
+                    alert('儲存失敗：' + e.message);
+                }
+                return false;
+            }
+        }
+
+        // ==================== 投資組合 ====================
+        function loadPortfolio() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEYS.PORTFOLIO);
+                portfolio = stored ? JSON.parse(stored) : [];
+            } catch {
+                portfolio = [];
+            }
+        }
+
+        function savePortfolio() {
+            localStorage.setItem(STORAGE_KEYS.PORTFOLIO, JSON.stringify(portfolio));
+        }
+
+        function addToPortfolio() {
+            const code = document.getElementById('portfolioCode').value.trim();
+            const name = document.getElementById('portfolioName').value.trim();
+            const shares = parseFloat(document.getElementById('portfolioShares').value);
+            const cost = parseFloat(document.getElementById('portfolioCost').value);
+
+            if (!code || !shares || !cost) {
+                alert('請至少填寫代碼 / 股數 / 成本');
+                return;
+            }
+
+            portfolio.push({ code, name, shares, cost });
+            savePortfolio();
+            updatePortfolioDisplay();
+
+            document.getElementById('portfolioCode').value = '';
+            document.getElementById('portfolioName').value = '';
+            document.getElementById('portfolioShares').value = '';
+            document.getElementById('portfolioCost').value = '';
+        }
+
+        function updatePortfolioDisplay() {
+            const listEl = document.getElementById('portfolioList');
+            const summaryEl = document.getElementById('portfolioSummary');
+
+            if (!listEl || !summaryEl) return;
+
+            if (portfolio.length === 0) {
+                listEl.innerHTML = `<div class="alert alert-info">尚未新增持股。</div>`;
+                summaryEl.innerHTML = '';
+                return;
+            }
+
+            // 嘗試用 marketData 估算現價
+            const latestByCode = getLatestPriceByCodeMap();
+            let totalCost = 0;
+            let totalNow = 0;
+
+            listEl.innerHTML = portfolio.map((p, idx) => {
+                const mkt = latestByCode[p.code];
+                const currentPx = mkt ? mkt.收盤價 : null;
+
+                const nowValue = currentPx ? currentPx * p.shares : null;
+                const costValue = p.cost * p.shares;
+
+                totalCost += costValue;
+                totalNow += nowValue || costValue; // 如果沒價，暫視同成本
+
+                const diffPct = (currentPx)
+                    ? (((currentPx - p.cost) / p.cost) * 100).toFixed(2) + '%'
+                    : '—';
+
+                return `
+                    <div class="holding-card ${(currentPx && currentPx >= p.cost) ? 'profit' : 'loss'}">
+                        <div class="holding-info">
+                            <div><strong>${p.code}</strong> ${p.name || ''}</div>
+                            <div>股數：${p.shares}</div>
+                            <div>成本：${p.cost}</div>
+                            <div>現價：${currentPx ? currentPx.toFixed(2) : '—'}</div>
+                            <div>報酬：${diffPct}</div>
+                        </div>
+                        <div>
+                            <div class="holding-value">
+                                市值：${nowValue ? nowValue.toFixed(0) : '—'}
+                            </div>
+                            <button class="btn-small btn-danger" onclick="removePortfolio(${idx})">刪除</button>
+                            <button class="btn-small" onclick="jumpAnalyze('${p.code}')">分析</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const totalDiffPct = totalCost > 0
+                ? (((totalNow - totalCost) / totalCost) * 100).toFixed(2)
+                : '0.00';
+
+            summaryEl.innerHTML = `
+                <div class="metric-card">
+                    <div class="metric-label">總投入成本</div>
+                    <div class="metric-value">${totalCost.toFixed(0)}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">目前估算市值</div>
+                    <div class="metric-value">${totalNow.toFixed(0)}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">整體報酬率</div>
+                    <div class="metric-value">${totalDiffPct}%</div>
+                </div>
+            `;
+        }
+
+        function removePortfolio(i) {
+            portfolio.splice(i, 1);
+            savePortfolio();
+            updatePortfolioDisplay();
+        }
+
+        // ==================== 警示系統 ====================
+        function loadAlerts() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEYS.ALERTS);
+                alerts = stored ? JSON.parse(stored) : [];
+            } catch {
+                alerts = [];
+            }
+        }
+
+        function saveAlerts() {
+            localStorage.setItem(STORAGE_KEYS.ALERTS, JSON.stringify(alerts));
+        }
+
+        function addAlert() {
+            const code = document.getElementById('alertCode').value.trim();
+            const name = document.getElementById('alertName').value.trim();
+            const type = document.getElementById('alertType').value;
+            const price = parseFloat(document.getElementById('alertPrice').value);
+
+            if (!code || !price) {
+                alert('請至少填寫代碼與目標價');
+                return;
+            }
+
+            alerts.push({
+                code, name, type, price,
+                createdAt: new Date().toISOString()
+            });
+
+            saveAlerts();
+            updateAlertsDisplay();
+
+            document.getElementById('alertCode').value = '';
+            document.getElementById('alertName').value = '';
+            document.getElementById('alertPrice').value = '';
+        }
+
+        function removeAlert(idx) {
+            alerts.splice(idx, 1);
+            saveAlerts();
+            updateAlertsDisplay();
+        }
+
+        function updateAlertsDisplay() {
+            const listEl = document.getElementById('alertsList');
+            if (!listEl) return;
+
+            if (alerts.length === 0) {
+                listEl.innerHTML = `<div class="alert alert-info">尚未設定任何價格警示。</div>`;
+                return;
+            }
+
+            const latestByCode = getLatestPriceByCodeMap();
+
+            listEl.innerHTML = alerts.map((a, idx) => {
+                const mkt = latestByCode[a.code];
+                const currentPx = mkt ? mkt.收盤價 : null;
+                let triggered = false;
+                if (currentPx != null) {
+                    if (a.type === 'above' && currentPx >= a.price) triggered = true;
+                    if (a.type === 'below' && currentPx <= a.price) triggered = true;
+                }
+
+                return `
+                    <div class="alert-card ${triggered ? 'triggered' : ''}">
+                        <button class="delete-btn" onclick="removeAlert(${idx})">刪除</button>
+                        <h4>${a.code} ${a.name || ''}</h4>
+                        <p>條件：${a.type === 'above' ? '突破 ≥ ' : '跌破 ≤ '
+                    }${a.price}</p>
+                        <p>現價：${currentPx != null ? currentPx.toFixed(2) : '— (無資料)'}</p>
+                        <p>建立時間：${new Date(a.createdAt).toLocaleString('zh-TW')}</p>
+                        <button class="btn-small" onclick="jumpAnalyze('${a.code}')">查看走勢</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function checkAllAlerts() {
+            // 單純重繪，就能顯示哪些觸發
+            updateAlertsDisplay();
+            alert('已更新所有警示狀態（依照當前市場資料計算）');
+        }
+
+        // ==================== 市場資料處理 / 上傳 ====================
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('fileName').textContent = `已選擇: ${file.name}`;
+            const reader = new FileReader();
+
+            reader.onload = (ev) => {
+                const data = ev.target.result;
+                if (file.name.endsWith('.csv')) {
+                    parseCSV(data);
+                } else {
+                    parseExcel(data);
+                }
+            };
+
+            if (file.name.endsWith('.csv')) {
+                reader.readAsText(file, 'utf-8');
+            } else {
+                reader.readAsBinaryString(file);
+            }
+        }
+
+        function parseCSV(data) {
+            Papa.parse(data, {
+                header: true,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                complete: (results) => {
+                    prepareNewData(results.data);
+                },
+                error: (error) => {
+                    alert('CSV 解析失敗: ' + error.message);
+                }
+            });
+        }
+
+        function parseExcel(data) {
+            try {
+                const workbook = XLSX.read(data, { type: 'binary' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                prepareNewData(jsonData);
+            } catch (e) {
+                alert('Excel 解析失敗: ' + e.message);
+            }
+        }
+
+        function prepareNewData(rawData) {
+            // 將上傳資料標準化欄位
+            pendingNewData = rawData.map(row => ({
+                日期: row['日期'] || row['date'] || '',
+                代碼: String(row['代碼'] || row['code'] || '').trim(),
+                商品: row['商品'] || row['name'] || '',
+                收盤價: parseFloat(row['收盤價'] || row['close'] || 0),
+                漲跌幅: parseFloat(row['漲跌幅'] || row['change%'] || 0),
+                成交量: parseFloat(row['成交量'] || row['volume'] || 0),
+                開盤價: parseFloat(row['開盤價'] || row['open'] || 0),
+                最高價: parseFloat(row['最高價'] || row['high'] || 0),
+                最低價: parseFloat(row['最低價'] || row['low'] || 0)
+            })).filter(row => {
+                // 驗證必要欄位
+                return row.代碼 && row.日期 && !isNaN(row.收盤價);
+            });
+
+            if (pendingNewData.length === 0) {
+                alert('❌ 檔案中沒有有效的資料，請檢查格式是否正確');
+                return;
+            }
+
+            // 如果沒有舊資料，直接載入
+            if (marketData.length === 0) {
+                marketData = pendingNewData;
+                const success = saveMarketData();
+                if (success) {
+                    alert(`✅ 資料載入成功！共 ${marketData.length} 筆記錄`);
+                    afterDataChanged();
+                }
+                return;
+            }
+
+            // 有舊資料 -> 顯示合併選項
+            document.getElementById('existingDataCount').textContent = marketData.length.toLocaleString();
+            document.getElementById('newDataCount').textContent = pendingNewData.length.toLocaleString();
+            document.getElementById('mergeModal').style.display = 'block';
+        }
+
+        function confirmMerge() {
+            const selectedOption = document.querySelector('input[name="mergeOption"]:checked').value;
+            closeMergeModal();
+
+            switch (selectedOption) {
+                case 'merge':
+                    smartMergeData();
+                    break;
+                case 'replace':
+                    replaceData();
+                    break;
+                case 'append':
+                    appendData();
+                    break;
+            }
+
+            const success = saveMarketData();
+            if (success) {
+                alert(`✅ 資料已${getActionText(selectedOption)}！目前共 ${marketData.length} 筆記錄`);
+                afterDataChanged();
+            }
+            pendingNewData = [];
+        }
+
+        function smartMergeData() {
+            const dataMap = new Map();
+
+            // 先放舊資料
+            marketData.forEach(item => {
+                dataMap.set(item.代碼 + '_' + item.日期, item);
+            });
+
+            // 再放新資料（覆蓋同 key）
+            pendingNewData.forEach(item => {
+                dataMap.set(item.代碼 + '_' + item.日期, item);
+            });
+
+            marketData = Array.from(dataMap.values());
+            // 依日期再依代碼排序
+            marketData.sort((a, b) => {
+                const d = new Date(a.日期) - new Date(b.日期);
+                return d !== 0 ? d : a.代碼.localeCompare(b.代碼);
+            });
+        }
+
+        function replaceData() {
+            marketData = pendingNewData;
+        }
+
+        function appendData() {
+            marketData = marketData.concat(pendingNewData);
+        }
+
+        function closeMergeModal() {
+            document.getElementById('mergeModal').style.display = 'none';
+        }
+
+        function getActionText(option) {
+            const actions = {
+                'merge': '智慧合併',
+                'replace': '完全覆蓋',
+                'append': '直接新增'
+            };
+            return actions[option] || '處理';
+        }
+
+        // ==================== 當市場資料變動後，需要更新的畫面 ====================
+        function afterDataChanged() {
+            updateDataManagementUI();
+            updateDashboard();
+            updateLimitUpAnalysis();
+            updateConceptStocks();
+            updatePortfolioDisplay();
+            updateAlertsDisplay();
+        }
+
+        // ==================== 管理中心 UI 更新 ====================
+        function updateDataManagementUI() {
+            // 市場資料統計
+            document.getElementById('dataCount').textContent = marketData.length.toLocaleString();
+
+            if (marketData.length > 0) {
+                const dates = marketData.map(d => d.日期).filter(Boolean);
+                const uniqueDates = [...new Set(dates)].sort();
+                const uniqueStocks = [...new Set(marketData.map(d => d.代碼))];
+
+                document.getElementById('dateRange').textContent =
+                    uniqueDates.length > 0
+                        ? `${uniqueDates[0]} ~ ${uniqueDates[uniqueDates.length - 1]}`
+                        : '-';
+
+                document.getElementById('stockCount').textContent = uniqueStocks.length;
+
+                // 最後更新時間
+                try {
+                    const stored = localStorage.getItem(STORAGE_KEYS.MARKET_DATA);
+                    const parsed = JSON.parse(stored);
+                    if (parsed.lastUpdate) {
+                        const date = new Date(parsed.lastUpdate);
+                        document.getElementById('lastUpdate').textContent =
+                            date.toLocaleString('zh-TW', {
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                    }
+                } catch {
+                    document.getElementById('lastUpdate').textContent = '-';
+                }
+            } else {
+                document.getElementById('dateRange').textContent = '尚未載入';
+                document.getElementById('stockCount').textContent = '0';
+                document.getElementById('lastUpdate').textContent = '-';
+            }
+
+            // 個人紀錄統計
+            document.getElementById('recordCount').textContent = personalRecords.length;
+
+            // 儲存空間使用率
+            updateStorageUsage();
+        }
+
+        function updateStorageUsage() {
+            try {
+                let totalSize = 0;
+                for (let key in localStorage) {
+                    if (localStorage.hasOwnProperty(key)) {
+                        totalSize += localStorage[key].length + key.length;
+                    }
+                }
+
+                const sizeInKB = (totalSize / 1024).toFixed(2);
+                const maxSizeKB = 5120; // 約 5MB
+                const percentage = Math.min((totalSize / (maxSizeKB * 1024)) * 100, 100).toFixed(1);
+
+                document.getElementById('storageUsed').textContent = sizeInKB;
+                document.getElementById('storageBar').style.width = percentage + '%';
+
+                // 視覺警告
+                const bar = document.getElementById('storageBar');
+                if (percentage > 80) {
+                    bar.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+                } else if (percentage > 60) {
+                    bar.style.background = 'linear-gradient(135deg, #f39c12, #e67e22)';
+                } else {
+                    bar.style.background = 'linear-gradient(135deg, var(--btn-bg-start) 0%, var(--btn-bg-end) 100%)';
+                }
+            } catch (e) {
+                console.error('計算儲存空間失敗:', e);
+            }
+        }
+
+        function clearMarketData() {
+            if (!confirm('⚠️ 確定要清空所有市場資料嗎？此操作無法復原！')) return;
+            if (confirm('💡 建議先匯出備份。是否仍要清空？')) {
+                marketData = [];
+                localStorage.removeItem(STORAGE_KEYS.MARKET_DATA);
+                afterDataChanged();
+                alert('✅ 市場資料已清空');
+            }
+        }
+
+        function showDataDetails() {
+            if (marketData.length === 0) {
+                alert('目前沒有市場資料');
+                return;
+            }
+
+            const uniqueStocks = [...new Set(marketData.map(d => d.代碼))];
+            const dates = [...new Set(marketData.map(d => d.日期))].sort();
+
+            const details = `
+📊 市場資料詳情
+━━━━━━━━━━━━━━━━━━
+總筆數: ${marketData.length.toLocaleString()}
+股票數量: ${uniqueStocks.length}
+日期數量: ${dates.length}
+日期範圍: ${dates[0]} ~ ${dates[dates.length - 1]}
+
+前10檔股票:
+${uniqueStocks.slice(0, 10).join(', ')}
+${uniqueStocks.length > 10 ? `...等 ${uniqueStocks.length - 10} 檔` : ''}
+            `;
+            alert(details);
+        }
+
+        // ==================== 漲跌股分析 ====================
+        function updateLimitUpAnalysis() {
+            const statsEl = document.getElementById('limitUpStats');
+            const tableEl = document.getElementById('limitUpTable');
+            if (!statsEl || !tableEl) return;
+
+            if (marketData.length === 0) {
+                statsEl.innerHTML = `<div class="alert alert-info">請先上傳市場資料</div>`;
+                tableEl.innerHTML = '';
+                return;
+            }
+
+            const threshold = parseFloat(document.getElementById('limitUpThreshold').value);
+            const sortBy = document.getElementById('sortBy').value;
+            const limitUpStocks = marketData.filter(s => s.漲跌幅 >= threshold);
+
+            const avgChange = (limitUpStocks.reduce((sum, s) => sum + s.漲跌幅, 0) / limitUpStocks.length || 0).toFixed(2);
+            const avgVol = (limitUpStocks.reduce((sum, s) => sum + s.成交量, 0) / limitUpStocks.length / 1000 || 0).toFixed(0);
+
+            statsEl.innerHTML = `
+                <div class="metric-card"><div class="metric-label">漲停股數量</div><div class="metric-value">${limitUpStocks.length}</div></div>
+                <div class="metric-card"><div class="metric-label">平均漲幅</div><div class="metric-value">${avgChange}%</div></div>
+                <div class="metric-card"><div class="metric-label">平均成交量</div><div class="metric-value">${avgVol}萬股</div></div>
+            `;
+
+            const sorted = [...limitUpStocks].sort((a, b) => (b[sortBy] || 0) - (a[sortBy] || 0));
+
+            tableEl.innerHTML = `
+                <table>
+                    <thead>
+                        <tr><th>代碼</th><th>商品</th><th>收盤價</th><th>漲跌幅</th><th>成交量</th></tr>
+                    </thead>
+                    <tbody>
+                        ${sorted.map(s => `
+                            <tr>
+                                <td class="clickable-stock" data-code="${s.代碼}" data-name="${s.商品}">${s.代碼}</td>
+                                <td>${s.商品 || ''}</td>
+                                <td>${safeNum(s.收盤價, 2)}</td>
+                                <td class="trend-positive">+${safeNum(s.漲跌幅, 2)}%</td>
+                                <td>${(s.成交量 || 0).toLocaleString()}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            attachStockClickHandlers();
+        }
+
+        // ==================== 概念股追蹤 ====================
+        function updateConceptStocks() {
+            const statsEl = document.getElementById('conceptStats');
+            const tableEl = document.getElementById('conceptTable');
+            if (!statsEl || !tableEl) return;
+
+            if (marketData.length === 0) {
+                statsEl.innerHTML = `<div class="alert alert-info">請先上傳市場資料</div>`;
+                tableEl.innerHTML = '';
+                return;
+            }
+
+            const selected = document.getElementById('conceptSelect').value;
+            const codes = CONCEPTS[selected] || [];
+            // 取所有資料中屬於這些 codes 的最新資料
+            const latestByCode = getLatestPriceByCodeMap();
+            const conceptStocks = codes
+                .map(c => latestByCode[c])
+                .filter(Boolean);
+
+            const avgReturn = (
+                conceptStocks.reduce((sum, s) => sum + (s.漲跌幅 || 0), 0) /
+                (conceptStocks.length || 1)
+            ).toFixed(2);
+
+            statsEl.innerHTML = `
+                <div class="metric-card"><div class="metric-label">概念股數量</div><div class="metric-value">${conceptStocks.length}</div></div>
+                <div class="metric-card"><div class="metric-label">平均報酬率</div><div class="metric-value">${avgReturn}%</div></div>
+            `;
+
+            tableEl.innerHTML = `
+                <table>
+                    <thead>
+                        <tr><th>代碼</th><th>商品</th><th>收盤價</th><th>漲跌幅</th><th>成交量</th></tr>
+                    </thead>
+                    <tbody>
+                        ${conceptStocks.map(s => `
+                            <tr>
+                                <td class="clickable-stock" data-code="${s.代碼}" data-name="${s.商品}">${s.代碼}</td>
+                                <td>${s.商品 || ''}</td>
+                                <td>${safeNum(s.收盤價, 2)}</td>
+                                <td class="${s.漲跌幅 >= 0 ? 'trend-positive' : 'trend-negative'}">${safeNum(s.漲跌幅, 2)}%</td>
+                                <td>${(s.成交量 || 0).toLocaleString()}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            attachStockClickHandlers();
+        }
+
+        // 最新每檔股票資料（用最後日期）
+        function getLatestPriceByCodeMap() {
+            const byCode = {};
+            // 假設 marketData 依日期排序（我們在 merge 時有排序），最後面視為較新
+            for (const row of marketData) {
+                byCode[row.代碼] = row;
+            }
+            return byCode;
+        }
+
+        // ==================== 單檔走勢分析 ====================
+        function analyzeStock() {
+            const code = document.getElementById('stockCode').value.trim();
+            const days = parseInt(document.getElementById('analysisDays').value);
+
+            if (!code) {
+                alert('請輸入股票代碼');
+                return;
+            }
+
+            const stockDataAll = marketData.filter(s => s.代碼 === code);
+            if (stockDataAll.length === 0) {
+                alert('找不到該股票資料');
+                return;
+            }
+
+            const stockData = stockDataAll.slice(-days);
+            lastAnalyzedStockData = stockData.slice(); // 儲存給夜間模式切換重畫
+
+            // 指標計算
+            const avgPrice = (
+                stockData.reduce((sum, s) => sum + (s.收盤價 || 0), 0) /
+                stockData.length
+            ).toFixed(2);
+
+            const retPct = (
+                (stockData[stockData.length - 1].收盤價 / stockData[0].收盤價 - 1) * 100
+            ).toFixed(2);
+
+            // 指標卡
+            document.getElementById('stockStats').innerHTML = `
+                <div class="metric-card"><div class="metric-label">分析天數</div><div class="metric-value">${stockData.length}</div></div>
+                <div class="metric-card"><div class="metric-label">平均價格</div><div class="metric-value">${avgPrice}</div></div>
+                <div class="metric-card"><div class="metric-label">期間報酬率</div><div class="metric-value">${retPct}%</div></div>
+            `;
+
+            // 詳細表格（由新到舊顯示）
+            document.getElementById('stockTable').innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>日期</th><th>開盤價</th><th>最高價</th><th>最低價</th>
+                            <th>收盤價</th><th>漲跌幅</th><th>成交量</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${stockData.slice().reverse().map(s => `
+                            <tr>
+                                <td>${s.日期}</td>
+                                <td>${safeNum(s.開盤價, 2)}</td>
+                                <td>${safeNum(s.最高價, 2)}</td>
+                                <td>${safeNum(s.最低價, 2)}</td>
+                                <td>${safeNum(s.收盤價, 2)}</td>
+                                <td class="${s.漲跌幅 >= 0 ? 'trend-positive' : 'trend-negative'}">${safeNum(s.漲跌幅, 2)}%</td>
+                                <td>${(s.成交量 || 0).toLocaleString()}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            rebuildChart(stockData);
+        }
+
+        function rebuildChart(stockData) {
+            const wrapper = document.getElementById('chartWrapper');
+            wrapper.style.display = 'block';
+
+            const ctx = document.getElementById('priceChart').getContext('2d');
+
+            const labels = stockData.map(s => s.日期);
+            const prices = stockData.map(s => s.收盤價);
+
+            const isDark = document.body.classList.contains('dark');
+            const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+            const textColor = isDark ? '#fff' : '#333';
+            const lineColor = isDark ? '#93c5fd' : '#3b82f6';
+
+            if (priceChart) {
+                priceChart.destroy();
+            }
+
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: '收盤價',
+                        data: prices,
+                        fill: false,
+                        borderColor: lineColor,
+                        borderWidth: 2,
+                        pointRadius: 2,
+                        tension: 0.2
+                    }]
+                },
+                options: {
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: textColor,
+                                font: { size: 12 }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: textColor,
+                                maxRotation: 0,
+                                autoSkip: true,
+                                font: { size: 10 }
+                            },
+                            grid: { color: gridColor }
+                        },
+                        y: {
+                            ticks: {
+                                color: textColor,
+                                font: { size: 10 }
+                            },
+                            grid: { color: gridColor }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 供持股卡片 / 警示卡片 / 搜尋下拉，一鍵跳至成交紀錄分析分頁
+        function jumpAnalyze(code) {
+            document.getElementById('stockCode').value = code;
+            switchTab(3);
+            analyzeStock();
+        }
+
+        // ==================== 批次比較（簡易版骨架） ====================
+        function compareMultipleStocks() {
+            const rawCodes = document.getElementById('compareStocks').value;
+            const days = parseInt(document.getElementById('compareDays').value);
+            if (!rawCodes) {
+                alert('請輸入至少一個股票代碼');
+                return;
+            }
+            const codes = rawCodes
+                .split(/[\s,，]+/)
+                .map(c => c.trim())
+                .filter(Boolean);
+
+            if (codes.length === 0) {
+                alert('代碼格式不正確');
+                return;
+            }
+
+            // 對每檔股票取最近 N 天，估算報酬率 & 波動
+            const rows = codes.map(code => {
+                const all = marketData.filter(s => s.代碼 === code);
+                if (all.length === 0) {
+                    return {
+                        code,
+                        name: '(無資料)',
+                        periodReturn: '—',
+                        vol: '—',
+                        lastPrice: '—'
+                    };
+                }
+                const sliceData = all.slice(-days);
+                const startPx = sliceData[0].收盤價;
+                const endPx = sliceData[sliceData.length - 1].收盤價;
+                const retPct = ((endPx / startPx - 1) * 100).toFixed(2);
+
+                // 粗略日波動（標準差）
+                const avgPx = sliceData.reduce((s, r) => s + r.收盤價, 0) / sliceData.length;
+                const variance = sliceData.reduce((s, r) => s + Math.pow(r.收盤價 - avgPx, 2), 0) / sliceData.length;
+                const stdev = Math.sqrt(variance).toFixed(2);
+
+                const lastName = sliceData[sliceData.length - 1].商品 || '';
+
+                return {
+                    code,
+                    name: lastName,
+                    periodReturn: retPct + '%',
+                    vol: stdev,
+                    lastPrice: endPx.toFixed(2)
+                };
+            });
+
+            document.getElementById('compareResults').innerHTML = `
+                <div class="table-container">
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>代碼</th>
+                                <th>名稱</th>
+                                <th>${days}日報酬率</th>
+                                <th>波動(StdDev)</th>
+                                <th>最新收盤</th>
+                                <th>分析</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows.map(r => `
+                                <tr>
+                                    <td>${r.code}</td>
+                                    <td>${r.name}</td>
+                                    <td>${r.periodReturn}</td>
+                                    <td>${r.vol}</td>
+                                    <td>${r.lastPrice}</td>
+                                    <td><button class="btn-small" onclick="jumpAnalyze('${r.code}')">查看走勢</button></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        // ==================== 全域搜尋 ====================
+        function handleGlobalSearch() {
+            const q = document.getElementById('globalSearchInput').value.trim();
+            const box = document.getElementById('searchResults');
+
+            if (!q) {
+                box.style.display = 'none';
+                box.innerHTML = '';
+                return;
+            }
+
+            // 從 marketData 找相符代碼或商品
+            const seen = new Set();
+            const matches = [];
+            for (const row of marketData.slice().reverse()) {
+                if (matches.length >= 20) break; // 限制結果數量
+                const hit = row.代碼.includes(q) || (row.商品 && row.商品.includes(q));
+                if (hit && !seen.has(row.代碼)) {
+                    seen.add(row.代碼);
+                    matches.push({ code: row.代碼, name: row.商品 || '' });
+                }
+            }
+
+            if (matches.length === 0) {
+                box.innerHTML = `<div class="search-result-item">沒有找到符合「${q}」的股票</div>`;
+            } else {
+                box.innerHTML = matches.map(m => `
+                    <div class="search-result-item" data-code="${m.code}">
+                        <div><strong>${m.code}</strong> ${m.name}</div>
+                        <div style="font-size:12px;color:var(--text-dim);">點擊→自動分析走勢</div>
+                    </div>
+                `).join('');
+            }
+
+            // 綁定點擊：跳到成交紀錄分析分頁並畫圖
+            box.querySelectorAll('.search-result-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const code = item.getAttribute('data-code');
+                    jumpAnalyze(code);
+                    box.style.display = 'none';
+                });
+            });
+
+            box.style.display = 'block';
+        }
+
+        // ==================== 點表格股票代碼 → 自動分析 ====================
+        function attachStockClickHandlers() {
+            document.querySelectorAll('.clickable-stock').forEach(el => {
+                el.addEventListener('click', () => {
+                    const code = el.getAttribute('data-code');
+                    jumpAnalyze(code);
+                });
+            });
+        }
+
+        // ==================== 個人紀錄：新增 / 篩選 / 匯出 ====================
+        function handleRecordSubmit(e) {
+            e.preventDefault();
+
+            const rec = {
+                date: document.getElementById('recordDate').value,
+                code: document.getElementById('recordStockCode').value.trim(),
+                name: document.getElementById('recordStockName').value.trim(),
+                confidence: parseInt(document.getElementById('recordConfidence').value),
+                target: document.getElementById('recordTargetPrice').value,
+                stop: document.getElementById('recordStopLoss').value,
+                prediction: document.getElementById('recordPrediction').value.trim(),
+                analysis: document.getElementById('recordAnalysis').value.trim(),
+                notes: document.getElementById('recordNotes').value.trim(),
+                createdAt: new Date().toISOString()
+            };
+
+            if (!rec.date || !rec.code || !rec.prediction || !rec.analysis) {
+                alert('請至少填寫 日期 / 代號 / 預判 / 分析');
+                return;
+            }
+
+            personalRecords.push(rec);
+            savePersonalRecords();
+            updateRecordsList();
+            updateDataManagementUI();
+
+            alert('✅ 紀錄已新增！');
+            e.target.reset();
+            document.getElementById('confidenceValue').textContent = '5';
+            document.getElementById('recordConfidence').value = 5;
+            document.getElementById('recordDate').valueAsDate = new Date();
+        }
+
+        function updateRecordsList() {
+            const listEl = document.getElementById('recordsList');
+            const filterStock = document.getElementById('filterStock');
+            const filterConfidence = document.getElementById('filterConfidence');
+
+            if (!listEl || !filterStock || !filterConfidence) return;
+
+            // 先更新下拉選單（股票代號）
+            const codes = [...new Set(personalRecords.map(r => r.code))].sort();
+            filterStock.innerHTML = `<option value="">全部</option>` +
+                codes.map(c => `<option value="${c}">${c}</option>`).join('');
+
+            // 篩選
+            const minConf = parseInt(filterConfidence.value || '1');
+            const codeSel = filterStock.value || '';
+
+            const filtered = personalRecords
+                .slice()
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .filter(r => (!codeSel || r.code === codeSel))
+                .filter(r => (r.confidence >= minConf));
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<div class="alert alert-info">目前沒有符合條件的紀錄。</div>`;
+                return;
+            }
+
+            listEl.innerHTML = filtered.map((r, idx) => `
+                <div class="record-card">
+                    <h3>
+                        ${r.date}｜${r.code} ${r.name || ''}
+                        <span class="badge badge-info">信心${r.confidence}/10</span>
+                    </h3>
+                    <p><strong>目標價：</strong>${r.target || '—'}　<strong>停損價：</strong>${r.stop || '—'}</p>
+                    <p><strong>預判/策略：</strong>${escapeHTML(r.prediction)}</p>
+                    <p><strong>分析內容：</strong>${escapeHTML(r.analysis)}</p>
+                    ${r.notes ? `<p><strong>備註：</strong>${escapeHTML(r.notes)}</p>` : ''}
+                    <p style="font-size:12px;color:var(--text-dim);margin-top:8px;">
+                        建立於 ${new Date(r.createdAt).toLocaleString('zh-TW')}
+                    </p>
+                    <button class="btn-small btn-danger" onclick="deleteRecord(${idx})">刪除</button>
+                    <button class="btn-small" onclick="jumpAnalyze('${r.code}')">查看走勢</button>
+                </div>
+            `).join('');
+        }
+
+        function deleteRecord(idx) {
+            if (!confirm('刪除此紀錄？')) return;
+            // idx 是 filtered 中的 index，不一定等於 personalRecords index。
+            // 為安全，我們重新用 createdAt 做唯一鍵刪除。
+            const listEl = document.getElementById('recordsList');
+            const cards = [...listEl.querySelectorAll('.record-card')];
+            const card = cards[idx];
+            if (!card) return;
+
+            // 從卡片中擷取建立時間字串
+            const createdText = card.querySelector('p[style*="建立於"]')?.innerText || '';
+            // 嘗試還原 ISO 時間不可靠，所以這裡採簡單策略：用倒序映射
+            // 簡化：直接用 idx 對應重新篩後的陣列再刪除原本的那筆
+            const minConf = parseInt(document.getElementById('filterConfidence').value || '1');
+            const codeSel = document.getElementById('filterStock').value || '';
+            const filtered = personalRecords
+                .slice()
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .filter(r => (!codeSel || r.code === codeSel))
+                .filter(r => (r.confidence >= minConf));
+
+            const recToDelete = filtered[idx];
+            if (!recToDelete) return;
+
+            // 真正刪除 personalRecords 裡對應的物件（用 createdAt 當 key）
+            personalRecords = personalRecords.filter(r => r.createdAt !== recToDelete.createdAt);
+            savePersonalRecords();
+            updateRecordsList();
+            updateDataManagementUI();
+        }
+
+        // 匯出 CSV
+        function exportRecordsCSV() {
+            if (personalRecords.length === 0) {
+                alert('沒有紀錄可匯出');
+                return;
+            }
+            const headers = [
+                'date', 'code', 'name', 'confidence',
+                'target', 'stop', 'prediction', 'analysis', 'notes', 'createdAt'
+            ];
+            const rows = [headers.join(',')].concat(
+                personalRecords.map(r => {
+                    return [
+                        r.date,
+                        r.code,
+                        r.name,
+                        r.confidence,
+                        r.target,
+                        r.stop,
+                        quoteForCSV(r.prediction),
+                        quoteForCSV(r.analysis),
+                        quoteForCSV(r.notes),
+                        r.createdAt
+                    ].join(',');
+                })
+            ).join('\n');
+
+            downloadText('records_export.csv', rows);
+        }
+
+        // 匯出 JSON
+        function exportRecordsJSON() {
+            if (personalRecords.length === 0) {
+                alert('沒有紀錄可匯出');
+                return;
+            }
+            const dataStr = JSON.stringify({
+                version: '2.0',
+                exportedAt: new Date().toISOString(),
+                records: personalRecords
+            }, null, 2);
+            downloadText('records_backup.json', dataStr);
+        }
+
+        // 匯入 JSON
+        function importRecordsJSON() {
+            const input = document.getElementById('importJsonInput');
+            if (!input.files || !input.files[0]) {
+                alert('請先選擇 JSON 檔案');
+                return;
+            }
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const parsed = JSON.parse(ev.target.result);
+                    if (parsed.records && Array.isArray(parsed.records)) {
+                        // 合併寫回（不去重，因為可能想要完整歷史）
+                        personalRecords = personalRecords.concat(parsed.records);
+                    } else if (Array.isArray(parsed)) {
+                        personalRecords = personalRecords.concat(parsed);
+                    } else {
+                        alert('匯入格式不符合預期');
+                        return;
+                    }
+                    savePersonalRecords();
+                    updateRecordsList();
+                    updateDataManagementUI();
+                    alert('✅ 匯入完成');
+                } catch (e) {
+                    alert('JSON 解析失敗：' + e.message);
+                }
+            };
+            reader.readAsText(file, 'utf-8');
+        }
+
+        // ==================== 驗證/清理（保留接口） ====================
+        function closeValidationModal() {
+            document.getElementById('validationModal').style.display = 'none';
+        }
+        function executeDataClean() {
+            // 這裡可實作：移除重複列、日期錯誤列…目前僅示範
+            alert('資料清理程序尚未實作。');
+        }
+
+        // ==================== 小工具 ====================
+        function safeNum(v, dec = 2) {
+            if (v == null || isNaN(v)) return '—';
+            return Number(v).toFixed(dec);
+        }
+
+        function escapeHTML(str) {
+            if (!str && str !== 0) return '';
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+        }
+
+        function quoteForCSV(str) {
+            if (str == null) return '';
+            const s = String(str).replace(/"/g, '""');
+            return `"${s}"`;
+        }
+
+        function downloadText(filename, text) {
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+
+</html>
+
+<!-- 在第三方 UMD 庫（PapaParse / XLSX / Chart.js）之後加： -->
