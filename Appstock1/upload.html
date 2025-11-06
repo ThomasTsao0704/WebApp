@@ -784,6 +784,59 @@
                 showMessage('僅支援 CSV / XLSX / XLS 檔案格式', 'error');
             }
         }
+        // 解析 Excel（修正版：避免顯示 49518）
+        function parseExcel(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    // 1) 讀取時啟用 cellDates
+                    const wb = XLSX.read(data, { type: 'array', cellDates: true });
+
+                    const sheetName = wb.SheetNames[0];
+                    const ws = wb.Sheets[sheetName];
+
+                    // 2) 匯出 JSON 時用 raw:false，並指定日期格式
+                    let rows = XLSX.utils.sheet_to_json(ws, {
+                        defval: '',
+                        raw: false,                // 用儲存格格式輸出字串，不保留 49518 這種序號
+                        dateNF: 'yyyy/mm/dd'       // 指定日期輸出樣式
+                    });
+
+                    if (!rows.length) {
+                        showMessage('Excel 工作表沒有可用資料', 'error');
+                        return;
+                    }
+
+                    // 3) 保險機制：若來源儲存格根本沒設「日期格式」，仍可能殘留數字；再補一次轉換
+                    const DATE_KEYS = ['Date', '日期', 'date', '交易日期', '日期(西元)'];
+                    rows = rows.map(r => {
+                        const rr = { ...r };
+                        for (const key of DATE_KEYS) {
+                            if (key in rr && typeof rr[key] === 'number') {
+                                // 仍是數字 → 用 SSF 強制轉 yyyy/mm/dd
+                                rr[key] = XLSX.SSF.format('yyyy/mm/dd', rr[key]);
+                            }
+                            // 若是 Date 物件也統一成字串
+                            if (key in rr && rr[key] instanceof Date) {
+                                const d = rr[key];
+                                const y = d.getFullYear();
+                                const m = String(d.getMonth() + 1).padStart(2, '0');
+                                const day = String(d.getDate()).padStart(2, '0');
+                                rr[key] = `${y}/${m}/${day}`;
+                            }
+                        }
+                        return rr;
+                    });
+
+                    prepareNewData(rows);
+                } catch (err) {
+                    console.error(err);
+                    showMessage('Excel 解析失敗', 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
 
         // 解析 CSV
         function parseCSV(file) {
