@@ -4,9 +4,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>K 線圖 – ECharts 版</title>
-    <!-- ECharts CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <title>成交分析 – 強化版</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         :root {
             --bg1: #667eea;
@@ -88,11 +87,7 @@
             color: #fff;
             cursor: pointer;
             background: linear-gradient(135deg, var(--btn1), var(--btn2));
-            font-size: 14px;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
+            font-size: 14px
         }
 
         .btn.secondary {
@@ -125,7 +120,8 @@
             color: var(--text)
         }
 
-        input {
+        input,
+        select {
             padding: 8px 10px;
             border: 1px solid var(--panel-bd);
             border-radius: 8px;
@@ -146,8 +142,7 @@
             border: 1px solid var(--panel-bd);
             background: var(--page);
             cursor: pointer;
-            user-select: none;
-            font-size: 13px;
+            user-select: none
         }
 
         .chip.active {
@@ -156,14 +151,19 @@
             color: #fff
         }
 
+        .stat {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 12px
+        }
+
         .card {
             background: var(--page);
             border: 1px solid var(--panel-bd);
             border-left: 4px solid var(--btn1);
             border-radius: 8px;
-            padding: 12px;
-            min-width: 150px;
-            flex: 1 1 150px;
+            padding: 12px
         }
 
         .k {
@@ -178,13 +178,12 @@
         }
 
         .muted {
-            color: var(--dim);
-            font-size: 13px;
+            color: var(--dim)
         }
 
         .chart {
             position: relative;
-            height: 460px;
+            height: 420px;
             margin-top: 12px
         }
 
@@ -199,11 +198,9 @@
 <body>
     <div class="wrap">
         <div class="head">
-            <h1>📉 K 線圖（ECharts 版）</h1>
+            <h1>📊 成交分析（強化版）</h1>
             <div class="actions">
                 <button id="copyLink" class="btn secondary">🔗 複製連結</button>
-                <!-- 如需連回成交分析頁，可以把 href 改成你的檔名 -->
-                <!-- <a href="analyze.html" class="btn secondary">↔ 成交分析（Chart.js）</a> -->
                 <a href="index.html" class="btn secondary">← 返回首頁</a>
             </div>
         </div>
@@ -217,7 +214,7 @@
                 </div>
                 <div class="fg">
                     <label>&nbsp;</label>
-                    <button id="run" class="btn">📈 繪製 K 線</button>
+                    <button id="run" class="btn">📈 分析</button>
                 </div>
             </div>
             <div class="row" style="margin-top:12px">
@@ -231,6 +228,15 @@
                         <div class="chip active" data-range="ALL">ALL</div>
                     </div>
                 </div>
+                <div class="fg">
+                    <label>指標</label>
+                    <div class="chips" id="indChips">
+                        <div class="chip" data-ind="h52">52H</div>
+                        <div class="chip" data-ind="avg3">平均價3[0]</div>
+                        <div class="chip" data-ind="avg5">平均價5[1]</div>
+                        <div class="chip active" data-ind="vol">成交量</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -238,7 +244,7 @@
     </div>
 
     <script>
-        // ===== 設定與工具 =====
+        // ===== 基本設定與工具 =====
         const STORAGE_KEY = 'stockMarketData_v3';
         const SCHEMA = {
             date: ['日期', 'Date', 'date'],
@@ -250,7 +256,17 @@
             volume: ['成交量', 'Volume', 'volume']
         };
         const $ = s => document.querySelector(s);
-        let kChart = null;
+        let chart;
+
+        const theme = () => ({
+            isDark: document.body.classList.contains('dark'),
+            line: 'rgb(103,126,234)',
+            fill: 'rgba(103,126,234,.12)',
+            gridD: 'rgba(255,255,255,.12)',
+            gridL: 'rgba(0,0,0,.1)',
+            textD: '#f0f0f0',
+            textL: '#333'
+        });
 
         const get = (row, keys) => {
             for (const k of keys) {
@@ -271,6 +287,7 @@
             return Number.isNaN(t) ? new Date() : new Date(t);
         };
 
+        // ===== 載入資料與代碼清單 =====
         function loadMarketData() {
             try {
                 const raw = localStorage.getItem(STORAGE_KEY);
@@ -281,7 +298,6 @@
                 return [];
             }
         }
-
         function codesFromData() {
             const data = loadMarketData();
             const codes = new Set();
@@ -291,19 +307,193 @@
             }
             return [...codes].sort();
         }
-
         function populateDatalist() {
             const dl = $('#codes');
             if (!dl) return;
             dl.innerHTML = codesFromData().map(c => `<option value="${c}"></option>`).join('');
         }
 
+        // ===== 主流程 =====
+        function analyze() {
+            const code = String($('#code').value || '').trim().toUpperCase();
+            const out = $('#out');
+            const data = loadMarketData();
+
+            if (!code || data.length === 0) {
+                out.innerHTML = `<div class="sec"><span class="muted">請輸入代碼，且先於首頁載入資料。</span></div>`;
+                return;
+            }
+
+            // 正規化：加上 h52 / avg3 / avg5
+            const norm = data.map(r => ({
+                date: parseDate(get(r, SCHEMA.date)),
+                code: String(get(r, SCHEMA.code) || '').toUpperCase(),
+                open: toNum(get(r, SCHEMA.open)) ?? 0,
+                high: toNum(get(r, SCHEMA.high)) ?? 0,
+                low: toNum(get(r, SCHEMA.low)) ?? 0,
+                close: toNum(get(r, SCHEMA.close)) ?? 0,
+                vol: toNum(get(r, SCHEMA.volume)),
+                h52: toNum(r['52H'] ?? r['52H價']),
+                avg3: toNum(r['平均價3[0]'] ?? r['均價[0+1+2]'] ?? r['平均價3']),
+                avg5: toNum(r['平均價5[1]'] ?? r['均價[1+2+3+4+5]'] ?? r['平均價5'])
+            }))
+                .filter(r => r.code === code && r.date instanceof Date && !Number.isNaN(+r.date))
+                .sort((a, b) => a.date - b.date);
+
+            if (norm.length === 0) {
+                out.innerHTML = `<div class="sec"><span class="muted">找不到該股票數據。</span></div>`;
+                return;
+            }
+
+            // 區間
+            const range = document.querySelector('.chip[data-range].active')?.dataset.range || 'ALL';
+            const sliced = applyRange(norm, range);
+
+            // 指標開關
+            const show = indFlags();
+
+            // 資料序列
+            const labels = sliced.map(r => r.date.toISOString().slice(0, 10));
+            const closes = sliced.map(r => r.close);
+            const vols = sliced.map(r => r.vol);
+            const h52Arr = sliced.map(r => r.h52);
+            const avg3Arr = sliced.map(r => r.avg3);
+            const avg5Arr = sliced.map(r => r.avg5);
+
+            const t = theme();
+            const textColor = t.isDark ? t.textD : t.textL;
+            const gridColor = t.isDark ? t.gridD : t.gridL;
+
+            const first = norm[0];
+            const last = norm[norm.length - 1];
+
+            out.innerHTML = `
+      <div class="sec">
+        <div class="row">
+          <div class="card" style="flex:1 1 160px"><div class="k">開盤價（首日）</div><div class="v">${first.open.toFixed(2)}</div></div>
+          <div class="card" style="flex:1 1 160px"><div class="k">收盤價（末日）</div><div class="v">${last.close.toFixed(2)}</div></div>
+          <div class="card" style="flex:1 1 160px"><div class="k">最高價</div><div class="v">${Math.max(...norm.map(r => r.high)).toFixed(2)}</div></div>
+          <div class="card" style="flex:1 1 160px"><div class="k">最低價</div><div class="v">${Math.min(...norm.map(r => r.low)).toFixed(2)}</div></div>
+          <div class="card" style="flex:1 1 160px"><div class="k">漲跌幅（首→末）</div><div class="v">${(((last.close - first.open) / Math.max(first.open, 1)) * 100).toFixed(2)}%</div></div>
+          <div class="card" style="flex:1 1 160px"><div class="k">筆數</div><div class="v">${norm.length}</div></div>
+        </div>
+        <div class="chart"><canvas id="c"></canvas></div>
+      </div>`;
+
+            // 繪圖
+            const ctx = document.getElementById('c').getContext('2d');
+            if (chart) {
+                chart.destroy();
+                chart = null;
+            }
+
+            const datasets = [
+                {
+                    type: 'line',
+                    label: '收盤價',
+                    data: closes,
+                    borderColor: t.line,
+                    backgroundColor: t.fill,
+                    borderWidth: 2,
+                    tension: .35,
+                    fill: true,
+                    pointRadius: 0
+                }
+            ];
+
+            if (show.h52 && h52Arr.some(v => v != null)) {
+                datasets.push({
+                    type: 'line',
+                    label: '52H',
+                    data: h52Arr,
+                    // --- 顏色與樣式修改處 ---
+                    borderColor: '#007ACC', // 改為深藍色
+                    backgroundColor: 'rgba(0, 122, 204, 0.2)', // 藍色的半透明填充
+                    borderWidth: 2,
+                    tension: 0, // 設為 0，線段之間將是直線連接 (不平滑)
+                    fill: true,
+                    pointRadius: 3 // 顯示半徑為 3 像素的數據點
+                    // ----------------------
+                });
+            }
+            if (show.avg3 && avg3Arr.some(v => v != null)) {
+                datasets.push({
+                    type: 'line',
+                    label: '平均價3[0]',
+                    data: avg3Arr,
+                    // --- 顏色與樣式修改處 ---
+                    borderColor: '#007ACC', // 改為深藍色
+                    backgroundColor: 'rgba(0, 122, 204, 0.2)', // 藍色的半透明填充
+                    borderWidth: 2,
+                    tension: 0, // 設為 0，線段之間將是直線連接 (不平滑)
+                    fill: true,
+                    pointRadius: 3 // 顯示半徑為 3 像素的數據點
+                    // ----------------------
+                });
+            }
+            if (show.avg5 && avg5Arr.some(v => v != null)) {
+                datasets.push({
+                    type: 'line',
+                    label: '平均價5[1]',
+                    data: avg5Arr,
+                    // --- 顏色與樣式修改處 ---
+                    borderColor: '#b33a1e', // 改為深藍色
+                    backgroundColor: 'rgba(0, 122, 204, 0.2)', // 藍色的半透明填充
+                    borderWidth: 2,
+                    tension: 0, // 設為 0，線段之間將是直線連接 (不平滑)
+                    fill: true,
+                    pointRadius: 3 // 顯示半徑為 3 像素的數據點
+                    // ----------------------
+                });
+            }
+            if (show.vol && vols.some(v => v != null)) {
+                datasets.push({
+                    type: 'bar',
+                    label: '成交量',
+                    data: vols,
+                    yAxisID: 'y2',
+                    borderWidth: 0,
+                    barThickness: 'flex'
+                });
+            }
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: textColor } },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) =>
+                                    ctx.dataset.type === 'bar'
+                                        ? `成交量：${(ctx.parsed.y ?? 0).toLocaleString()}`
+                                        : `${ctx.dataset.label}：${(ctx.parsed.y ?? 0).toFixed(2)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color: textColor }, grid: { color: gridColor } },
+                        y: { ticks: { color: textColor }, grid: { color: gridColor } },
+                        y2: { position: 'right', grid: { display: false }, ticks: { color: textColor } }
+                    }
+                }
+            });
+
+            // 同步 URL 與本地狀態
+            const url = new URL(location.href);
+            url.searchParams.set('code', code);
+            url.searchParams.set('range', range);
+            history.replaceState(null, '', url);
+            localStorage.setItem('analyze_last_code', code);
+            localStorage.setItem('analyze_last_range', range);
+        }
+
         function applyRange(rows, range) {
             if (range === 'ALL') return rows;
-            if (['30D', '90D', '180D'].includes(range)) {
-                const n = Number(range.replace('D', ''));
-                return rows.slice(-n);
-            }
+            if (['30D', '90D', '180D'].includes(range)) return rows.slice(-Number(range.replace('D', '')));
             if (range === 'YTD') {
                 const y0 = new Date(new Date().getFullYear(), 0, 1);
                 return rows.filter(r => r.date >= y0);
@@ -311,316 +501,39 @@
             return rows;
         }
 
-        function normalizeForCode(code) {
-            const data = loadMarketData();
-            if (!data.length) return [];
-            const norm = data.map(r => {
-                const dateObj = parseDate(get(r, SCHEMA.date));
-                const c = String(get(r, SCHEMA.code) || '').toUpperCase();
-                return {
-                    date: dateObj,
-                    dateStr: dateObj instanceof Date && !Number.isNaN(+dateObj) ? dateObj.toISOString().slice(0, 10) : '',
-                    code: c,
-                    open: toNum(get(r, SCHEMA.open)),
-                    high: toNum(get(r, SCHEMA.high)),
-                    low: toNum(get(r, SCHEMA.low)),
-                    close: toNum(get(r, SCHEMA.close)),
-                    vol: toNum(get(r, SCHEMA.volume)),
-                    h52: toNum(r['52H'] ?? r['52H價']),
-                    avg3: toNum(r['平均價3[0]'] ?? r['均價[0+1+2]'] ?? r['平均價3']),
-                    avg5: toNum(r['平均價5[1]'] ?? r['均價[1+2+3+4+5]'] ?? r['平均價5'])
-                };
-            }).filter(r =>
-                r.code === code &&
-                r.date instanceof Date &&
-                !Number.isNaN(+r.date) &&
-                r.open != null && r.high != null && r.low != null && r.close != null
-            ).sort((a, b) => a.date - b.date);
-
-            return norm;
+        function indFlags() {
+            const flags = { h52: false, avg3: false, avg5: false, vol: false };
+            document.querySelectorAll('#indChips .chip').forEach(ch => {
+                if (ch.classList.contains('active')) flags[ch.dataset.ind] = true;
+            });
+            return flags;
         }
 
-        function renderKLine(dates, ohlc, volumes, h52Arr, avg3Arr, avg5Arr) {
-            const container = document.getElementById('kchart');
-            if (!container) return;
-
-            if (kChart) {
-                kChart.dispose();
-                kChart = null;
-            }
-
-            const styles = getComputedStyle(document.body);
-            const textColor = (styles.getPropertyValue('--text') || '#333').trim();
-            const dimColor = (styles.getPropertyValue('--dim') || '#666').trim();
-            const gridColor = (styles.getPropertyValue('--panel-bd') || 'rgba(0,0,0,0.1)').trim();
-
-            const upColor = '#ef4444';     // 漲：紅
-            const downColor = '#22c55e';   // 跌：綠
-
-            kChart = echarts.init(container);
-
-            const series = [];
-
-            series.push({
-                name: 'K 線',
-                type: 'candlestick',
-                data: ohlc,
-                itemStyle: {
-                    color: upColor,
-                    color0: downColor,
-                    borderColor: upColor,
-                    borderColor0: downColor
-                }
-            });
-
-            if (h52Arr.some(v => v != null)) {
-                series.push({
-                    name: '52H',
-                    type: 'line',
-                    data: h52Arr,
-                    smooth: true,
-                    symbol: 'none',
-                    lineStyle: { width: 1.2 },
-                    yAxisIndex: 0,
-                    xAxisIndex: 0
-                });
-            }
-
-            if (avg3Arr.some(v => v != null)) {
-                series.push({
-                    name: '平均價3[0]',
-                    type: 'line',
-                    data: avg3Arr,
-                    smooth: true,
-                    symbol: 'none',
-                    lineStyle: { width: 1.2, type: 'dashed' },
-                    yAxisIndex: 0,
-                    xAxisIndex: 0
-                });
-            }
-
-            if (avg5Arr.some(v => v != null)) {
-                series.push({
-                    name: '平均價5[1]',
-                    type: 'line',
-                    data: avg5Arr,
-                    smooth: true,
-                    symbol: 'none',
-                    lineStyle: { width: 1.2, type: 'dotted' },
-                    yAxisIndex: 0,
-                    xAxisIndex: 0
-                });
-            }
-
-            series.push({
-                name: '成交量',
-                type: 'bar',
-                data: volumes,
-                xAxisIndex: 1,
-                yAxisIndex: 1,
-                barWidth: '60%',
-                itemStyle: {
-                    color: 'rgba(148, 163, 184, 0.8)'
-                }
-            });
-
-            const option = {
-                backgroundColor: 'transparent',
-                animation: false,
-                legend: {
-                    textStyle: { color: textColor }
-                },
-                tooltip: {
-                    trigger: 'axis',
-                    axisPointer: {
-                        type: 'cross'
-                    }
-                },
-                axisPointer: {
-                    link: [{ xAxisIndex: [0, 1] }],
-                    label: {
-                        backgroundColor: '#4b5563'
-                    }
-                },
-                grid: [
-                    { left: '10%', right: '8%', top: 50, height: '55%' },
-                    { left: '10%', right: '8%', top: '75%', height: '15%' }
-                ],
-                xAxis: [
-                    {
-                        type: 'category',
-                        data: dates,
-                        boundaryGap: false,
-                        axisLine: { lineStyle: { color: gridColor } },
-                        axisLabel: { color: dimColor },
-                        axisTick: { show: false },
-                        min: 'dataMin',
-                        max: 'dataMax'
-                    },
-                    {
-                        type: 'category',
-                        gridIndex: 1,
-                        data: dates,
-                        boundaryGap: false,
-                        axisLine: { lineStyle: { color: gridColor } },
-                        axisLabel: { show: false },
-                        axisTick: { show: false },
-                        min: 'dataMin',
-                        max: 'dataMax'
-                    }
-                ],
-                yAxis: [
-                    {
-                        scale: true,
-                        splitArea: { show: true },
-                        axisLine: { lineStyle: { color: gridColor } },
-                        axisLabel: { color: dimColor },
-                        splitLine: { lineStyle: { color: gridColor } }
-                    },
-                    {
-                        gridIndex: 1,
-                        scale: true,
-                        axisLabel: { show: false },
-                        axisTick: { show: false },
-                        axisLine: { show: false },
-                        splitLine: { show: false }
-                    }
-                ],
-                dataZoom: [
-                    {
-                        type: 'inside',
-                        xAxisIndex: [0, 1],
-                        start: 60,
-                        end: 100
-                    },
-                    {
-                        show: true,
-                        xAxisIndex: [0, 1],
-                        type: 'slider',
-                        top: '92%',
-                        start: 60,
-                        end: 100
-                    }
-                ],
-                series
-            };
-
-            kChart.setOption(option);
-            window.addEventListener('resize', () => {
-                if (kChart) kChart.resize();
-            });
-        }
-
-        function analyze() {
-            const code = String($('#code').value || '').trim().toUpperCase();
-            const out = $('#out');
-            const allData = loadMarketData();
-
-            if (!code || allData.length === 0) {
-                out.innerHTML = `<div class="sec"><span class="muted">請輸入代碼，且先於首頁載入資料（stockMarketData_v3）。</span></div>`;
-                return;
-            }
-
-            const norm = normalizeForCode(code);
-            if (norm.length === 0) {
-                out.innerHTML = `<div class="sec"><span class="muted">找不到該股票的有效 OHLC 資料。</span></div>`;
-                return;
-            }
-
-            const range = document.querySelector('.chip[data-range].active')?.dataset.range || 'ALL';
-            const sliced = applyRange(norm, range);
-            if (sliced.length < 2) {
-                out.innerHTML = `<div class="sec"><span class="muted">目前區間內資料筆數不足，無法繪製 K 線。</span></div>`;
-                return;
-            }
-
-            const dates = sliced.map(r => r.dateStr || r.date.toISOString().slice(0, 10));
-            const ohlc = sliced.map(r =>
-                (r.open != null && r.close != null && r.low != null && r.high != null)
-                    ? [r.open, r.close, r.low, r.high]    // ECharts K 線順序：open, close, low, high
-                    : ['-', '-', '-', '-']
-            );
-            const volumes = sliced.map(r => r.vol != null ? r.vol : '-');
-            const h52Arr = sliced.map(r => r.h52 != null ? r.h52 : null);
-            const avg3Arr = sliced.map(r => r.avg3 != null ? r.avg3 : null);
-            const avg5Arr = sliced.map(r => r.avg5 != null ? r.avg5 : null);
-
-            const first = sliced[0];
-            const last = sliced[sliced.length - 1];
-            const hi = Math.max(...sliced.map(r => r.high ?? -Infinity));
-            const lo = Math.min(...sliced.map(r => r.low ?? Infinity));
-            const volSum = sliced.reduce((s, r) => s + (r.vol || 0), 0);
-
-            out.innerHTML = `
-        <div class="sec">
-          <div class="row">
-            <div class="card">
-              <div class="k">起始日期</div>
-              <div class="v">${first.dateStr}</div>
-            </div>
-            <div class="card">
-              <div class="k">結束日期</div>
-              <div class="v">${last.dateStr}</div>
-            </div>
-            <div class="card">
-              <div class="k">最高價</div>
-              <div class="v">${hi.toFixed(2)}</div>
-            </div>
-            <div class="card">
-              <div class="k">最低價</div>
-              <div class="v">${lo.toFixed(2)}</div>
-            </div>
-            <div class="card">
-              <div class="k">區間筆數</div>
-              <div class="v">${sliced.length}</div>
-            </div>
-            <div class="card">
-              <div class="k">成交量總和</div>
-              <div class="v">${volSum.toLocaleString()}</div>
-            </div>
-          </div>
-          <div class="chart">
-            <div id="kchart" style="width:100%;height:100%"></div>
-          </div>
-        </div>
-      `;
-
-            renderKLine(dates, ohlc, volumes, h52Arr, avg3Arr, avg5Arr);
-
-            // 同步 URL 與本地狀態
-            const url = new URL(location.href);
-            url.searchParams.set('code', code);
-            url.searchParams.set('range', range);
-            history.replaceState(null, '', url);
-            localStorage.setItem('kline_last_code', code);
-            localStorage.setItem('kline_last_range', range);
-        }
-
+        // ===== 事件繫結 =====
         document.addEventListener('DOMContentLoaded', () => {
-            if (localStorage.getItem('theme_dark') === '1') {
-                document.body.classList.add('dark');
-            }
-
+            if (localStorage.getItem('theme_dark') === '1') document.body.classList.add('dark');
             populateDatalist();
 
+            // 讀 query / 恢復上次
             const p = new URLSearchParams(location.search);
-            const code = p.get('code') || localStorage.getItem('kline_last_code') || '';
-            const range = p.get('range') || localStorage.getItem('kline_last_range') || 'ALL';
-
+            const code = p.get('code') || localStorage.getItem('analyze_last_code') || '';
+            const range = p.get('range') || localStorage.getItem('analyze_last_range') || 'ALL';
             if (code) $('#code').value = code;
             document.querySelectorAll('#rangeChips .chip').forEach(ch => {
                 ch.classList.toggle('active', ch.dataset.range === range);
             });
 
+            // 互動
             $('#run').addEventListener('click', analyze);
-            $('#code').addEventListener('keydown', e => {
-                if (e.key === 'Enter') analyze();
-            });
+            $('#code').addEventListener('keydown', e => { if (e.key === 'Enter') analyze(); });
             document.getElementById('rangeChips').addEventListener('click', e => {
                 const el = e.target.closest('.chip'); if (!el) return;
                 document.querySelectorAll('#rangeChips .chip').forEach(c => c.classList.remove('active'));
-                el.classList.add('active');
-                if ($('#code').value.trim()) analyze();
+                el.classList.add('active'); analyze();
+            });
+            document.getElementById('indChips').addEventListener('click', e => {
+                const el = e.target.closest('.chip'); if (!el) return;
+                el.classList.toggle('active'); analyze();
             });
             document.getElementById('copyLink').addEventListener('click', () => {
                 navigator.clipboard.writeText(location.href).then(() => {
@@ -631,7 +544,8 @@
                 });
             });
 
-            if ($('#code').value.trim()) analyze();
+            // 若已帶 code 參數，直接分析
+            if ($('#code').value) analyze();
         });
     </script>
 </body>
