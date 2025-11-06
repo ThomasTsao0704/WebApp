@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <title>股票市場資料上傳器 v3</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        :root {
+            --bg-gradient-start: #667eea;
+            --bg-gradient-end: #764ba2;
+            --page-bg: #ffffff;
+            --panel-bg: #ffffff;
+            --panel-border: rgba(0, 0, 0, 0.05);
+            --panel-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            --header-text: #ffffff;
+            --text-main: #333;
+            --text-dim: #666;
+            --btn-bg-start: #667eea;
+            --btn-bg-end: #764ba2;
+            --btn-text: #ffffff;
+            --section-bg: #f8f9fa;
+            --trend-pos: #e74c3c;
+            --trend-neg: #27ae60;
+        }
+
+        body.dark {
+            --bg-gradient-start: #0f172a;
+            --bg-gradient-end: #1f2937;
+            --page-bg: #020617;
+            --panel-bg: #020617;
+            --panel-border: rgba(148, 163, 184, 0.2);
+            --panel-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            --header-text: #e5e7eb;
+            --text-main: #e5e7eb;
+            --text-dim: #9ca3af;
+            --btn-bg-start: #4f46e5;
+            --btn-bg-end: #7c3aed;
+            --btn-text: #e5e7eb;
+            --section-bg: #020617;
+            --trend-pos: #f97316;
+            --trend-neg: #22c55e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.15), transparent 50%),
+                radial-gradient(circle at bottom right, rgba(15, 23, 42, 0.6), transparent 55%),
+                linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.08), transparent 60%),
+                radial-gradient(circle at bottom right, rgba(15, 23, 42, 0.4), transparent 55%),
+                var(--panel-bg);
+            border-radius: 28px;
+            box-shadow: var(--panel-shadow);
+            border: 1px solid var(--panel-border);
+            padding: 26px 28px 26px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: "";
+            position: absolute;
+            inset: -120px;
+            background:
+                radial-gradient(circle at top left, rgba(251, 191, 36, 0.12), transparent 60%),
+                radial-gradient(circle at bottom, rgba(59, 130, 246, 0.08), transparent 60%);
+            pointer-events: none;
+            opacity: 0.85;
+        }
+
+        .container-inner {
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+            gap: 18px;
+        }
+
+        .title-block {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.15), transparent 60%),
+                linear-gradient(to right, rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.9));
+            color: #e5e7eb;
+        }
+
+        .tag-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: radial-gradient(circle at 30% 30%, #facc15, #ea580c);
+        }
+
+        h1 {
+            font-size: 22px;
+            color: var(--header-text);
+            letter-spacing: 0.03em;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .stats {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .chip-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            font-size: 11px;
+            padding: 3px 9px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.8);
+            color: #e5e7eb;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+        }
+
+        .main {
+            display: grid;
+            grid-template-columns: 1.1fr 1.1fr;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .panel {
+            background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.04), transparent 60%),
+                linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.93));
+            border-radius: 20px;
+            padding: 16px 16px 14px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            color: #e5e7eb;
+            backdrop-filter: blur(18px);
+        }
+
+        body:not(.dark) .panel {
+            background: linear-gradient(135deg, rgba(248, 250, 252, 0.96), rgba(241, 245, 249, 0.96));
+            color: #111827;
+            border-color: rgba(148, 163, 184, 0.4);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .panel-title {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+        }
+
+        .panel-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .badge {
+            font-size: 11px;
+            padding: 3px 7px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 36px;
+            height: 18px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.7);
+            display: flex;
+            align-items: center;
+            padding: 0 2px;
+            cursor: pointer;
+        }
+
+        .toggle-knob {
+            width: 14px;
+            height: 14px;
+            border-radius: 999px;
+            background: #e5e7eb;
+            transform: translateX(0);
+            transition: transform 0.2s ease;
+        }
+
+        body.dark .toggle-knob {
+            background: #facc15;
+            transform: translateX(16px);
+        }
+
+        .upload-area {
+            border-radius: 14px;
+            padding: 16px 14px 14px;
+            border: 1px dashed rgba(148, 163, 184, 0.7);
+            position: relative;
+            overflow: hidden;
+            background: radial-gradient(circle at top left, rgba(148, 163, 184, 0.18), transparent 55%),
+                radial-gradient(circle at bottom, rgba(15, 23, 42, 0.75), transparent 60%);
+        }
+
+        body:not(.dark) .upload-area {
+            background: radial-gradient(circle at top left, rgba(129, 140, 248, 0.16), transparent 55%),
+                linear-gradient(135deg, rgba(248, 250, 252, 0.96), rgba(241, 245, 249, 0.96));
+        }
+
+        .upload-top-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .upload-title {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .upload-description {
+            font-size: 12px;
+            color: #cbd5f5;
+        }
+
+        body:not(.dark) .upload-description {
+            color: #4b5563;
+        }
+
+        .file-input-wrapper {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border-radius: 999px;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--btn-bg-start), var(--btn-bg-end));
+            color: var(--btn-text);
+            box-shadow: 0 14px 30px rgba(15, 23, 42, 0.7);
+        }
+
+        .btn-primary:hover {
+            filter: brightness(1.05);
+        }
+
+        .btn-ghost {
+            background: rgba(15, 23, 42, 0.7);
+            color: #e5e7eb;
+            border: 1px solid rgba(148, 163, 184, 0.7);
+        }
+
+        body:not(.dark) .btn-ghost {
+            background: rgba(255, 255, 255, 0.9);
+            color: #111827;
+        }
+
+        .btn-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.9);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+        }
+
+        .file-name {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .hint-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .hint {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .hint-badge {
+            font-size: 10px;
+            padding: 2px 7px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.7);
+        }
+
+        .capsule {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 7px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.85);
+            color: #e5e7eb;
+            font-size: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.7);
+        }
+
+        body:not(.dark) .capsule {
+            background: rgba(255, 255, 255, 0.9);
+            color: #111827;
+        }
+
+        .field-grid {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .field-pill {
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            background: rgba(15, 23, 42, 0.8);
+            color: #e5e7eb;
+        }
+
+        body:not(.dark) .field-pill {
+            background: rgba(255, 255, 255, 0.9);
+            color: #374151;
+        }
+
+        .preview-panel {
+            background: radial-gradient(circle at top left, rgba(129, 140, 248, 0.16), transparent 60%),
+                linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.96));
+            border-radius: 20px;
+            padding: 16px 16px 14px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            color: #e5e7eb;
+            backdrop-filter: blur(18px);
+        }
+
+        body:not(.dark) .preview-panel {
+            background: linear-gradient(135deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.96));
+            color: #111827;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .preview-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .preview-meta {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .preview-content {
+            margin-top: 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            background: rgba(15, 23, 42, 0.92);
+            max-height: 260px;
+            overflow: hidden;
+        }
+
+        body:not(.dark) .preview-content {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .preview-empty {
+            padding: 26px 20px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .preview-empty span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .preview-empty-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.9);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+        }
+
+        body:not(.dark) .preview-empty-icon {
+            background: rgba(248, 250, 252, 0.95);
+        }
+
+        .preview-table-wrapper {
+            overflow: auto;
+            max-height: 260px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .table thead {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: linear-gradient(to bottom, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.96));
+            color: #e5e7eb;
+        }
+
+        body:not(.dark) .table thead {
+            background: rgba(248, 250, 252, 0.98);
+            color: #111827;
+        }
+
+        .table th {
+            text-align: left;
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.5);
+            font-weight: 600;
+        }
+
+        .table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .table tr:hover {
+            background: var(--section-bg);
+        }
+
+        .muted {
+            color: var(--text-dim);
+            font-size: 14px;
+        }
+
+        .trend-positive {
+            color: var(--trend-pos);
+            font-weight: 600;
+        }
+
+        .trend-negative {
+            color: var(--trend-neg);
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .radio-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="container-inner">
+            <div class="header">
+                <div class="title-block">
+                    <div class="title-row">
+                        <div class="tag">
+                            <span class="tag-dot"></span>
+                            <span>LOCAL MARKET DATA · STOCKS</span>
+                        </div>
+                    </div>
+                    <h1>股票市場資料上傳器 v3</h1>
+                    <p class="subtitle">匯入每日盤後 CSV / Excel，建立本機股票資料庫</p>
+                </div>
+                <div class="stats">
+                    <div class="chip-row">
+                        <div class="chip">Date Range: <span id="dateRange">-</span></div>
+                        <div class="chip">Stocks: <span id="stockCount">0</span></div>
+                        <div class="chip">Records: <span id="dataCount">0</span></div>
+                    </div>
+                    <span>Last update: <span id="lastUpdate">-</span></span>
+                </div>
+            </div>
+
+            <div class="main">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">UPLOAD &amp; MERGE</div>
+                        <div class="panel-actions">
+                            <span class="badge">localStorage</span>
+                            <div class="toggle-switch" onclick="toggleTheme()">
+                                <div class="toggle-knob"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="upload-area">
+                        <div class="upload-top-row">
+                            <div>
+                                <div class="upload-title">
+                                    <span>匯入盤後資料檔（CSV / Excel）</span>
+                                </div>
+                                <div class="upload-description">
+                                    支援台股每日盤後資料：<strong>日期、代碼、商品、價量指標</strong> 等欄位。
+                                </div>
+                            </div>
+                            <div class="file-input-wrapper">
+                                <label class="btn btn-primary">
+                                    <span class="btn-icon">↑</span>
+                                    <span>選擇檔案</span>
+                                    <input id="fileInput" type="file" accept=".csv, .xlsx, .xls"
+                                        style="display: none" />
+                                </label>
+                                <button class="btn btn-ghost" onclick="uploadFile()">
+                                    <span>開始解析</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="hint-row" style="margin-top: 8px;">
+                            <div class="hint">
+                                <span class="hint-badge">Schema v3</span>
+                                <span>將資料整理為固定 14 欄，寫入本機 <code>stockMarketData_v3</code></span>
+                            </div>
+                        </div>
+
+                        <div class="field-grid">
+                            <div class="field-pill">日期</div>
+                            <div class="field-pill">代碼</div>
+                            <div class="field-pill">商品</div>
+                            <div class="field-pill">開盤價</div>
+                            <div class="field-pill">最高價</div>
+                            <div class="field-pill">最低價</div>
+                            <div class="field-pill">收盤價</div>
+                            <div class="field-pill">漲跌幅</div>
+                            <div class="field-pill">振幅</div>
+                            <div class="field-pill">淨成交量</div>
+                            <div class="field-pill">52H</div>
+                            <div class="field-pill">平均價3[0]</div>
+                            <div class="field-pill">平均價5[1]</div>
+                            <div class="field-pill">成交量</div>
+                        </div>
+
+                        <div
+                            style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                            <div class="hint">
+                                <span class="hint-badge">Merge Mode</span>
+                                <span>相同「日期 + 代碼」視為同一筆，依模式決定覆蓋或保留</span>
+                            </div>
+                            <div class="hint">
+                                <span class="capsule">
+                                    <span
+                                        style="width: 6px; height: 6px; border-radius: 999px; background: #22c55e;"></span>
+                                    安全寫入本機，無外部上傳
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="messageBox" style="margin-top: 12px; font-size: 12px;"></div>
+                </div>
+
+                <div class="preview-panel">
+                    <div class="preview-header">
+                        <div>
+                            <div class="preview-title">解析預覽（前 10 筆）</div>
+                            <div class="preview-meta">僅顯示本次上傳資料，不含既有資料</div>
+                        </div>
+                    </div>
+                    <div class="preview-content">
+                        <div class="preview-empty" id="previewContent">
+                            <span>
+                                <span class="preview-empty-icon">⏳</span>
+                                選擇文件後，這裡會顯示解析結果預覽。
+                            </span>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 12px; font-size: 11px; color: var(--text-dim);">
+                        <div>合併策略說明：</div>
+                        <ul style="margin: 4px 0 0 16px; padding-left: 0; list-style: disc;">
+                            <li>以「日期 + 代碼」作為主鍵。</li>
+                            <li>同一主鍵多筆資料：依合併模式決定是否覆蓋既有紀錄。</li>
+                            <li>所有資料儲存在瀏覽器 localStorage，不會上傳至伺服器。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 合併模式選擇 -->
+            <div id="mergeModal"
+                style="display: none; margin-top: 20px; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(148,163,184,0.45); background: rgba(15,23,42,0.96); color: #e5e7eb;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <div style="font-size: 13px; font-weight: 600;">選擇合併模式</div>
+                    <button class="btn btn-ghost" style="padding: 4px 9px; font-size: 11px;"
+                        onclick="closeMergeModal()">關閉</button>
+                </div>
+                <p style="font-size: 12px; margin-bottom: 8px;">
+                    目前本機已有 <strong id="existingDataCount">0</strong> 筆資料，本次新檔有 <strong id="newDataCount">0</strong> 筆。
+                </p>
+                <div class="radio-group"
+                    style="display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; margin-bottom: 8px;">
+                    <label
+                        style="display: flex; align-items: flex-start; gap: 6px; padding: 7px 10px; border-radius: 10px; border: 1px solid rgba(148,163,184,0.7); cursor: pointer;">
+                        <input type="radio" name="mergeOption" value="merge" checked>
+                        <div>
+                            <div>合併（建議）</div>
+                            <div style="font-size: 11px; color: var(--text-dim);">以「日期 + 代碼」為主鍵，新資料僅覆蓋同鍵紀錄，其餘保留。</div>
+                        </div>
+                    </label>
+                    <label
+                        style="display: flex; align-items: flex-start; gap: 6px; padding: 7px 10px; border-radius: 10px; border: 1px solid rgba(148,163,184,0.7); cursor: pointer;">
+                        <input type="radio" name="mergeOption" value="replace">
+                        <div>
+                            <div>完全覆蓋</div>
+                            <div style="font-size: 11px; color: var(--text-dim);">清空舊有資料，只保留本次上傳的所有紀錄。</div>
+                        </div>
+                    </label>
+                </div>
+                <button class="btn btn-primary" style="margin-top: 4px;" onclick="confirmMerge()">確認合併</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PapaParse & XLSX（如需可改為 CDN） -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <script>
+        let marketData = [];
+        let pendingNewData = [];
+        const STORAGE_KEY = 'stockMarketData_v3';
+
+        // 數字安全格式化（空值 / NaN 顯示為 —）
+        function safeNum(v, dec = 2) {
+            if (v == null || Number.isNaN(v)) return '—';
+            const num = Number(v);
+            if (Number.isNaN(num)) return '—';
+            return num.toFixed(dec);
+        }
+
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            loadMarketData();
+            updateStats();
+        });
+
+        // 主題管理
+        function initTheme() {
+            const isDark = localStorage.getItem('theme_dark') === '1';
+            if (isDark) document.body.classList.add('dark');
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            localStorage.setItem('theme_dark', document.body.classList.contains('dark') ? '1' : '0');
+        }
+
+        // 載入既有數據
+        function loadMarketData() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (!stored) return;
+                const parsed = JSON.parse(stored);
+                marketData = parsed?.data ?? (Array.isArray(parsed) ? parsed : []);
+            } catch (e) {
+                console.error('加載數據失敗：', e);
+            }
+        }
+
+        // 文件上傳
+        function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files?.[0];
+            if (!file) {
+                showMessage('請先選擇要解析的檔案', 'error');
+                return;
+            }
+
+            const fileNameEl = document.getElementById('fileName');
+            if (fileNameEl) {
+                fileNameEl.textContent = `已選擇：${file.name}`;
+            }
+
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (ext === 'csv') {
+                parseCSV(file);
+            } else if (ext === 'xlsx' || ext === 'xls') {
+                parseExcel(file);
+            } else {
+                showMessage('僅支援 CSV / XLSX / XLS 檔案格式', 'error');
+            }
+        }
+
+        // 解析 CSV
+        function parseCSV(file) {
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: (results) => {
+                    const rows = results.data || [];
+                    if (!rows.length) {
+                        showMessage('CSV 檔案沒有可用資料', 'error');
+                        return;
+                    }
+                    prepareNewData(rows);
+                },
+                error: () => {
+                    showMessage('CSV 解析失敗', 'error');
+                }
+            });
+        }
+
+        // 解析 Excel
+        function parseExcel(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const wb = XLSX.read(data, { type: 'array' });
+                    const sheetName = wb.SheetNames[0];
+                    const ws = wb.Sheets[sheetName];
+                    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+                    if (!rows.length) {
+                        showMessage('Excel 工作表沒有可用資料', 'error');
+                        return;
+                    }
+                    prepareNewData(rows);
+                } catch (err) {
+                    console.error(err);
+                    showMessage('Excel 解析失敗', 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 準備新數據：轉成固定 14 欄 schema
+        function prepareNewData(raw) {
+            pendingNewData = raw.map(normalizeRow).filter(r => r.代碼 && r.日期 && !Number.isNaN(r.收盤價));
+
+            if (pendingNewData.length === 0) {
+                showMessage('檔案中沒有有效的資料', 'error');
+                return;
+            }
+
+            // 顯示預覽
+            const previewContent = document.getElementById('previewContent');
+            previewContent.innerHTML = `
+                <div class="alert alert-info">
+                    ✅ 成功解析 <strong>${pendingNewData.length}</strong> 筆新數據
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>代碼</th>
+                            <th>商品</th>
+                            <th>收盤</th>
+                            <th>漲跌幅</th>
+                            <th>振幅</th>
+                            <th>淨成交量</th>
+                            <th>52H</th>
+                            <th>平均價3[0]</th>
+                            <th>平均價5[1]</th>
+                            <th>成交量</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${pendingNewData.slice(0, 10).map(r => `
+                            <tr>
+                                <td>${r.日期}</td>
+                                <td>${r.代碼}</td>
+                                <td>${r.商品 || '-'}</td>
+                                <td>${safeNum(r.收盤價)}</td>
+                                <td class="${Number.isNaN(r.漲跌幅) ? '' : (r.漲跌幅 >= 0 ? 'trend-positive' : 'trend-negative')}">
+                                    ${Number.isNaN(r.漲跌幅)
+                    ? '—'
+                    : ((r.漲跌幅 >= 0 ? '+' : '') + safeNum(r.漲跌幅) + '%')
+                }
+                                </td>
+                                <td>${safeNum(r.振幅)}</td>
+                                <td>${safeNum(r.淨成交量, 0)}</td>
+                                <td>${safeNum(r['52H'])}</td>
+                                <td>${safeNum(r['平均價3[0]'])}</td>
+                                <td>${safeNum(r['平均價5[1]'])}</td>
+                                <td>${safeNum(r.成交量, 0)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <p class="muted" style="margin-top: 10px;">（僅顯示前 10 筆）</p>
+            `;
+
+            // 如果已有數據，顯示合併模式選擇
+            if (marketData.length === 0) {
+                // 直接合併
+                marketData = pendingNewData;
+                saveMarketData();
+                showMessage(`✅ 資料載入成功，共 ${marketData.length} 筆`, 'success');
+                updateStats();
+                pendingNewData = [];
+                document.getElementById('fileInput').value = '';
+            } else {
+                // 顯示模式選擇對話框
+                document.getElementById('existingDataCount').textContent = marketData.length;
+                document.getElementById('newDataCount').textContent = pendingNewData.length;
+                document.getElementById('mergeModal').style.display = 'block';
+            }
+        }
+
+        // 資料欄位標準化，輸出固定 14 欄
+        function normalizeRow(row) {
+            const num = (v) => (v == null || v === '' ? NaN : Number(v));
+
+            // 基本價格與量
+            const 開盤價 = num(row['開盤價'] || row['open']);
+            const 最高價 = num(row['最高價'] || row['high']);
+            const 最低價 = num(row['最低價'] || row['low']);
+            const 收盤價 = num(row['收盤價'] || row['close']);
+            const 漲跌幅 = num(row['漲跌幅'] || row['change%']);
+            const 振幅 = num(row['振幅'] || row['amplitude']);
+            const 成交量 = num(row['成交量'] || row['volume']);
+
+            // 當日沖銷張數（用來計算淨成交量）
+            const dayTrade = num(row['當日沖銷張數'] || row['當日沖銷'] || row['day_trade'] || row['dayTrade']);
+            let 淨成交量 = num(row['淨成交量'] || row['net_volume']);
+            if (Number.isNaN(淨成交量) && !Number.isNaN(成交量) && !Number.isNaN(dayTrade)) {
+                淨成交量 = 成交量 - dayTrade;
+            }
+
+            // 52H 價
+            const _52H = num(row['52H'] || row['52H價']);
+
+            // 平均價欄位
+            const 平均價3_0 = num(row['平均價3[0]'] || row['均價[0+1+2]']);
+            const 平均價5_1 = num(row['平均價5[1]'] || row['均價[1+2+3+4+5]']);
+
+            return {
+                日期: row['日期'] || row['date'] || '',
+                代碼: String(row['代碼'] || row['code'] || '').trim(),
+                商品: row['商品'] || row['name'] || '',
+                開盤價,
+                最高價,
+                最低價,
+                收盤價,
+                漲跌幅,
+                振幅,
+                淨成交量,
+                '52H': _52H,
+                '平均價3[0]': 平均價3_0,
+                '平均價5[1]': 平均價5_1,
+                成交量
+            };
+        }
+
+        // 確認合併
+        function confirmMerge() {
+            const op = document.querySelector('input[name="mergeOption"]:checked')?.value || 'merge';
+            closeMergeModal();
+
+            if (op === 'replace') {
+                marketData = pendingNewData;
+                saveMarketData();
+                showMessage(`✅ 已清空並覆蓋，現有 ${marketData.length} 筆資料`, 'success');
+            } else {
+                marketData = smartMerge(marketData, pendingNewData);
+                saveMarketData();
+                showMessage(`✅ 合併完成，現有 ${marketData.length} 筆資料`, 'success');
+            }
+
+            updateStats();
+            pendingNewData = [];
+            document.getElementById('fileInput').value = '';
+        }
+
+        // 合併邏輯：以「日期 + 代碼」為主鍵
+        function smartMerge(existing, incoming) {
+            const map = new Map();
+            for (const row of existing) {
+                map.set(`${row.日期}__${row.代碼}`, row);
+            }
+            for (const row of incoming) {
+                map.set(`${row.日期}__${row.代碼}`, row);
+            }
+            return Array.from(map.values()).sort((a, b) => {
+                if (a.日期 === b.日期) {
+                    return a.代碼.localeCompare(b.代碼, 'zh-TW');
+                }
+                return a.日期.localeCompare(b.日期);
+            });
+        }
+
+        // 儲存到 localStorage
+        function saveMarketData() {
+            const payload = {
+                data: marketData,
+                lastUpdate: new Date().toISOString()
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        }
+
+        // 更新頂部統計資訊
+        function updateStats() {
+            const count = marketData.length;
+            document.getElementById('dataCount').textContent = count.toLocaleString();
+
+            if (count > 0) {
+                const dates = [...new Set(marketData.map(d => d.日期).filter(Boolean))].sort();
+                const stocks = new Set(marketData.map(d => d.代碼));
+                document.getElementById('dateRange').textContent = dates.length ? `${dates[0]} ~ ${dates[dates.length - 1]}` : '-';
+                document.getElementById('stockCount').textContent = stocks.size;
+            }
+
+            try {
+                const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+                if (stored.lastUpdate) {
+                    document.getElementById('lastUpdate').textContent =
+                        new Date(stored.lastUpdate).toLocaleString('zh-TW', { hour12: false });
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        // 關閉合併對話框
+        function closeMergeModal() {
+            document.getElementById('mergeModal').style.display = 'none';
+        }
+
+        // 顯示消息
+        function showMessage(msg, type = 'info') {
+            const box = document.getElementById('messageBox');
+            box.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+        }
+    </script>
+</body>
+
+</html>

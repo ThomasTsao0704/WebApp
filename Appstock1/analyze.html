@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成交分析 - 股票分析系統</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-gradient-start: #667eea; --bg-gradient-end: #764ba2; --page-bg: #ffffff;
+            --panel-bg: #ffffff; --panel-border: rgba(0, 0, 0, 0.05); --panel-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            --header-text: #ffffff; --text-main: #333; --text-dim: #666; --btn-bg-start: #667eea;
+            --btn-bg-end: #764ba2; --btn-text: #ffffff; --section-bg: #f8f9fa;
+        }
+        body.dark {
+            --bg-gradient-start: #1f2937; --bg-gradient-end: #111827; --page-bg: #1e1e2e;
+            --panel-bg: #2a2a3a; --panel-border: rgba(255, 255, 255, 0.07);
+            --panel-shadow: 0 20px 60px rgba(0, 0, 0, 0.8); --header-text: #f0f0f0;
+            --text-main: #f0f0f0; --text-dim: #a0a0b8; --btn-bg-start: #4f46e5;
+            --btn-bg-end: #6d28d9; --section-bg: #3a3a4a;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft JhengHei', 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh; padding: 20px; color: var(--text-main); }
+        .container { max-width: 1200px; margin: 0 auto; background: var(--panel-bg); border-radius: 15px;
+            padding: 30px; box-shadow: var(--panel-shadow); border: 1px solid var(--panel-border); }
+        .header { background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            padding: 20px; border-radius: 10px; color: var(--header-text); margin-bottom: 30px;
+            display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 1.8em; }
+        .btn-back { background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; text-decoration: none; font-size: 14px; }
+        .btn { display: inline-block; padding: 10px 20px; background: linear-gradient(135deg, var(--btn-bg-start) 0%, var(--btn-bg-end) 100%);
+            color: var(--btn-text); border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .btn:hover { opacity: 0.9; }
+        .section { background: var(--section-bg); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .section h2 { font-size: 18px; margin-bottom: 15px; color: var(--text-main); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: var(--text-main); }
+        .form-group input { width: 100%; padding: 8px; border: 1px solid var(--panel-border); border-radius: 6px;
+            background: var(--page-bg); color: var(--text-main); font-family: inherit; }
+        .chart-container { position: relative; height: 400px; margin: 20px 0; }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 15px 0; }
+        .stat-item { background: var(--page-bg); padding: 15px; border-radius: 6px; border-left: 4px solid var(--btn-bg-start); }
+        .stat-label { font-size: 12px; color: var(--text-dim); }
+        .stat-value { font-size: 18px; font-weight: 700; color: var(--text-main); margin-top: 5px; }
+        .muted { color: var(--text-dim); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 成交分析</h1>
+            <a href="index.html" class="btn-back">← 返回首頁</a>
+        </div>
+
+        <div class="section">
+            <h2>選擇股票</h2>
+            <div class="form-group">
+                <label for="stockCode">股票代碼：</label>
+                <input type="text" id="stockCode" placeholder="輸入股票代碼（如 2330）" />
+            </div>
+            <button class="btn" onclick="analyzeStock()">📈 分析</button>
+        </div>
+
+        <div id="analysisContent"></div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'stockMarketData_v3';
+        let chart = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            if (code) {
+                document.getElementById('stockCode').value = code;
+                setTimeout(analyzeStock, 300);
+            }
+        });
+
+        function initTheme() {
+            if (localStorage.getItem('theme_dark') === '1') document.body.classList.add('dark');
+        }
+
+        function analyzeStock() {
+            const code = document.getElementById('stockCode').value.trim().toUpperCase();
+            const marketData = loadMarketData();
+            const el = document.getElementById('analysisContent');
+
+            if (!code || marketData.length === 0) {
+                el.innerHTML = '<div class="section"><div class="muted">請輸入代碼或先上傳數據</div></div>';
+                return;
+            }
+
+            const rows = marketData.filter(r => r.代碼 === code).sort((a,b)=>new Date(a.日期)-new Date(b.日期));
+            if (rows.length === 0) {
+                el.innerHTML = '<div class="section"><div class="muted">找不到該股票數據</div></div>';
+                return;
+            }
+
+            const closes = rows.map(r => +r.收盤價 || 0);
+            const opens = rows.map(r => +r.開盤價 || 0);
+            const highs = rows.map(r => +r.最高價 || 0);
+            const lows = rows.map(r => +r.最低價 || 0);
+
+            const open = opens[0];
+            const close = closes[closes.length - 1];
+            const high = Math.max(...highs);
+            const low = Math.min(...lows);
+            const change = open > 0 ? ((close - open) / open * 100) : 0;
+
+            el.innerHTML = `
+                <div class="section">
+                    <h2>${code} - 詳細分析</h2>
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <div class="stat-label">開盤價</div>
+                            <div class="stat-value">${open.toFixed(2)}</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">收盤價</div>
+                            <div class="stat-value">${close.toFixed(2)}</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">最高價</div>
+                            <div class="stat-value">${high.toFixed(2)}</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">最低價</div>
+                            <div class="stat-value">${low.toFixed(2)}</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">漲跌幅</div>
+                            <div class="stat-value">${(change > 0 ? '+' : '')}${change.toFixed(2)}%</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">數據筆數</div>
+                            <div class="stat-value">${rows.length}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>收盤價走勢</h2>
+                    <div class="chart-container">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+                </div>
+            `;
+
+            buildLineChart(rows);
+        }
+
+        function buildLineChart(rows) {
+            const canvas = document.getElementById('priceChart');
+            if (!canvas) return;
+
+            if (chart) { chart.destroy(); chart = null; }
+
+            const labels = rows.map(r => r.日期);
+            const prices = rows.map(r => +r.收盤價 || 0);
+
+            chart = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: '收盤價',
+                        data: prices,
+                        borderColor: 'rgb(103, 126, 234)',
+                        backgroundColor: 'rgba(103, 126, 234, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: document.body.classList.contains('dark') ? '#f0f0f0' : '#333' } } },
+                    scales: {
+                        y: { ticks: { color: document.body.classList.contains('dark') ? '#f0f0f0' : '#333' },
+                            grid: { color: document.body.classList.contains('dark') ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' } },
+                        x: { ticks: { color: document.body.classList.contains('dark') ? '#f0f0f0' : '#333' },
+                            grid: { color: document.body.classList.contains('dark') ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' } }
+                    }
+                }
+            });
+        }
+
+        function loadMarketData() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (!stored) return [];
+                const parsed = JSON.parse(stored);
+                return parsed?.data ?? (Array.isArray(parsed) ? parsed : []);
+            } catch { return []; }
+        }
+    </script>
+</body>
+</html>

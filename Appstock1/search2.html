@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>數據上傳 - 股票分析系統</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-gradient-start: #667eea;
+            --bg-gradient-end: #764ba2;
+            --page-bg: #fff;
+            --panel-bg: #fff;
+            --panel-border: rgba(0, 0, 0, .05);
+            --panel-shadow: 0 20px 60px rgba(0, 0, 0, .3);
+            --header-text: #fff;
+            --text-main: #333;
+            --text-dim: #666;
+            --btn-bg-start: #667eea;
+            --btn-bg-end: #764ba2;
+            --btn-text: #fff;
+            --section-bg: #f8f9fa;
+            --trend-pos: #e74c3c;
+            --trend-neg: #27ae60
+        }
+
+        body.dark {
+            --bg-gradient-start: #1f2937;
+            --bg-gradient-end: #111827;
+            --page-bg: #1e1e2e;
+            --panel-bg: #2a2a3a;
+            --panel-border: rgba(255, 255, 255, .07);
+            --panel-shadow: 0 20px 60px rgba(0, 0, 0, .8);
+            --header-text: #f0f0f0;
+            --text-main: #f0f0f0;
+            --text-dim: #a0a0b8;
+            --btn-bg-start: #4f46e5;
+            --btn-bg-end: #6d28d9;
+            --section-bg: #3a3a4a;
+            --trend-pos: #ff6b6b;
+            --trend-neg: #4ade80
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--text-main)
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--panel-bg);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: var(--panel-shadow);
+            border: 1px solid var(--panel-border)
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            padding: 20px;
+            border-radius: 10px;
+            color: var(--header-text);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        .header h1 {
+            font-size: 1.8em
+        }
+
+        .btn-back {
+            background: rgba(0, 0, 0, .2);
+            border: 1px solid rgba(255, 255, 255, .3);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 16px;
+            background: linear-gradient(135deg, var(--btn-bg-start) 0%, var(--btn-bg-end) 100%);
+            color: var(--btn-text);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: opacity .2s
+        }
+
+        .btn:hover {
+            opacity: .9
+        }
+
+        .btn-secondary {
+            background: var(--text-dim)
+        }
+
+        .section {
+            background: var(--section-bg);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px
+        }
+
+        .section h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: var(--text-main)
+        }
+
+        .form-group {
+            margin-bottom: 12px
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600
+        }
+
+        .form-group input[type="file"],
+        .form-group select,
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            background: var(--page-bg)
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 30px;
+            margin: 15px 0
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center
+        }
+
+        .modal-content {
+            background: var(--panel-bg);
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, .3)
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px
+        }
+
+        .stat-box {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 15px 0
+        }
+
+        .stat-item {
+            background: var(--page-bg);
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            border-left: 4px solid var(--btn-bg-start)
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-bottom: 5px
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border-left: 4px solid
+        }
+
+        .alert-success {
+            background: rgba(39, 174, 96, .1);
+            color: var(--trend-neg);
+            border-left-color: var(--trend-neg)
+        }
+
+        .alert-error {
+            background: rgba(231, 76, 60, .1);
+            color: var(--trend-pos);
+            border-left-color: var(--trend-pos)
+        }
+
+        .alert-info {
+            background: rgba(52, 152, 219, .1);
+            color: #3498db;
+            border-left-color: #3498db
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        .table th {
+            position: sticky;
+            top: 0;
+            background: linear-gradient(135deg, var(--btn-bg-start) 0%, var(--btn-bg-end) 100%);
+            color: #fff;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap
+        }
+
+        .table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--panel-border);
+            white-space: nowrap
+        }
+
+        .table tr:hover {
+            background: var(--section-bg)
+        }
+
+        .muted {
+            color: var(--text-dim);
+            font-size: 14px
+        }
+
+        .trend-positive {
+            color: var(--trend-pos);
+            font-weight: 600
+        }
+
+        .trend-negative {
+            color: var(--trend-neg);
+            font-weight: 600
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 10px
+        }
+
+        .toolbar .grow {
+            flex: 1
+        }
+
+        .pager {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: flex-end;
+            margin-top: 8px
+        }
+
+        .pager .info {
+            margin-right: auto;
+            color: var(--text-dim)
+        }
+
+        .scrollwrap {
+            overflow: auto;
+            max-height: 520px;
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            background: var(--page-bg)
+        }
+
+        @media (max-width:768px) {
+            .header {
+                flex-direction: column;
+                text-align: center
+            }
+
+            .radio-group {
+                flex-direction: column;
+                gap: 10px
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📤 數據上傳</h1>
+            <a href="index.html" class="btn-back">← 返回首頁</a>
+        </div>
+
+        <div class="section">
+            <h2>選擇要上傳的文件</h2>
+            <div class="form-group">
+                <label for="fileInput">上傳 CSV 或 Excel 檔案：</label>
+                <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" />
+            </div>
+            <div id="fileName" class="muted" style="margin-top:5px;"></div>
+            <button class="btn" id="btnUpload" style="margin-top:10px;">📤 開始上傳</button>
+        </div>
+
+        <div class="section">
+            <h2>當前數據統計</h2>
+            <div class="stat-box">
+                <div class="stat-item">
+                    <div class="stat-label">數據筆數</div>
+                    <div class="stat-value" id="dataCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">日期範圍</div>
+                    <div class="stat-value" id="dateRange" style="font-size:14px;">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">股票家數</div>
+                    <div class="stat-value" id="stockCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">最後更新</div>
+                    <div class="stat-value" id="lastUpdate" style="font-size:12px;">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="messageBox"></div>
+
+        <div class="section">
+            <h2>新增數據預覽</h2>
+            <div id="previewContent" class="muted" style="padding:10px;">選擇文件後此處會顯示預覽信息</div>
+        </div>
+
+        <!-- 全部數據瀏覽 -->
+        <div class="section">
+            <h2>全部數據瀏覽</h2>
+            <div class="toolbar">
+                <input class="grow" type="text" id="globalSearch" placeholder="搜尋：代碼 / 名稱…（Enter 或停頓自動套用）" />
+                <label>每頁
+                    <select id="pageSize">
+                        <option value="20">20</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                        <option value="500">500</option>
+                    </select>
+                </label>
+                <button class="btn" id="btnShowAll">顯示全部</button>
+            </div>
+            <div class="scrollwrap">
+                <table class="table" id="allDataTable">
+                    <thead>
+                        <tr>
+                            <th data-sort="日期">Date ⬍</th>
+                            <th data-sort="代碼">代碼 ⬍</th>
+                            <th data-sort="商品">商品 ⬍</th>
+                            <th data-sort="開盤價">開盤價 ⬍</th>
+                            <th data-sort="最高價">最高價 ⬍</th>
+                            <th data-sort="最低價">最低價 ⬍</th>
+                            <th data-sort="收盤價">收盤價 ⬍</th>
+                            <th data-sort="漲跌幅">漲跌幅 ⬍</th>
+                            <th data-sort="振幅">振幅 ⬍</th>
+                            <th data-sort="成交量">成交量 ⬍</th>
+                            <th data-sort="平均價3[0]">平均價3[0] ⬍</th>
+                            <th data-sort="外盤量">外盤量 ⬍</th>
+                            <th data-sort="開盤量">開盤量 ⬍</th>
+                            <th data-sort="當日沖銷張數">當日沖銷張數 ⬍</th>
+                            <th data-sort="52H">52H ⬍</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allDataTbody">
+                        <tr>
+                            <td colspan="15" class="muted">尚無資料</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pager">
+                <div class="info" id="pagerInfo">第 0 / 0 頁 • 共 0 筆</div>
+                <button class="btn" id="prevPage">上一頁</button>
+                <button class="btn" id="nextPage">下一頁</button>
+            </div>
+        </div>
+
+        <!-- 合併選擇 -->
+        <div id="mergeModal" class="modal">
+            <div class="modal-content">
+                <h3>選擇數據合併方式</h3>
+                <p>既有數據筆數：<strong id="existingDataCount">0</strong></p>
+                <p>新增數據筆數：<strong id="newDataCount">0</strong></p>
+                <div class="radio-group">
+                    <label><input type="radio" name="mergeOption" value="merge" checked /> 智能合併（去重）</label>
+                    <label><input type="radio" name="mergeOption" value="replace" /> 完全覆蓋</label>
+                    <label><input type="radio" name="mergeOption" value="append" /> 直接追加</label>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn" id="btnConfirmMerge">確認</button>
+                    <button class="btn btn-secondary" id="btnCancelMerge">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let marketData = [];
+        let pendingNewData = [];
+        const STORAGE_KEY = 'stockMarketData_v3';
+
+        const view = { page: 1, pageSize: 50, sortBy: '日期', sortDir: 'desc', keyword: '' };
+
+        /* === 欄位別名與工具（關鍵修正） === */
+        const FIELD_ALIASES = {
+            日期: ['日期', 'date', 'Date'],
+            代碼: ['代碼', 'code', 'Code', 'symbol', 'Symbol', 'Ticker'],
+            商品: ['商品', '名稱', 'name', 'Name', '股票名稱', '證券名稱'],
+            開盤價: ['開盤價', '開盤', 'open', 'Open'],
+            最高價: ['最高價', '最高', 'high', 'High'],
+            最低價: ['最低價', '最低', 'low', 'Low'],
+            收盤價: ['收盤價', '收盤', 'close', 'Close'],
+            漲跌幅: ['漲跌幅', '漲跌%', '變動%', 'change%', 'Change%', 'pct_change'],
+            振幅: ['振幅', '振幅%', 'range%', 'amplitude%'],
+            成交量: ['成交量', '成交股數', 'volume', 'Volume'],
+            內盤量: ['內盤量', '內盤成交量', '內盤', 'bid_volume', 'BidVolume', 'bidVolume'],
+            外盤量: ['外盤量', '外盤成交量', '外盤', 'ask_volume', 'AskVolume', 'askVolume'],
+            開盤量: ['開盤量', '開盤成交量', 'open_volume', 'OpenVolume'],
+            當日沖銷張數: ['當日沖銷張數', '當沖張數', '當沖成交張數', 'day_trade_volume', 'DayTradeVolume'],
+            '52H': ['52H', '52週最高價', '52週高點', '52W_High', '52WeekHigh', '52H', '52h'],
+            '平均價3[0]':['平均價3[0]','平均價3']
+        };
+        const normKey = k => String(k || '').replace(/\s+/g, '').replace(/[()（）]/g, '').toLowerCase();
+        function normRowKeys(row) { const m = {}; for (const [k, v] of Object.entries(row)) m[normKey(k)] = v; return m; }
+        function pickByAliases(rowNorm, aliases) { for (const a of aliases) { const v = rowNorm[normKey(a)]; if (v != null && v !== '') return v; } return ''; }
+        function toNum(v) {
+            if (v == null || v === '') return NaN;
+            const s = String(v).replace(/[,%\u3000\s]/g, '').replace(/—|–/g, '');
+            const n = parseFloat(s);
+            return Number.isFinite(n) ? n : NaN;
+        }
+        function calcAmplitude(r) {
+            const h = r.最高價, l = r.最低價, c = r.收盤價;
+            if (Number.isFinite(h) && Number.isFinite(l) && Number.isFinite(c) && c !== 0) return ((h - l) / c) * 100;
+            return NaN;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            bindUI();
+            loadMarketData();
+            updateStats();
+            renderAllDataTable();
+        });
+
+        function initTheme() { const isDark = localStorage.getItem('theme_dark') === '1'; if (isDark) document.body.classList.add('dark'); }
+
+        function bindUI() {
+            document.getElementById('btnUpload').addEventListener('click', uploadFile);
+            document.getElementById('fileInput').addEventListener('change', e => {
+                const f = e.target.files?.[0];
+                document.getElementById('fileName').textContent = f ? `已選擇：${f.name}（${(f.size / 1024).toFixed(1)} KB）` : '';
+            });
+            const search = document.getElementById('globalSearch'); let t = null;
+            search.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { view.keyword = search.value.trim(); view.page = 1; renderAllDataTable(); }, 300); });
+            search.addEventListener('keydown', e => { if (e.key === 'Enter') { view.keyword = search.value.trim(); view.page = 1; renderAllDataTable(); } });
+            document.getElementById('pageSize').addEventListener('change', e => { view.pageSize = +e.target.value || 50; view.page = 1; renderAllDataTable(); });
+            document.getElementById('btnShowAll').addEventListener('click', () => { view.pageSize = 1e6; view.page = 1; renderAllDataTable(); });
+            document.getElementById('prevPage').addEventListener('click', () => { if (view.page > 1) { view.page--; renderAllDataTable(); } });
+            document.getElementById('nextPage').addEventListener('click', () => { const pages = getPages(); if (view.page < pages) { view.page++; renderAllDataTable(); } });
+            document.querySelectorAll('#allDataTable thead th').forEach(th => {
+                th.addEventListener('click', () => {
+                    const col = th.getAttribute('data-sort'); if (!col) return;
+                    if (view.sortBy === col) view.sortDir = (view.sortDir === 'asc' ? 'desc' : 'asc');
+                    else { view.sortBy = col; view.sortDir = (col === '日期' ? 'desc' : 'asc'); }
+                    renderAllDataTable();
+                });
+            });
+            document.getElementById('btnConfirmMerge').addEventListener('click', confirmMerge);
+            document.getElementById('btnCancelMerge').addEventListener('click', closeMergeModal);
+        }
+
+        function loadMarketData() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (!stored) return;
+                const parsed = JSON.parse(stored);
+                marketData = parsed?.data ?? (Array.isArray(parsed) ? parsed : []);
+            } catch (e) { console.error('加載數據失敗：', e); }
+        }
+
+        function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files?.[0];
+            if (!file) { showMessage('請先選擇文件', 'error'); return; }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const data = e.target.result;
+                if (file.name.toLowerCase().endsWith('.csv')) parseCSV(data);
+                else parseExcel(data);
+            };
+            if (file.name.toLowerCase().endsWith('.csv')) reader.readAsText(file, 'utf-8');
+            else reader.readAsBinaryString(file);
+        }
+
+        function parseCSV(data) {
+            Papa.parse(data, {
+                header: true, dynamicTyping: true, skipEmptyLines: true,
+                complete: (res) => prepareNewData(res.data || []),
+                error: (err) => showMessage('CSV 解析失敗：' + err.message, 'error')
+            });
+        }
+
+        function parseExcel(data) {
+            try {
+                const wb = XLSX.read(data, { type: 'binary' });
+                const first = wb.Sheets[wb.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(first);
+                prepareNewData(json || []);
+            } catch (e) { showMessage('Excel 解析失敗：' + e.message, 'error'); }
+        }
+
+        function prepareNewData(raw) {
+            pendingNewData = raw.map(normalizeRow).filter(r => r.代碼 && r.日期 && isFinite(r.收盤價));
+            if (pendingNewData.length === 0) { showMessage('檔案中沒有有效的資料', 'error'); return; }
+
+            const preview = document.getElementById('previewContent');
+            preview.innerHTML = `
+        <div class="alert alert-info">✅ 成功解析 <strong>${pendingNewData.length}</strong> 筆新數據</div>
+        <table class="table"><thead>
+          <tr><th>Date</th><th>代碼</th><th>商品</th><th>收盤價</th><th>漲跌幅</th></tr>
+        </thead><tbody>
+          ${pendingNewData.slice(0, 10).map(r => `
+            <tr>
+              <td>${r.日期}</td>
+              <td>${r.代碼}</td>
+              <td>${esc(r.商品) || '-'}</td>
+              <td>${fmtPrice(r.收盤價)}</td>
+              <td class="${(r.漲跌幅 ?? 0) >= 0 ? 'trend-positive' : 'trend-negative'}">${fmtPct(r.漲跌幅)}</td>
+            </tr>`).join('')}
+        </tbody></table>
+        <p class="muted" style="margin-top:8px;">（僅顯示前 10 筆）</p>`;
+
+            // 額外：欄位偵測摘要，便於排錯
+            const firstRaw = raw[0] || {};
+            const R0 = normRowKeys(firstRaw);
+            const detected = Object.entries(FIELD_ALIASES).map(([canon, alias]) => {
+                const hit = alias.find(a => R0.hasOwnProperty(normKey(a)));
+                return `${canon}：${hit ? '✅ ' + hit : '❌ 未找到'}`;
+            }).join(' ・ ');
+            preview.insertAdjacentHTML('beforeend', `<p class="muted" style="margin-top:8px">欄位對應：${detected}</p>`);
+
+            if (marketData.length === 0) {
+                marketData = pendingNewData;
+                saveMarketData();
+                showMessage(`✅ 資料載入成功，共 ${marketData.length} 筆`, 'success');
+                updateStats();
+                pendingNewData = [];
+                document.getElementById('fileInput').value = '';
+                renderAllDataTable();
+            } else {
+                document.getElementById('existingDataCount').textContent = marketData.length;
+                document.getElementById('newDataCount').textContent = pendingNewData.length;
+                document.getElementById('mergeModal').style.display = 'flex';
+            }
+        }
+
+        /* 標準化：使用別名 + 自動清洗數字；振幅缺值以 (高-低)/收 *100 估算 */
+        function normalizeRow(row) {
+            const R = normRowKeys(row);
+
+            const date = String(pickByAliases(R, FIELD_ALIASES.日期)).trim();
+            const code = String(pickByAliases(R, FIELD_ALIASES.代碼)).trim();
+            const name = pickByAliases(R, FIELD_ALIASES.商品);
+
+            const open = toNum(pickByAliases(R, FIELD_ALIASES.開盤價));
+            const high = toNum(pickByAliases(R, FIELD_ALIASES.最高價));
+            const low = toNum(pickByAliases(R, FIELD_ALIASES.最低價));
+            const close = toNum(pickByAliases(R, FIELD_ALIASES.收盤價));
+
+            const chg = toNum(pickByAliases(R, FIELD_ALIASES.漲跌幅));
+            let amp = toNum(pickByAliases(R, FIELD_ALIASES.振幅));
+            if (!Number.isFinite(amp)) amp = calcAmplitude({ 最高價: high, 最低價: low, 收盤價: close });
+
+            const vol = toNum(pickByAliases(R, FIELD_ALIASES.成交量));
+            const avg3Arr = toNum(pickByAliases(R, FIELD_ALIASES.平均價3[0]));
+            const outVol = toNum(pickByAliases(R, FIELD_ALIASES.外盤量));
+            const openVol = toNum(pickByAliases(R, FIELD_ALIASES.開盤量));
+            const dayTrade = toNum(pickByAliases(R, FIELD_ALIASES.當日沖銷張數));
+            const h52 = toNum(pickByAliases(R, FIELD_ALIASES['52H']));
+
+            return {
+                日期: date, 代碼: code, 商品: name,
+                開盤價: open, 最高價: high, 最低價: low, 收盤價: close,
+                漲跌幅: chg, 振幅: amp,
+                成交量: vol, 平均價3[0]: avg3Arr, 外盤量: outVol, 開盤量: openVol,
+                當日沖銷張數: dayTrade, '52H': h52
+            };
+        }
+
+        function confirmMerge() {
+            const op = document.querySelector('input[name="mergeOption"]:checked')?.value || 'merge';
+            closeMergeModal();
+            if (op === 'merge') smartMerge();
+            else if (op === 'replace') marketData = pendingNewData;
+            else marketData = marketData.concat(pendingNewData);
+
+            saveMarketData();
+            showMessage(`✅ 資料已${{ merge: '智能合併', replace: '完全覆蓋', append: '追加' }[op]}，共 ${marketData.length} 筆`, 'success');
+            updateStats();
+            pendingNewData = [];
+            document.getElementById('fileInput').value = '';
+            document.getElementById('previewContent').innerHTML = '<div class="muted">選擇文件後此處會顯示預覽信息</div>';
+            renderAllDataTable();
+        }
+
+        function smartMerge() {
+            const map = new Map();
+            marketData.forEach(i => map.set(i.代碼 + '_' + i.日期, i));
+            pendingNewData.forEach(i => map.set(i.代碼 + '_' + i.日期, i));
+            marketData = [...map.values()];
+        }
+
+        function saveMarketData() {
+            const payload = { version: '2.0', lastUpdate: new Date().toISOString(), recordCount: marketData.length, data: marketData };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        }
+
+        function updateStats() {
+            const count = marketData.length;
+            document.getElementById('dataCount').textContent = count.toLocaleString();
+            if (count > 0) {
+                const dates = [...new Set(marketData.map(d => d.日期).filter(Boolean))].sort();
+                const stocks = new Set(marketData.map(d => d.代碼));
+                document.getElementById('dateRange').textContent = dates.length ? `${dates[0]} ~ ${dates[dates.length - 1]}` : '-';
+                document.getElementById('stockCount').textContent = stocks.size;
+            }
+            try {
+                const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+                if (stored.lastUpdate) {
+                    document.getElementById('lastUpdate').textContent = new Date(stored.lastUpdate).toLocaleString('zh-TW', { hour12: false });
+                }
+            } catch { }
+        }
+
+        function closeMergeModal() { document.getElementById('mergeModal').style.display = 'none'; }
+        function showMessage(msg, type = 'info') { document.getElementById('messageBox').innerHTML = `<div class="alert alert-${type}">${msg}</div>`; }
+
+        /* 表格渲染與查詢/排序/分頁 */
+        function filteredAndSorted() {
+            const kw = view.keyword.toLowerCase();
+            let rows = !kw ? marketData.slice()
+                : marketData.filter(r => (`${r.代碼} ${r.商品 || ''}`).toLowerCase().includes(kw));
+            const col = view.sortBy, dir = view.sortDir === 'asc' ? 1 : -1;
+            rows.sort((a, b) => {
+                const av = a[col], bv = b[col];
+                if (col === '日期') { return ((new Date(av)) - (new Date(bv))) * dir; }
+                if (typeof av === 'number' && typeof bv === 'number') {
+                    const aa = isFinite(av) ? av : -Infinity, bb = isFinite(bv) ? bv : -Infinity;
+                    return (aa - bb) * dir;
+                }
+                return String(av ?? '').localeCompare(String(bv ?? ''), 'zh-Hant') * dir;
+            });
+            return rows;
+        }
+        function getPages(total = null) { const t = (total ?? filteredAndSorted().length); return Math.max(1, Math.ceil(t / view.pageSize)); }
+
+        function renderAllDataTable() {
+            const tbody = document.getElementById('allDataTbody');
+            const info = document.getElementById('pagerInfo');
+            const rows = filteredAndSorted();
+            const total = rows.length;
+            const pages = getPages(total);
+            if (view.page > pages) view.page = pages;
+
+            if (total === 0) { tbody.innerHTML = `<tr><td colspan="15" class="muted">尚無資料</td></tr>`; info.textContent = '第 0 / 0 頁 • 共 0 筆'; return; }
+
+            const start = (view.page - 1) * view.pageSize;
+            const end = Math.min(total, start + view.pageSize);
+            const pageRows = rows.slice(start, end);
+
+            let html = '';
+            for (const r of pageRows) {
+                const amp = Number.isFinite(r.振幅) ? r.振幅 : calcAmplitude(r); // 振幅即時計算後備
+                html += `<tr>
+          <td>${r.日期 || '-'}</td>
+          <td>${r.代碼 || '-'}</td>
+          <td>${esc(r.商品) || '-'}</td>
+          <td>${fmtPrice(r.開盤價)}</td>
+          <td>${fmtPrice(r.最高價)}</td>
+          <td>${fmtPrice(r.最低價)}</td>
+          <td>${fmtPrice(r.收盤價)}</td>
+          <td class="${(r.漲跌幅 ?? 0) >= 0 ? 'trend-positive' : 'trend-negative'}">${fmtPct(r.漲跌幅)}</td>
+          <td>${fmtPct(amp)}</td>
+          <td>${fmtInt(r.成交量)}</td>
+          <td>${fmtPrice(r.平均價3[0])}</td>
+          <td>${fmtInt(r.外盤量)}</td>
+          <td>${fmtInt(r.開盤量)}</td>
+          <td>${fmtInt(r.當日沖銷張數)}</td>
+          <td>${fmtPct(r['52H'])}</td>
+        </tr>`;
+            }
+            tbody.innerHTML = html;
+            info.textContent = `第 ${view.page} / ${pages} 頁 • 共 ${total.toLocaleString()} 筆（顯示 ${pageRows.length.toLocaleString()} 筆）`;
+        }
+
+        /* 格式工具 */
+        function fmtPrice(v) { return isFinite(v) ? Number(v).toFixed(2) : '-'; }
+        function fmtPct(v) { return isFinite(v) ? `${v > 0 ? '+' : ''}${Number(v).toFixed(2)}%` : '-'; }
+        function fmtInt(v) { return isFinite(v) ? Number(v).toLocaleString() : '-'; }
+        function esc(s) { return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
+    </script>
+</body>
+
+</html>

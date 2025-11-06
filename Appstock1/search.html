@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全局搜尋 - 股票分析系統</title>
+    <style>
+        :root {
+            --bg-gradient-start: #667eea; --bg-gradient-end: #764ba2; --page-bg: #ffffff;
+            --panel-bg: #ffffff; --panel-border: rgba(0, 0, 0, 0.05); --panel-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            --header-text: #ffffff; --text-main: #333; --text-dim: #666; --btn-bg-start: #667eea;
+            --btn-bg-end: #764ba2; --btn-text: #ffffff; --section-bg: #f8f9fa;
+        }
+        body.dark {
+            --bg-gradient-start: #1f2937; --bg-gradient-end: #111827; --page-bg: #1e1e2e;
+            --panel-bg: #2a2a3a; --panel-border: rgba(255, 255, 255, 0.07);
+            --panel-shadow: 0 20px 60px rgba(0, 0, 0, 0.8); --header-text: #f0f0f0;
+            --text-main: #f0f0f0; --text-dim: #a0a0b8; --btn-bg-start: #4f46e5;
+            --btn-bg-end: #6d28d9; --section-bg: #3a3a4a;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft JhengHei', 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh; padding: 20px; color: var(--text-main); }
+        .container { max-width: 1200px; margin: 0 auto; background: var(--panel-bg); border-radius: 15px;
+            padding: 30px; box-shadow: var(--panel-shadow); border: 1px solid var(--panel-border); }
+        .header { background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            padding: 20px; border-radius: 10px; color: var(--header-text); margin-bottom: 30px;
+            display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 1.8em; }
+        .btn-back { background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; text-decoration: none; font-size: 14px; }
+        .section { background: var(--section-bg); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .section h2 { font-size: 18px; margin-bottom: 15px; color: var(--text-main); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: var(--text-main); }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid var(--panel-border); border-radius: 6px;
+            background: var(--page-bg); color: var(--text-main); font-family: inherit; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        table th { background: linear-gradient(135deg, var(--btn-bg-start) 0%, var(--btn-bg-end) 100%);
+            color: white; padding: 12px; text-align: left; font-weight: 600; }
+        table td { padding: 10px 12px; border-bottom: 1px solid var(--panel-border); }
+        table tr { cursor: pointer; }
+        table tr:hover { background: var(--section-bg); }
+        .muted { color: var(--text-dim); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 全局搜尋</h1>
+            <a href="index.html" class="btn-back">← 返回首頁</a>
+        </div>
+
+        <div class="section">
+            <h2>搜尋股票</h2>
+            <div class="form-group">
+                <label for="globalSearch">輸入代碼或名稱：</label>
+                <input type="text" id="globalSearch" placeholder="如 2330 或 台積電" oninput="updateSearch(this.value)" />
+            </div>
+        </div>
+
+        <div class="section" id="searchResults">
+            <div class="muted">輸入代碼或名稱開始搜尋</div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'stockMarketData_v3';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+        });
+
+        function initTheme() {
+            if (localStorage.getItem('theme_dark') === '1') document.body.classList.add('dark');
+        }
+
+        function updateSearch(keyword='') {
+            const marketData = loadMarketData();
+            const el = document.getElementById('searchResults');
+            const kw = keyword.trim();
+
+            if (!kw) {
+                el.innerHTML = '<div class="muted">輸入代碼或名稱開始搜尋</div>';
+                return;
+            }
+
+            const rows = marketData.filter(r =>
+                r.代碼?.includes(kw) || (r.商品||'').includes(kw)
+            ).slice(0, 100);
+
+            if (!rows.length) {
+                el.innerHTML = '<div class="muted">查無結果</div>';
+                return;
+            }
+
+            el.innerHTML = `
+                <table>
+                    <thead><tr><th>日期</th><th>代碼</th><th>名稱</th><th>收盤</th><th>漲跌幅</th></tr></thead>
+                    <tbody>
+                        ${rows.map(r=>`
+                            <tr onclick="jumpAnalyze('${r.代碼}')">
+                                <td>${r.日期}</td>
+                                <td>${r.代碼}</td>
+                                <td>${r.商品||''}</td>
+                                <td>${r.收盤價}</td>
+                                <td>${(+r.漲跌幅||0).toFixed(2)}%</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>`;
+        }
+
+        function loadMarketData() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (!stored) return [];
+                const parsed = JSON.parse(stored);
+                return parsed?.data ?? (Array.isArray(parsed) ? parsed : []);
+            } catch { return []; }
+        }
+
+        function jumpAnalyze(code) {
+            window.location.href = `analyze.html?code=${code}`;
+        }
+    </script>
+</body>
+</html>

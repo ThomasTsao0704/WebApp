@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>概念股 - 股票分析系統</title>
+    <style>
+        :root {
+            --bg-gradient-start: #667eea; --bg-gradient-end: #764ba2; --page-bg: #ffffff;
+            --panel-bg: #ffffff; --panel-border: rgba(0, 0, 0, 0.05); --panel-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            --header-text: #ffffff; --text-main: #333; --text-dim: #666; --btn-bg-start: #667eea;
+            --btn-bg-end: #764ba2; --btn-text: #ffffff; --section-bg: #f8f9fa;
+            --trend-pos: #e74c3c; --trend-neg: #27ae60;
+        }
+        body.dark {
+            --bg-gradient-start: #1f2937; --bg-gradient-end: #111827; --page-bg: #1e1e2e;
+            --panel-bg: #2a2a3a; --panel-border: rgba(255, 255, 255, 0.07);
+            --panel-shadow: 0 20px 60px rgba(0, 0, 0, 0.8); --header-text: #f0f0f0;
+            --text-main: #f0f0f0; --text-dim: #a0a0b8; --btn-bg-start: #4f46e5;
+            --btn-bg-end: #6d28d9; --section-bg: #3a3a4a; --trend-pos: #ff6b6b; --trend-neg: #4ade80;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft JhengHei', 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh; padding: 20px; color: var(--text-main); }
+        .container { max-width: 1200px; margin: 0 auto; background: var(--panel-bg); border-radius: 15px;
+            padding: 30px; box-shadow: var(--panel-shadow); border: 1px solid var(--panel-border); }
+        .header { background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            padding: 20px; border-radius: 10px; color: var(--header-text); margin-bottom: 30px;
+            display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 1.8em; }
+        .btn-back { background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; text-decoration: none; font-size: 14px; }
+        .section { background: var(--section-bg); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .section h2 { font-size: 18px; margin-bottom: 15px; color: var(--text-main); }
+        .filter-box { margin-bottom: 15px; }
+        .filter-box label { display: inline-flex; align-items: center; margin-right: 15px;
+            color: var(--text-main); font-size: 14px; cursor: pointer; }
+        .filter-box input { margin-right: 5px; }
+        .muted { color: var(--text-dim); }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        table th { background: linear-gradient(135deg, var(--btn-bg-start) 0%, var(--btn-bg-end) 100%);
+            color: white; padding: 12px; text-align: left; font-weight: 600; }
+        table td { padding: 10px 12px; border-bottom: 1px solid var(--panel-border); }
+        .trend-positive { color: var(--trend-pos); }
+        .trend-negative { color: var(--trend-neg); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 概念股分析</h1>
+            <a href="index.html" class="btn-back">← 返回首頁</a>
+        </div>
+
+        <div class="section">
+            <h2>概念篩選</h2>
+            <div class="filter-box" id="conceptsFilter"></div>
+        </div>
+
+        <div class="section" id="conceptsContent">
+            <div class="muted">選擇概念篩選</div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'stockMarketData_v3';
+        const concepts = {
+            'AI人工智慧': ['2330','2454','3034','2379','3661','6669','4904'],
+            '電動車': ['2317','1513','6116','1102','5871','2308','1519'],
+            '半導體': ['2330','2454','3034','2303','3711','6770','3443'],
+            '5G通訊': ['2454','2474','3044','2345','2449','6188','3661']
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            initConcepts();
+        });
+
+        function initTheme() {
+            if (localStorage.getItem('theme_dark') === '1') document.body.classList.add('dark');
+        }
+
+        function initConcepts() {
+            const box = document.getElementById('conceptsFilter');
+            box.innerHTML = Object.keys(concepts).map(k=>`<label><input type="checkbox" value="${k}" checked> ${k}</label>`).join('');
+            box.querySelectorAll('input[type="checkbox"]').forEach(chk=>{
+                chk.addEventListener('change', updateConcepts);
+            });
+            updateConcepts();
+        }
+
+        function updateConcepts() {
+            const marketData = loadMarketData();
+            const el = document.getElementById('conceptsContent');
+
+            if (marketData.length === 0) {
+                el.innerHTML = '<div class="muted">尚無資料</div>';
+                return;
+            }
+
+            const dates = [...new Set(marketData.map(d => d.日期))].sort();
+            const latest = dates[dates.length - 1];
+            const today = marketData.filter(d => d.日期 === latest);
+
+            const enabled = new Set(Array.from(document.querySelectorAll('#conceptsFilter input:checked')).map(i=>i.value));
+            const rows = [];
+
+            for (const [name, codes] of Object.entries(concepts)) {
+                if (!enabled.has(name)) continue;
+                const subset = today.filter(r => codes.includes(r.代碼));
+                if (!subset.length) continue;
+                const avg = subset.reduce((s,r)=>s+(+r.漲跌幅||0),0)/subset.length;
+                const vol = subset.reduce((s,r)=>s+(+r.成交量||0),0);
+                rows.push({ name, avg, vol, count: subset.length });
+            }
+            rows.sort((a,b)=>b.avg-a.avg);
+
+            el.innerHTML = `
+                <h3>概念股即時條（${latest}）</h3>
+                <table>
+                    <thead><tr><th>概念</th><th>平均漲幅</th><th>家數</th><th>總量</th></tr></thead>
+                    <tbody>
+                        ${rows.map(r=>`
+                            <tr>
+                                <td>${r.name}</td>
+                                <td class="${r.avg>=0?'trend-positive':'trend-negative'}">${r.avg>=0?'+':''}${r.avg.toFixed(2)}%</td>
+                                <td>${r.count}</td>
+                                <td>${formatNumber(r.vol)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>`;
+        }
+
+        function loadMarketData() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (!stored) return [];
+                const parsed = JSON.parse(stored);
+                return parsed?.data ?? (Array.isArray(parsed) ? parsed : []);
+            } catch { return []; }
+        }
+
+        function formatNumber(n) {
+            return n == null ? '—' : (+n).toLocaleString();
+        }
+    </script>
+</body>
+</html>
