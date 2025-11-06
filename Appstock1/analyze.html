@@ -7,61 +7,443 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         :root {
-            --bg-gradient-start: #667eea; --bg-gradient-end: #764ba2; --page-bg: #ffffff;
-            --panel-bg: #ffffff; --panel-border: rgba(0, 0, 0, 0.05); --panel-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            --header-text: #ffffff; --text-main: #333; --text-dim: #666; --btn-bg-start: #667eea;
-            --btn-bg-end: #764ba2; --btn-text: #ffffff; --section-bg: #f8f9fa;
+            --bg-gradient-start: #667eea;
+            --bg-gradient-end: #764ba2;
+            --page-bg: #ffffff;
+            --panel-bg: #ffffff;
+            --panel-border: rgba(0, 0, 0, 0.05);
+            --panel-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            --header-text: #ffffff;
+            --text-main: #333;
+            --text-dim: #666;
+            --btn-bg-start: #667eea;
+            --btn-bg-end: #764ba2;
+            --btn-text: #ffffff;
+            --section-bg: #f8f9fa;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
         }
+        
         body.dark {
-            --bg-gradient-start: #1f2937; --bg-gradient-end: #111827; --page-bg: #1e1e2e;
-            --panel-bg: #2a2a3a; --panel-border: rgba(255, 255, 255, 0.07);
-            --panel-shadow: 0 20px 60px rgba(0, 0, 0, 0.8); --header-text: #f0f0f0;
-            --text-main: #f0f0f0; --text-dim: #a0a0b8; --btn-bg-start: #4f46e5;
-            --btn-bg-end: #6d28d9; --section-bg: #3a3a4a;
+            --bg-gradient-start: #1f2937;
+            --bg-gradient-end: #111827;
+            --page-bg: #1e1e2e;
+            --panel-bg: #2a2a3a;
+            --panel-border: rgba(255, 255, 255, 0.07);
+            --panel-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            --header-text: #f0f0f0;
+            --text-main: #f0f0f0;
+            --text-dim: #a0a0b8;
+            --btn-bg-start: #4f46e5;
+            --btn-bg-end: #6d28d9;
+            --section-bg: #3a3a4a;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Microsoft JhengHei', 'Segoe UI', system-ui, sans-serif;
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft JhengHei', 'Segoe UI', system-ui, sans-serif;
             background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
-            min-height: 100vh; padding: 20px; color: var(--text-main); }
-        .container { max-width: 1200px; margin: 0 auto; background: var(--panel-bg); border-radius: 15px;
-            padding: 30px; box-shadow: var(--panel-shadow); border: 1px solid var(--panel-border); }
-        .header { background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
-            padding: 20px; border-radius: 10px; color: var(--header-text); margin-bottom: 30px;
-            display: flex; justify-content: space-between; align-items: center; }
-        .header h1 { font-size: 1.8em; }
-        .btn-back { background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; text-decoration: none; font-size: 14px; }
-        .btn { display: inline-block; padding: 10px 20px; background: linear-gradient(135deg, var(--btn-bg-start) 0%, var(--btn-bg-end) 100%);
-            color: var(--btn-text); border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
-        .btn:hover { opacity: 0.9; }
-        .section { background: var(--section-bg); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
-        .section h2 { font-size: 18px; margin-bottom: 15px; color: var(--text-main); }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: var(--text-main); }
-        .form-group input { width: 100%; padding: 8px; border: 1px solid var(--panel-border); border-radius: 6px;
-            background: var(--page-bg); color: var(--text-main); font-family: inherit; }
-        .chart-container { position: relative; height: 400px; margin: 20px 0; }
-        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 15px 0; }
-        .stat-item { background: var(--page-bg); padding: 15px; border-radius: 6px; border-left: 4px solid var(--btn-bg-start); }
-        .stat-label { font-size: 12px; color: var(--text-dim); }
-        .stat-value { font-size: 18px; font-weight: 700; color: var(--text-main); margin-top: 5px; }
-        .muted { color: var(--text-dim); }
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--text-main);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--panel-bg);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: var(--panel-shadow);
+            border: 1px solid var(--panel-border);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            padding: 20px;
+            border-radius: 10px;
+            color: var(--header-text);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .header h1 {
+            font-size: 1.8em;
+        }
+        
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .btn-back, .btn-theme {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .btn-back:hover, .btn-theme:hover {
+            background: rgba(0, 0, 0, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, var(--btn-bg-start) 0%, var(--btn-bg-end) 100%);
+            color: var(--btn-text);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+        }
+        
+        .section {
+            background: var(--section-bg);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .section h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: var(--text-main);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            background: var(--page-bg);
+            color: var(--text-main);
+            font-family: inherit;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+        }
+        
+        .chart-container.small {
+            height: 250px;
+        }
+        
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .stat-item {
+            background: var(--page-bg);
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid var(--btn-bg-start);
+            transition: transform 0.3s;
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-2px);
+        }
+        
+        .stat-item.positive {
+            border-left-color: var(--success-color);
+        }
+        
+        .stat-item.negative {
+            border-left-color: var(--danger-color);
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-top: 5px;
+        }
+        
+        .stat-value.positive {
+            color: var(--success-color);
+        }
+        
+        .stat-value.negative {
+            color: var(--danger-color);
+        }
+        
+        .muted {
+            color: var(--text-dim);
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--panel-border);
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .tab:hover {
+            color: var(--text-main);
+        }
+        
+        .tab.active {
+            color: var(--btn-bg-start);
+        }
+        
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--btn-bg-start);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--panel-border);
+        }
+        
+        th {
+            background: var(--section-bg);
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background: var(--section-bg);
+        }
+        
+        .indicator-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 5px;
+        }
+        
+        .indicator-badge.bullish {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success-color);
+        }
+        
+        .indicator-badge.bearish {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger-color);
+        }
+        
+        .indicator-badge.neutral {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning-color);
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--panel-border);
+            border-radius: 50%;
+            border-top-color: var(--btn-bg-start);
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .alert {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #3b82f6;
+        }
+        
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--warning-color);
+        }
+        
+        .comparison-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .comparison-controls input {
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+            
+            .stat-grid {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            }
+            
+            .tabs {
+                overflow-x: auto;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 成交分析</h1>
-            <a href="index.html" class="btn-back">← 返回首頁</a>
+            <h1>📊 進階成交分析系統</h1>
+            <div class="header-buttons">
+                <button class="btn-theme" onclick="toggleTheme()">🌙 切換主題</button>
+                <a href="index.html" class="btn-back">← 返回首頁</a>
+            </div>
         </div>
 
         <div class="section">
-            <h2>選擇股票</h2>
-            <div class="form-group">
-                <label for="stockCode">股票代碼：</label>
-                <input type="text" id="stockCode" placeholder="輸入股票代碼（如 2330）" />
+            <h2>股票選擇與分析設定</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="stockCode">股票代碼：</label>
+                    <input type="text" id="stockCode" placeholder="輸入股票代碼（如 2330）" />
+                </div>
+                <div class="form-group">
+                    <label for="dateRange">分析期間：</label>
+                    <select id="dateRange">
+                        <option value="all">全部資料</option>
+                        <option value="30">近30天</option>
+                        <option value="60">近60天</option>
+                        <option value="90">近90天</option>
+                        <option value="180">近半年</option>
+                        <option value="365">近一年</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="chartType">圖表類型：</label>
+                    <select id="chartType">
+                        <option value="line">折線圖</option>
+                        <option value="candlestick">K線圖</option>
+                        <option value="area">面積圖</option>
+                    </select>
+                </div>
             </div>
-            <button class="btn" onclick="analyzeStock()">📈 分析</button>
+            <div>
+                <button class="btn" onclick="analyzeStock()">📈 開始分析</button>
+                <button class="btn btn-secondary" onclick="exportData()">📥 匯出報告</button>
+                <button class="btn btn-secondary" onclick="clearAnalysis()">🔄 清除分析</button>
+            </div>
+        </div>
+
+        <div id="comparisonSection" class="section" style="display: none;">
+            <h2>股票比較</h2>
+            <div class="comparison-controls">
+                <input type="text" id="compareStock" placeholder="輸入要比較的股票代碼" />
+                <button class="btn" onclick="addComparison()">+ 加入比較</button>
+                <button class="btn btn-secondary" onclick="clearComparison()">清除比較</button>
+            </div>
+            <div id="comparisonList"></div>
         </div>
 
         <div id="analysisContent"></div>
@@ -69,7 +451,9 @@
 
     <script>
         const STORAGE_KEY = 'stockMarketData_v3';
-        let chart = null;
+        let charts = {};
+        let currentData = null;
+        let comparisonStocks = [];
 
         document.addEventListener('DOMContentLoaded', () => {
             initTheme();
@@ -82,113 +466,876 @@
         });
 
         function initTheme() {
-            if (localStorage.getItem('theme_dark') === '1') document.body.classList.add('dark');
+            const isDark = localStorage.getItem('theme_dark') === '1';
+            if (isDark) document.body.classList.add('dark');
+        }
+
+        function toggleTheme() {
+            const isDark = document.body.classList.toggle('dark');
+            localStorage.setItem('theme_dark', isDark ? '1' : '0');
+            updateChartsTheme();
+        }
+
+        function updateChartsTheme() {
+            const isDark = document.body.classList.contains('dark');
+            const textColor = isDark ? '#f0f0f0' : '#333';
+            const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+            
+            Object.values(charts).forEach(chart => {
+                if (chart) {
+                    chart.options.plugins.legend.labels.color = textColor;
+                    chart.options.scales.y.ticks.color = textColor;
+                    chart.options.scales.y.grid.color = gridColor;
+                    chart.options.scales.x.ticks.color = textColor;
+                    chart.options.scales.x.grid.color = gridColor;
+                    chart.update();
+                }
+            });
         }
 
         function analyzeStock() {
             const code = document.getElementById('stockCode').value.trim().toUpperCase();
+            const dateRange = document.getElementById('dateRange').value;
+            const chartType = document.getElementById('chartType').value;
             const marketData = loadMarketData();
             const el = document.getElementById('analysisContent');
 
             if (!code || marketData.length === 0) {
-                el.innerHTML = '<div class="section"><div class="muted">請輸入代碼或先上傳數據</div></div>';
+                el.innerHTML = '<div class="alert alert-warning">⚠️ 請輸入代碼或先上傳數據</div>';
                 return;
             }
 
-            const rows = marketData.filter(r => r.代碼 === code).sort((a,b)=>new Date(a.日期)-new Date(b.日期));
+            let rows = marketData.filter(r => r.代碼 === code).sort((a,b) => new Date(a.日期) - new Date(b.日期));
+            
             if (rows.length === 0) {
-                el.innerHTML = '<div class="section"><div class="muted">找不到該股票數據</div></div>';
+                el.innerHTML = '<div class="alert alert-warning">⚠️ 找不到該股票數據</div>';
                 return;
             }
 
+            // 應用日期範圍篩選
+            if (dateRange !== 'all') {
+                const days = parseInt(dateRange);
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - days);
+                rows = rows.filter(r => new Date(r.日期) >= cutoffDate);
+            }
+
+            currentData = rows;
+            document.getElementById('comparisonSection').style.display = 'block';
+
+            // 計算各項指標
+            const analysis = calculateAnalysis(rows);
+            
+            // 生成分析內容
+            el.innerHTML = generateAnalysisHTML(code, analysis, chartType);
+            
+            // 建立圖表
+            setTimeout(() => {
+                buildCharts(rows, chartType);
+            }, 100);
+        }
+
+        function calculateAnalysis(rows) {
             const closes = rows.map(r => +r.收盤價 || 0);
             const opens = rows.map(r => +r.開盤價 || 0);
             const highs = rows.map(r => +r.最高價 || 0);
             const lows = rows.map(r => +r.最低價 || 0);
+            const volumes = rows.map(r => +r.成交量 || 0);
 
             const open = opens[0];
             const close = closes[closes.length - 1];
             const high = Math.max(...highs);
             const low = Math.min(...lows);
+            const avgClose = closes.reduce((a, b) => a + b, 0) / closes.length;
+            const avgVolume = volumes.reduce((a, b) => a + b, 0) / volumes.length;
+            
+            // 計算變化率
             const change = open > 0 ? ((close - open) / open * 100) : 0;
+            
+            // 計算波動率（標準差）
+            const variance = closes.reduce((sum, price) => sum + Math.pow(price - avgClose, 2), 0) / closes.length;
+            const volatility = Math.sqrt(variance);
+            
+            // 計算移動平均線
+            const ma5 = calculateMA(closes, 5);
+            const ma20 = calculateMA(closes, 20);
+            const ma60 = calculateMA(closes, 60);
+            
+            // 計算RSI
+            const rsi = calculateRSI(closes, 14);
+            
+            // 計算MACD
+            const macd = calculateMACD(closes);
+            
+            // 計算布林帶
+            const bollinger = calculateBollingerBands(closes, 20, 2);
+            
+            // 技術指標信號
+            const signals = {
+                ma: ma5[ma5.length - 1] > ma20[ma20.length - 1] ? 'bullish' : 'bearish',
+                rsi: rsi[rsi.length - 1] > 70 ? 'bearish' : rsi[rsi.length - 1] < 30 ? 'bullish' : 'neutral',
+                macd: macd.signal[macd.signal.length - 1] > 0 ? 'bullish' : 'bearish',
+                bollinger: close > bollinger.upper[bollinger.upper.length - 1] ? 'bearish' : 
+                          close < bollinger.lower[bollinger.lower.length - 1] ? 'bullish' : 'neutral'
+            };
 
-            el.innerHTML = `
+            return {
+                open, close, high, low, change,
+                avgClose, avgVolume, volatility,
+                ma5, ma20, ma60,
+                rsi, macd, bollinger,
+                signals,
+                rows
+            };
+        }
+
+        function calculateMA(data, period) {
+            const ma = [];
+            for (let i = 0; i < data.length; i++) {
+                if (i < period - 1) {
+                    ma.push(null);
+                } else {
+                    const sum = data.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0);
+                    ma.push(sum / period);
+                }
+            }
+            return ma;
+        }
+
+        function calculateRSI(data, period = 14) {
+            const rsi = [];
+            const gains = [];
+            const losses = [];
+            
+            for (let i = 1; i < data.length; i++) {
+                const diff = data[i] - data[i - 1];
+                gains.push(diff > 0 ? diff : 0);
+                losses.push(diff < 0 ? -diff : 0);
+            }
+            
+            for (let i = 0; i < data.length; i++) {
+                if (i < period) {
+                    rsi.push(null);
+                } else {
+                    const avgGain = gains.slice(i - period, i).reduce((a, b) => a + b, 0) / period;
+                    const avgLoss = losses.slice(i - period, i).reduce((a, b) => a + b, 0) / period;
+                    const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+                    rsi.push(100 - (100 / (1 + rs)));
+                }
+            }
+            
+            return rsi;
+        }
+
+        function calculateMACD(data) {
+            const ema12 = calculateEMA(data, 12);
+            const ema26 = calculateEMA(data, 26);
+            const macdLine = [];
+            const signal = [];
+            const histogram = [];
+            
+            for (let i = 0; i < data.length; i++) {
+                if (ema12[i] !== null && ema26[i] !== null) {
+                    macdLine.push(ema12[i] - ema26[i]);
+                } else {
+                    macdLine.push(null);
+                }
+            }
+            
+            const signalLine = calculateEMA(macdLine.filter(v => v !== null), 9);
+            let signalIndex = 0;
+            
+            for (let i = 0; i < macdLine.length; i++) {
+                if (macdLine[i] !== null) {
+                    signal.push(signalLine[signalIndex]);
+                    if (signalLine[signalIndex] !== null) {
+                        histogram.push(macdLine[i] - signalLine[signalIndex]);
+                    } else {
+                        histogram.push(null);
+                    }
+                    signalIndex++;
+                } else {
+                    signal.push(null);
+                    histogram.push(null);
+                }
+            }
+            
+            return { macdLine, signal, histogram };
+        }
+
+        function calculateEMA(data, period) {
+            const ema = [];
+            const multiplier = 2 / (period + 1);
+            
+            let sum = 0;
+            for (let i = 0; i < period; i++) {
+                sum += data[i];
+                if (i < period - 1) {
+                    ema.push(null);
+                } else {
+                    ema.push(sum / period);
+                }
+            }
+            
+            for (let i = period; i < data.length; i++) {
+                ema.push((data[i] * multiplier) + (ema[i - 1] * (1 - multiplier)));
+            }
+            
+            return ema;
+        }
+
+        function calculateBollingerBands(data, period = 20, stdDev = 2) {
+            const ma = calculateMA(data, period);
+            const upper = [];
+            const lower = [];
+            
+            for (let i = 0; i < data.length; i++) {
+                if (i < period - 1) {
+                    upper.push(null);
+                    lower.push(null);
+                } else {
+                    const slice = data.slice(i - period + 1, i + 1);
+                    const avg = ma[i];
+                    const variance = slice.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / period;
+                    const std = Math.sqrt(variance);
+                    upper.push(avg + (std * stdDev));
+                    lower.push(avg - (std * stdDev));
+                }
+            }
+            
+            return { ma, upper, lower };
+        }
+
+        function generateAnalysisHTML(code, analysis, chartType) {
+            const { open, close, high, low, change, avgClose, avgVolume, volatility, signals } = analysis;
+            
+            return `
                 <div class="section">
-                    <h2>${code} - 詳細分析</h2>
-                    <div class="stat-grid">
-                        <div class="stat-item">
-                            <div class="stat-label">開盤價</div>
-                            <div class="stat-value">${open.toFixed(2)}</div>
+                    <h2>${code} - 綜合分析報告</h2>
+                    <div class="alert alert-info">
+                        📊 分析期間：${analysis.rows[0].日期} 至 ${analysis.rows[analysis.rows.length - 1].日期}
+                        (共 ${analysis.rows.length} 個交易日)
+                    </div>
+                    
+                    <div class="tabs">
+                        <button class="tab active" onclick="switchTab('overview')">總覽</button>
+                        <button class="tab" onclick="switchTab('technical')">技術分析</button>
+                        <button class="tab" onclick="switchTab('volume')">成交量分析</button>
+                        <button class="tab" onclick="switchTab('details')">詳細數據</button>
+                    </div>
+                    
+                    <div id="overview" class="tab-content active">
+                        <div class="stat-grid">
+                            <div class="stat-item">
+                                <div class="stat-label">開盤價</div>
+                                <div class="stat-value">${open.toFixed(2)}</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">收盤價</div>
+                                <div class="stat-value">${close.toFixed(2)}</div>
+                            </div>
+                            <div class="stat-item ${change >= 0 ? 'positive' : 'negative'}">
+                                <div class="stat-label">漲跌幅</div>
+                                <div class="stat-value ${change >= 0 ? 'positive' : 'negative'}">
+                                    ${(change > 0 ? '+' : '')}${change.toFixed(2)}%
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">最高價</div>
+                                <div class="stat-value">${high.toFixed(2)}</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">最低價</div>
+                                <div class="stat-value">${low.toFixed(2)}</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">平均收盤價</div>
+                                <div class="stat-value">${avgClose.toFixed(2)}</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">波動率</div>
+                                <div class="stat-value">${volatility.toFixed(2)}</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">平均成交量</div>
+                                <div class="stat-value">${formatVolume(avgVolume)}</div>
+                            </div>
                         </div>
-                        <div class="stat-item">
-                            <div class="stat-label">收盤價</div>
-                            <div class="stat-value">${close.toFixed(2)}</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">最高價</div>
-                            <div class="stat-value">${high.toFixed(2)}</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">最低價</div>
-                            <div class="stat-value">${low.toFixed(2)}</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">漲跌幅</div>
-                            <div class="stat-value">${(change > 0 ? '+' : '')}${change.toFixed(2)}%</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">數據筆數</div>
-                            <div class="stat-value">${rows.length}</div>
+                        
+                        <h3 style="margin-top: 20px;">價格走勢圖</h3>
+                        <div class="chart-container">
+                            <canvas id="priceChart"></canvas>
                         </div>
                     </div>
-                </div>
-
-                <div class="section">
-                    <h2>收盤價走勢</h2>
-                    <div class="chart-container">
-                        <canvas id="priceChart"></canvas>
+                    
+                    <div id="technical" class="tab-content">
+                        <h3>技術指標信號</h3>
+                        <div style="margin: 20px 0;">
+                            <span class="indicator-badge ${signals.ma}">
+                                MA信號: ${getSignalText(signals.ma)}
+                            </span>
+                            <span class="indicator-badge ${signals.rsi}">
+                                RSI信號: ${getSignalText(signals.rsi)}
+                            </span>
+                            <span class="indicator-badge ${signals.macd}">
+                                MACD信號: ${getSignalText(signals.macd)}
+                            </span>
+                            <span class="indicator-badge ${signals.bollinger}">
+                                布林帶信號: ${getSignalText(signals.bollinger)}
+                            </span>
+                        </div>
+                        
+                        <div class="grid-2">
+                            <div>
+                                <h3>移動平均線</h3>
+                                <div class="chart-container small">
+                                    <canvas id="maChart"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <h3>RSI指標</h3>
+                                <div class="chart-container small">
+                                    <canvas id="rsiChart"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <h3>MACD指標</h3>
+                                <div class="chart-container small">
+                                    <canvas id="macdChart"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <h3>布林帶</h3>
+                                <div class="chart-container small">
+                                    <canvas id="bollingerChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="volume" class="tab-content">
+                        <h3>成交量分析</h3>
+                        <div class="chart-container">
+                            <canvas id="volumeChart"></canvas>
+                        </div>
+                        
+                        <h3 style="margin-top: 30px;">價量關係圖</h3>
+                        <div class="chart-container">
+                            <canvas id="priceVolumeChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div id="details" class="tab-content">
+                        <h3>詳細交易數據</h3>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>日期</th>
+                                        <th>開盤價</th>
+                                        <th>最高價</th>
+                                        <th>最低價</th>
+                                        <th>收盤價</th>
+                                        <th>漲跌</th>
+                                        <th>漲跌幅</th>
+                                        <th>成交量</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${generateTableRows(analysis.rows)}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             `;
-
-            buildLineChart(rows);
         }
 
-        function buildLineChart(rows) {
+        function generateTableRows(rows) {
+            return rows.slice(-20).reverse().map((row, index) => {
+                const prevClose = index < rows.length - 1 ? +rows[rows.length - index - 2].收盤價 : +row.開盤價;
+                const change = +row.收盤價 - prevClose;
+                const changePercent = prevClose > 0 ? (change / prevClose * 100) : 0;
+                
+                return `
+                    <tr>
+                        <td>${row.日期}</td>
+                        <td>${(+row.開盤價).toFixed(2)}</td>
+                        <td>${(+row.最高價).toFixed(2)}</td>
+                        <td>${(+row.最低價).toFixed(2)}</td>
+                        <td>${(+row.收盤價).toFixed(2)}</td>
+                        <td class="${change >= 0 ? 'positive' : 'negative'}">
+                            ${change >= 0 ? '+' : ''}${change.toFixed(2)}
+                        </td>
+                        <td class="${changePercent >= 0 ? 'positive' : 'negative'}">
+                            ${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%
+                        </td>
+                        <td>${formatVolume(+row.成交量)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function buildCharts(rows, chartType) {
+            const labels = rows.map(r => r.日期);
+            const closes = rows.map(r => +r.收盤價 || 0);
+            const opens = rows.map(r => +r.開盤價 || 0);
+            const highs = rows.map(r => +r.最高價 || 0);
+            const lows = rows.map(r => +r.最低價 || 0);
+            const volumes = rows.map(r => +r.成交量 || 0);
+            
+            const analysis = calculateAnalysis(rows);
+            
+            // 主價格圖
+            buildPriceChart(labels, closes, opens, highs, lows, chartType);
+            
+            // 技術指標圖表
+            buildMAChart(labels, closes, analysis.ma5, analysis.ma20, analysis.ma60);
+            buildRSIChart(labels, analysis.rsi);
+            buildMACDChart(labels, analysis.macd);
+            buildBollingerChart(labels, closes, analysis.bollinger);
+            
+            // 成交量圖表
+            buildVolumeChart(labels, volumes, closes);
+            buildPriceVolumeChart(labels, closes, volumes);
+        }
+
+        function buildPriceChart(labels, closes, opens, highs, lows, chartType) {
             const canvas = document.getElementById('priceChart');
             if (!canvas) return;
+            
+            if (charts.price) {
+                charts.price.destroy();
+            }
+            
+            const isDark = document.body.classList.contains('dark');
+            const datasets = [];
+            
+            if (chartType === 'candlestick') {
+                // K線圖需要特殊處理，這裡簡化為高低價範圍
+                datasets.push({
+                    label: '最高-最低',
+                    data: highs.map((h, i) => ({ x: labels[i], y: [lows[i], h] })),
+                    type: 'bar',
+                    backgroundColor: closes.map((c, i) => c >= opens[i] ? 'rgba(16, 185, 129, 0.8)' : 'rgba(239, 68, 68, 0.8)'),
+                    borderWidth: 0
+                });
+            } else {
+                datasets.push({
+                    label: '收盤價',
+                    data: closes,
+                    borderColor: 'rgb(103, 126, 234)',
+                    backgroundColor: chartType === 'area' ? 'rgba(103, 126, 234, 0.1)' : 'transparent',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: chartType === 'area'
+                });
+            }
+            
+            charts.price = new Chart(canvas.getContext('2d'), {
+                type: chartType === 'candlestick' ? 'bar' : 'line',
+                data: { labels, datasets },
+                options: getChartOptions(isDark)
+            });
+        }
 
-            if (chart) { chart.destroy(); chart = null; }
+        function buildMAChart(labels, prices, ma5, ma20, ma60) {
+            const canvas = document.getElementById('maChart');
+            if (!canvas) return;
+            
+            if (charts.ma) charts.ma.destroy();
+            
+            const isDark = document.body.classList.contains('dark');
+            
+            charts.ma = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: '收盤價',
+                            data: prices,
+                            borderColor: 'rgb(103, 126, 234)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'MA5',
+                            data: ma5,
+                            borderColor: 'rgb(16, 185, 129)',
+                            borderWidth: 1,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'MA20',
+                            data: ma20,
+                            borderColor: 'rgb(245, 158, 11)',
+                            borderWidth: 1,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: getChartOptions(isDark, true)
+            });
+        }
 
-            const labels = rows.map(r => r.日期);
-            const prices = rows.map(r => +r.收盤價 || 0);
-
-            chart = new Chart(canvas.getContext('2d'), {
+        function buildRSIChart(labels, rsi) {
+            const canvas = document.getElementById('rsiChart');
+            if (!canvas) return;
+            
+            if (charts.rsi) charts.rsi.destroy();
+            
+            const isDark = document.body.classList.contains('dark');
+            
+            charts.rsi = new Chart(canvas.getContext('2d'), {
                 type: 'line',
                 data: {
                     labels,
                     datasets: [{
-                        label: '收盤價',
-                        data: prices,
-                        borderColor: 'rgb(103, 126, 234)',
-                        backgroundColor: 'rgba(103, 126, 234, 0.1)',
+                        label: 'RSI',
+                        data: rsi,
+                        borderColor: 'rgb(168, 85, 247)',
+                        backgroundColor: 'rgba(168, 85, 247, 0.1)',
                         borderWidth: 2,
                         tension: 0.4,
-                        fill: true
+                        fill: true,
+                        pointRadius: 0
                     }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: document.body.classList.contains('dark') ? '#f0f0f0' : '#333' } } },
+                    ...getChartOptions(isDark, true),
                     scales: {
-                        y: { ticks: { color: document.body.classList.contains('dark') ? '#f0f0f0' : '#333' },
-                            grid: { color: document.body.classList.contains('dark') ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' } },
-                        x: { ticks: { color: document.body.classList.contains('dark') ? '#f0f0f0' : '#333' },
-                            grid: { color: document.body.classList.contains('dark') ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' } }
+                        ...getChartOptions(isDark, true).scales,
+                        y: {
+                            ...getChartOptions(isDark, true).scales.y,
+                            min: 0,
+                            max: 100,
+                            ticks: {
+                                ...getChartOptions(isDark, true).scales.y.ticks,
+                                callback: function(value) {
+                                    return value;
+                                }
+                            }
+                        }
                     }
                 }
             });
+        }
+
+        function buildMACDChart(labels, macd) {
+            const canvas = document.getElementById('macdChart');
+            if (!canvas) return;
+            
+            if (charts.macd) charts.macd.destroy();
+            
+            const isDark = document.body.classList.contains('dark');
+            
+            charts.macd = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'MACD',
+                            data: macd.macdLine,
+                            borderColor: 'rgb(59, 130, 246)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Signal',
+                            data: macd.signal,
+                            borderColor: 'rgb(239, 68, 68)',
+                            borderWidth: 1,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Histogram',
+                            type: 'bar',
+                            data: macd.histogram,
+                            backgroundColor: macd.histogram.map(h => h >= 0 ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)'),
+                            borderWidth: 0
+                        }
+                    ]
+                },
+                options: getChartOptions(isDark, true)
+            });
+        }
+
+        function buildBollingerChart(labels, prices, bollinger) {
+            const canvas = document.getElementById('bollingerChart');
+            if (!canvas) return;
+            
+            if (charts.bollinger) charts.bollinger.destroy();
+            
+            const isDark = document.body.classList.contains('dark');
+            
+            charts.bollinger = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: '收盤價',
+                            data: prices,
+                            borderColor: 'rgb(103, 126, 234)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            pointRadius: 0
+                        },
+                        {
+                            label: '上軌',
+                            data: bollinger.upper,
+                            borderColor: 'rgba(239, 68, 68, 0.5)',
+                            borderWidth: 1,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            pointRadius: 0,
+                            fill: false
+                        },
+                        {
+                            label: '中軌',
+                            data: bollinger.ma,
+                            borderColor: 'rgba(156, 163, 175, 0.5)',
+                            borderWidth: 1,
+                            borderDash: [2, 2],
+                            tension: 0.4,
+                            pointRadius: 0,
+                            fill: false
+                        },
+                        {
+                            label: '下軌',
+                            data: bollinger.lower,
+                            borderColor: 'rgba(16, 185, 129, 0.5)',
+                            borderWidth: 1,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: getChartOptions(isDark, true)
+            });
+        }
+
+        function buildVolumeChart(labels, volumes, prices) {
+            const canvas = document.getElementById('volumeChart');
+            if (!canvas) return;
+            
+            if (charts.volume) charts.volume.destroy();
+            
+            const isDark = document.body.classList.contains('dark');
+            
+            // 計算價格變化來決定成交量顏色
+            const colors = prices.map((price, i) => {
+                if (i === 0) return 'rgba(156, 163, 175, 0.5)';
+                return price >= prices[i - 1] ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)';
+            });
+            
+            charts.volume = new Chart(canvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: '成交量',
+                        data: volumes,
+                        backgroundColor: colors,
+                        borderWidth: 0
+                    }]
+                },
+                options: getChartOptions(isDark)
+            });
+        }
+
+        function buildPriceVolumeChart(labels, prices, volumes) {
+            const canvas = document.getElementById('priceVolumeChart');
+            if (!canvas) return;
+            
+            if (charts.priceVolume) charts.priceVolume.destroy();
+            
+            const isDark = document.body.classList.contains('dark');
+            
+            charts.priceVolume = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: '收盤價',
+                            data: prices,
+                            borderColor: 'rgb(103, 126, 234)',
+                            backgroundColor: 'rgba(103, 126, 234, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '成交量',
+                            type: 'bar',
+                            data: volumes,
+                            backgroundColor: 'rgba(245, 158, 11, 0.3)',
+                            borderWidth: 0,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    ...getChartOptions(isDark),
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            ticks: { color: isDark ? '#f0f0f0' : '#333' },
+                            grid: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            ticks: { 
+                                color: isDark ? '#f0f0f0' : '#333',
+                                callback: function(value) {
+                                    return formatVolume(value);
+                                }
+                            },
+                            grid: { drawOnChartArea: false }
+                        },
+                        x: {
+                            ticks: { color: isDark ? '#f0f0f0' : '#333' },
+                            grid: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function getChartOptions(isDark, small = false) {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: !small,
+                        labels: { color: isDark ? '#f0f0f0' : '#333' }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: { color: isDark ? '#f0f0f0' : '#333' },
+                        grid: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }
+                    },
+                    x: {
+                        ticks: { 
+                            color: isDark ? '#f0f0f0' : '#333',
+                            maxRotation: 45,
+                            minRotation: 0
+                        },
+                        grid: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }
+                    }
+                }
+            };
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        function addComparison() {
+            const code = document.getElementById('compareStock').value.trim().toUpperCase();
+            if (!code || comparisonStocks.includes(code)) return;
+            
+            comparisonStocks.push(code);
+            updateComparisonChart();
+            document.getElementById('compareStock').value = '';
+        }
+
+        function clearComparison() {
+            comparisonStocks = [];
+            document.getElementById('comparisonList').innerHTML = '';
+        }
+
+        function updateComparisonChart() {
+            // 實現股票比較圖表
+            const list = document.getElementById('comparisonList');
+            list.innerHTML = comparisonStocks.map(code => 
+                `<span class="indicator-badge neutral">${code}</span>`
+            ).join('');
+        }
+
+        function exportData() {
+            if (!currentData) {
+                alert('請先進行分析');
+                return;
+            }
+            
+            const code = document.getElementById('stockCode').value;
+            const csvContent = generateCSV(currentData);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${code}_analysis_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+
+        function generateCSV(data) {
+            const headers = Object.keys(data[0]);
+            const csv = [
+                headers.join(','),
+                ...data.map(row => headers.map(h => row[h]).join(','))
+            ];
+            return csv.join('\n');
+        }
+
+        function clearAnalysis() {
+            document.getElementById('analysisContent').innerHTML = '';
+            document.getElementById('comparisonSection').style.display = 'none';
+            currentData = null;
+            comparisonStocks = [];
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            charts = {};
+        }
+
+        function formatVolume(volume) {
+            if (volume >= 1000000) {
+                return (volume / 1000000).toFixed(1) + 'M';
+            } else if (volume >= 1000) {
+                return (volume / 1000).toFixed(1) + 'K';
+            }
+            return volume.toFixed(0);
+        }
+
+        function getSignalText(signal) {
+            switch(signal) {
+                case 'bullish': return '看漲';
+                case 'bearish': return '看跌';
+                case 'neutral': return '中性';
+                default: return '未知';
+            }
         }
 
         function loadMarketData() {
@@ -197,7 +1344,9 @@
                 if (!stored) return [];
                 const parsed = JSON.parse(stored);
                 return parsed?.data ?? (Array.isArray(parsed) ? parsed : []);
-            } catch { return []; }
+            } catch {
+                return [];
+            }
         }
     </script>
 </body>
