@@ -1,1 +1,1492 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>大阪京都旅行規劃 - 進階版</title>
+    
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a2a4e">
+    
+    <!-- Leaflet 地圖 CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #faf7f2;
+            color: #333;
+        }
+        
+        /* Header */
+        .app-header {
+            background: linear-gradient(135deg, #1a2a4e 0%, #2d4a7c 100%);
+            color: #fff;
+            padding: 20px 16px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 99;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .app-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+            font-weight: normal;
+            margin-top: 4px;
+        }
+        
+        /* Tabs */
+        .nav-tabs {
+            display: flex;
+            background: #fff;
+            border-bottom: 2px solid #eee;
+            position: sticky;
+            top: 68px;
+            z-index: 98;
+        }
+        
+        .nav-tab {
+            flex: 1;
+            text-align: center;
+            padding: 16px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            background: white;
+        }
+        
+        .nav-tab:hover {
+            background: #f8f8f8;
+        }
+        
+        .nav-tab.active {
+            border-color: #f8c2c8;
+            color: #1a2a4e;
+            background: #fff;
+        }
+        
+        /* Day selector - Enhanced */
+        .day-selector-wrapper {
+            background: #fff;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .day-selector {
+            display: flex;
+            overflow-x: auto;
+            padding: 16px 12px;
+            gap: 12px;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .day-item {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .day-btn-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: #eee;
+            border-radius: 24px;
+            padding: 4px;
+            transition: all 0.3s;
+        }
+        
+        .day-btn-wrapper.active {
+            background: #f8c2c8;
+        }
+        
+        .day-btn {
+            padding: 10px 16px;
+            background: transparent;
+            border-radius: 20px;
+            cursor: pointer;
+            white-space: nowrap;
+            font-weight: 500;
+            transition: all 0.3s;
+            border: none;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .day-btn-wrapper.active .day-btn {
+            color: #1a2a4e;
+            font-weight: 700;
+        }
+        
+        .day-btn:hover {
+            background: rgba(0,0,0,0.05);
+        }
+        
+        .day-mini-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0,0,0,0.1);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: all 0.2s;
+            padding: 0;
+        }
+        
+        .day-mini-btn:hover {
+            background: rgba(0,0,0,0.2);
+            transform: scale(1.1);
+        }
+        
+        .day-mini-btn.danger:hover {
+            background: #e53e3e;
+            color: white;
+        }
+        
+        .day-controls {
+            display: flex;
+            gap: 4px;
+            justify-content: center;
+            opacity: 0.6;
+        }
+        
+        .day-controls button {
+            font-size: 10px;
+            width: 20px;
+            height: 20px;
+        }
+        
+        .add-day-btn {
+            padding: 10px 20px;
+            background: #38a169;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            cursor: pointer;
+            white-space: nowrap;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .add-day-btn:hover {
+            background: #2f855a;
+            transform: translateY(-2px);
+        }
+        
+        /* Controls */
+        .controls {
+            padding: 16px;
+            background: white;
+            display: flex;
+            gap: 12px;
+            border-bottom: 1px solid #eee;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            background: #1a2a4e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background: #2d4a7c;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(26, 42, 78, 0.3);
+        }
+        
+        .btn.active {
+            background: #f8c2c8;
+            color: #1a2a4e;
+        }
+        
+        .btn.danger {
+            background: #e53e3e;
+        }
+        
+        .btn.danger:hover {
+            background: #c53030;
+        }
+        
+        .btn.success {
+            background: #38a169;
+        }
+        
+        .btn.success:hover {
+            background: #2f855a;
+        }
+        
+        /* Card */
+        .card {
+            background: #fff;
+            margin: 16px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            transform: translateY(-4px);
+        }
+        
+        .card-image-wrapper {
+            position: relative;
+            width: 100%;
+            height: 240px;
+            overflow: hidden;
+        }
+        
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+        
+        .card:hover img {
+            transform: scale(1.05);
+        }
+        
+        .card-content {
+            padding: 16px;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        
+        .card-time {
+            display: inline-block;
+            background: #1a2a4e;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .card-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #1a2a4e;
+        }
+        
+        .card-category {
+            display: inline-block;
+            background: #f8c2c8;
+            color: #1a2a4e;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .card-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .card-description {
+            color: #666;
+            line-height: 1.6;
+            margin-top: 12px;
+        }
+        
+        .icon-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            padding: 4px;
+        }
+        
+        .icon-btn:hover {
+            transform: scale(1.2);
+        }
+        
+        /* Map */
+        #map {
+            height: 500px;
+            width: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        .map-container {
+            padding: 16px;
+        }
+        
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            padding: 20px;
+        }
+        
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal h3 {
+            margin-bottom: 20px;
+            color: #1a2a4e;
+            font-size: 20px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        
+        .modal-buttons button {
+            flex: 1;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        /* Edit mode */
+        .edit-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .edit-controls button {
+            flex: 1;
+            padding: 8px;
+            font-size: 12px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .app-header {
+                font-size: 20px;
+                padding: 16px;
+            }
+            
+            .card-image-wrapper {
+                height: 200px;
+            }
+            
+            #map {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Leaflet 地圖 JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Babel Standalone -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // 初始資料
+        const initialTrip = {
+            title: "大阪京都賞楓之旅",
+            subtitle: "2024.11.28 - 12.1",
+            days: [
+                {
+                    id: 1,
+                    title: "Day 1 - 11/28 大阪抵達",
+                    date: "2024-11-28",
+                    activities: [
+                        {
+                            id: 101,
+                            time: "09:00",
+                            name: "關西機場",
+                            category: "交通",
+                            location: "關西國際機場",
+                            description: "搭乘 CI156 航班抵達關西機場，預計 09:00 抵達",
+                            image: "https://images.unsplash.com/photo-1556388158-158ea5ccacbd?w=800",
+                            lat: 34.4347,
+                            lng: 135.2440
+                        },
+                        {
+                            id: 102,
+                            time: "11:00",
+                            name: "南海電鐵",
+                            category: "交通",
+                            location: "難波站",
+                            description: "搭乘南海電鐵特急至難波站，車程約 40 分鐘",
+                            image: "https://images.unsplash.com/photo-1591768575957-a5c6eec8489d?w=800",
+                            lat: 34.6658,
+                            lng: 135.5008
+                        },
+                        {
+                            id: 103,
+                            time: "13:00",
+                            name: "道頓堀",
+                            category: "美食",
+                            location: "大阪市中央區道頓堀",
+                            description: "大阪最熱鬧的美食街，品嚐章魚燒、大阪燒等在地小吃",
+                            image: "https://images.unsplash.com/photo-1590559899731-a382839e5549?w=800",
+                            lat: 34.6686,
+                            lng: 135.5012
+                        },
+                        {
+                            id: 104,
+                            time: "16:00",
+                            name: "心齋橋筋商店街",
+                            category: "購物",
+                            location: "大阪市中央區心齋橋",
+                            description: "大阪最具代表性的購物街，長達 580 公尺的商店街",
+                            image: "https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=800",
+                            lat: 34.6719,
+                            lng: 135.5020
+                        }
+                    ]
+                },
+                {
+                    id: 2,
+                    title: "Day 2 - 11/29 京都嵐山",
+                    date: "2024-11-29",
+                    activities: [
+                        {
+                            id: 201,
+                            time: "08:00",
+                            name: "前往嵐山",
+                            category: "交通",
+                            location: "嵐山站",
+                            description: "從大阪搭乘 JR 或阪急電車前往嵐山，車程約 1 小時",
+                            image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800",
+                            lat: 35.0098,
+                            lng: 135.6712
+                        },
+                        {
+                            id: 202,
+                            time: "09:30",
+                            name: "竹林小徑",
+                            category: "景點",
+                            location: "京都市右京區嵯峨小倉山",
+                            description: "京都必訪景點，漫步在壯觀的竹林隧道中",
+                            image: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=800",
+                            lat: 35.0175,
+                            lng: 135.6721
+                        },
+                        {
+                            id: 203,
+                            time: "11:00",
+                            name: "天龍寺",
+                            category: "景點",
+                            location: "京都市右京區嵯峨天龍寺",
+                            description: "世界文化遺產，賞楓名所，庭園景色絕美",
+                            image: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=800",
+                            lat: 35.0156,
+                            lng: 135.6739
+                        },
+                        {
+                            id: 204,
+                            time: "14:00",
+                            name: "渡月橋",
+                            category: "景點",
+                            location: "京都市右京區嵯峨",
+                            description: "嵐山地標，橫跨桂川的古橋，秋天楓紅美景",
+                            image: "https://images.unsplash.com/photo-1578469550956-0e16b69c6a3d?w=800",
+                            lat: 35.0131,
+                            lng: 135.6780
+                        }
+                    ]
+                },
+                {
+                    id: 3,
+                    title: "Day 3 - 11/30 京都市區",
+                    date: "2024-11-30",
+                    activities: [
+                        {
+                            id: 301,
+                            time: "09:00",
+                            name: "清水寺",
+                            category: "景點",
+                            location: "京都市東山區清水",
+                            description: "京都最著名的寺廟之一，賞楓勝地",
+                            image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800",
+                            lat: 34.9949,
+                            lng: 135.7850
+                        },
+                        {
+                            id: 302,
+                            time: "12:00",
+                            name: "祇園",
+                            category: "景點",
+                            location: "京都市東山區祇園",
+                            description: "古色古香的藝伎街區，體驗傳統京都文化",
+                            image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800",
+                            lat: 35.0037,
+                            lng: 135.7780
+                        },
+                        {
+                            id: 303,
+                            time: "15:00",
+                            name: "伏見稻荷大社",
+                            category: "景點",
+                            location: "京都市伏見區深草",
+                            description: "著名的千本鳥居，登山步道約需 2-3 小時",
+                            image: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=800",
+                            lat: 34.9671,
+                            lng: 135.7727
+                        }
+                    ]
+                },
+                {
+                    id: 4,
+                    title: "Day 4 - 12/1 返程",
+                    date: "2024-12-01",
+                    activities: [
+                        {
+                            id: 401,
+                            time: "10:00",
+                            name: "臨空城 Outlet",
+                            category: "購物",
+                            location: "泉佐野市",
+                            description: "關西機場旁的大型購物中心，最後採購機會",
+                            image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800",
+                            lat: 34.4275,
+                            lng: 135.2965
+                        },
+                        {
+                            id: 402,
+                            time: "15:00",
+                            name: "關西機場",
+                            category: "交通",
+                            location: "關西國際機場",
+                            description: "搭乘 CI157 航班返台，預計 18:35 起飛",
+                            image: "https://images.unsplash.com/photo-1556388158-158ea5ccacbd?w=800",
+                            lat: 34.4347,
+                            lng: 135.2440
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // 主應用程式
+        function App() {
+            const [trip, setTrip] = useState(() => {
+                const saved = localStorage.getItem("tripData");
+                return saved ? JSON.parse(saved) : initialTrip;
+            });
+            const [currentDay, setCurrentDay] = useState(0);
+            const [activeTab, setActiveTab] = useState("itinerary");
+            const [editMode, setEditMode] = useState(false);
+            const [favorites, setFavorites] = useState(() => {
+                const saved = localStorage.getItem("favorites");
+                return saved ? JSON.parse(saved) : [];
+            });
+            const [showActivityModal, setShowActivityModal] = useState(false);
+            const [editingActivity, setEditingActivity] = useState(null);
+
+            // 保存資料
+            useEffect(() => {
+                localStorage.setItem("tripData", JSON.stringify(trip));
+            }, [trip]);
+
+            useEffect(() => {
+                localStorage.setItem("favorites", JSON.stringify(favorites));
+            }, [favorites]);
+
+            // 天數管理函數
+            const addDay = () => {
+                const newDayNumber = trip.days.length + 1;
+                const newDay = {
+                    id: Date.now(),
+                    title: `Day ${newDayNumber} - 新的一天`,
+                    date: "",
+                    activities: []
+                };
+                setTrip({ ...trip, days: [...trip.days, newDay] });
+                setCurrentDay(trip.days.length); // 切換到新增的天數
+            };
+
+            const deleteDay = (dayIndex) => {
+                if (trip.days.length <= 1) {
+                    alert("至少需要保留一天行程！");
+                    return;
+                }
+                if (confirm(`確定要刪除 ${trip.days[dayIndex].title} 嗎？`)) {
+                    const newDays = trip.days.filter((_, i) => i !== dayIndex);
+                    setTrip({ ...trip, days: newDays });
+                    if (currentDay >= newDays.length) {
+                        setCurrentDay(newDays.length - 1);
+                    }
+                }
+            };
+
+            const editDayTitle = (dayIndex, newTitle) => {
+                const newDays = [...trip.days];
+                newDays[dayIndex].title = newTitle;
+                setTrip({ ...trip, days: newDays });
+            };
+
+            const moveDayUp = (dayIndex) => {
+                if (dayIndex === 0) return;
+                const newDays = [...trip.days];
+                [newDays[dayIndex - 1], newDays[dayIndex]] = [newDays[dayIndex], newDays[dayIndex - 1]];
+                setTrip({ ...trip, days: newDays });
+                setCurrentDay(dayIndex - 1);
+            };
+
+            const moveDayDown = (dayIndex) => {
+                if (dayIndex === trip.days.length - 1) return;
+                const newDays = [...trip.days];
+                [newDays[dayIndex], newDays[dayIndex + 1]] = [newDays[dayIndex + 1], newDays[dayIndex]];
+                setTrip({ ...trip, days: newDays });
+                setCurrentDay(dayIndex + 1);
+            };
+
+            // 活動管理函數
+            const addActivity = (activity) => {
+                const newActivity = {
+                    ...activity,
+                    id: Date.now()
+                };
+                const newDays = [...trip.days];
+                newDays[currentDay].activities.push(newActivity);
+                setTrip({ ...trip, days: newDays });
+            };
+
+            const updateActivity = (activityId, updatedActivity) => {
+                const newDays = [...trip.days];
+                const dayIndex = newDays.findIndex(day =>
+                    day.activities.some(a => a.id === activityId)
+                );
+                if (dayIndex !== -1) {
+                    const activityIndex = newDays[dayIndex].activities.findIndex(
+                        a => a.id === activityId
+                    );
+                    newDays[dayIndex].activities[activityIndex] = {
+                        ...updatedActivity,
+                        id: activityId
+                    };
+                    setTrip({ ...trip, days: newDays });
+                }
+            };
+
+            const deleteActivity = (activityId) => {
+                if (confirm("確定要刪除這個活動嗎？")) {
+                    const newDays = trip.days.map(day => ({
+                        ...day,
+                        activities: day.activities.filter(a => a.id !== activityId)
+                    }));
+                    setTrip({ ...trip, days: newDays });
+                }
+            };
+
+            const toggleFavorite = (activityId) => {
+                if (favorites.includes(activityId)) {
+                    setFavorites(favorites.filter(id => id !== activityId));
+                } else {
+                    setFavorites([...favorites, activityId]);
+                }
+            };
+
+            return (
+                <div>
+                    <div className="app-header">
+                        {trip.title}
+                        <div className="app-subtitle">{trip.subtitle}</div>
+                    </div>
+
+                    <div className="nav-tabs">
+                        <div
+                            className={`nav-tab ${activeTab === "itinerary" ? "active" : ""}`}
+                            onClick={() => setActiveTab("itinerary")}
+                        >
+                            📅 行程
+                        </div>
+                        <div
+                            className={`nav-tab ${activeTab === "map" ? "active" : ""}`}
+                            onClick={() => setActiveTab("map")}
+                        >
+                            🗺️ 地圖
+                        </div>
+                        <div
+                            className={`nav-tab ${activeTab === "packing" ? "active" : ""}`}
+                            onClick={() => setActiveTab("packing")}
+                        >
+                            🎒 行李
+                        </div>
+                        <div
+                            className={`nav-tab ${activeTab === "budget" ? "active" : ""}`}
+                            onClick={() => setActiveTab("budget")}
+                        >
+                            💰 預算
+                        </div>
+                        <div
+                            className={`nav-tab ${activeTab === "favorites" ? "active" : ""}`}
+                            onClick={() => setActiveTab("favorites")}
+                        >
+                            ❤️ 收藏
+                        </div>
+                    </div>
+
+                    {activeTab === "itinerary" && (
+                        <>
+                            <div className="day-selector-wrapper">
+                                <div className="day-selector">
+                                    {trip.days.map((day, idx) => (
+                                        <DayButton
+                                            key={day.id}
+                                            day={day}
+                                            index={idx}
+                                            isActive={currentDay === idx}
+                                            onClick={() => setCurrentDay(idx)}
+                                            onEdit={(newTitle) => editDayTitle(idx, newTitle)}
+                                            onDelete={() => deleteDay(idx)}
+                                            onMoveUp={() => moveDayUp(idx)}
+                                            onMoveDown={() => moveDayDown(idx)}
+                                            canMoveUp={idx > 0}
+                                            canMoveDown={idx < trip.days.length - 1}
+                                        />
+                                    ))}
+                                    <button className="add-day-btn" onClick={addDay}>
+                                        ➕ 新增天數
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="controls">
+                                <button
+                                    className={`btn ${editMode ? "active" : ""}`}
+                                    onClick={() => setEditMode(!editMode)}
+                                >
+                                    {editMode ? "✅ 完成編輯" : "✏️ 編輯模式"}
+                                </button>
+                                {editMode && (
+                                    <button
+                                        className="btn success"
+                                        onClick={() => {
+                                            setEditingActivity(null);
+                                            setShowActivityModal(true);
+                                        }}
+                                    >
+                                        ➕ 新增活動
+                                    </button>
+                                )}
+                            </div>
+
+                            <ItineraryView
+                                day={trip.days[currentDay]}
+                                editMode={editMode}
+                                favorites={favorites}
+                                onToggleFavorite={toggleFavorite}
+                                onDeleteActivity={deleteActivity}
+                                onEditActivity={(activity) => {
+                                    setEditingActivity(activity);
+                                    setShowActivityModal(true);
+                                }}
+                            />
+                        </>
+                    )}
+
+                    {activeTab === "map" && (
+                        <MapView trip={trip} currentDay={currentDay} />
+                    )}
+
+                    {activeTab === "packing" && <PackingList />}
+
+                    {activeTab === "budget" && <BudgetList />}
+
+                    {activeTab === "favorites" && (
+                        <FavoritesList
+                            trip={trip}
+                            favorites={favorites}
+                            toggleFavorite={toggleFavorite}
+                        />
+                    )}
+
+                    {showActivityModal && (
+                        <ActivityModal
+                            activity={editingActivity}
+                            onSave={(activity) => {
+                                if (editingActivity) {
+                                    updateActivity(editingActivity.id, activity);
+                                } else {
+                                    addActivity(activity);
+                                }
+                                setShowActivityModal(false);
+                                setEditingActivity(null);
+                            }}
+                            onClose={() => {
+                                setShowActivityModal(false);
+                                setEditingActivity(null);
+                            }}
+                        />
+                    )}
+                </div>
+            );
+        }
+
+        // 天數按鈕組件（增強版）
+        function DayButton({ 
+            day, 
+            index, 
+            isActive, 
+            onClick, 
+            onEdit, 
+            onDelete, 
+            onMoveUp, 
+            onMoveDown,
+            canMoveUp,
+            canMoveDown 
+        }) {
+            const [isEditing, setIsEditing] = useState(false);
+            const [editedTitle, setEditedTitle] = useState(day.title);
+
+            const handleEdit = () => {
+                if (isEditing) {
+                    onEdit(editedTitle);
+                }
+                setIsEditing(!isEditing);
+            };
+
+            return (
+                <div className="day-item">
+                    <div className={`day-btn-wrapper ${isActive ? "active" : ""}`}>
+                        {isEditing ? (
+                            <input
+                                type="text"
+                                value={editedTitle}
+                                onChange={(e) => setEditedTitle(e.target.value)}
+                                onBlur={handleEdit}
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter') handleEdit();
+                                }}
+                                style={{
+                                    padding: '10px 16px',
+                                    border: 'none',
+                                    background: 'transparent',
+                                    fontSize: '14px',
+                                    fontWeight: isActive ? 700 : 500,
+                                    width: '150px'
+                                }}
+                                autoFocus
+                            />
+                        ) : (
+                            <button className="day-btn" onClick={onClick}>
+                                {day.title}
+                            </button>
+                        )}
+                        <button 
+                            className="day-mini-btn" 
+                            onClick={handleEdit}
+                            title={isEditing ? "完成" : "編輯"}
+                        >
+                            {isEditing ? "✓" : "✏️"}
+                        </button>
+                        <button 
+                            className="day-mini-btn danger" 
+                            onClick={onDelete}
+                            title="刪除"
+                        >
+                            🗑️
+                        </button>
+                    </div>
+                    <div className="day-controls">
+                        {canMoveUp && (
+                            <button 
+                                className="day-mini-btn" 
+                                onClick={onMoveUp}
+                                title="上移"
+                            >
+                                ⬆️
+                            </button>
+                        )}
+                        {canMoveDown && (
+                            <button 
+                                className="day-mini-btn" 
+                                onClick={onMoveDown}
+                                title="下移"
+                            >
+                                ⬇️
+                            </button>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // 行程卡片
+        function ItineraryView({ day, editMode, favorites, onToggleFavorite, onDeleteActivity, onEditActivity }) {
+            if (!day || day.activities.length === 0) {
+                return (
+                    <div className="empty-state">
+                        <div className="empty-icon">📅</div>
+                        <p>這一天還沒有安排行程</p>
+                        {editMode && <p style={{ marginTop: '12px', color: '#666' }}>點擊「新增活動」開始規劃</p>}
+                    </div>
+                );
+            }
+
+            return (
+                <div style={{ paddingBottom: '24px' }}>
+                    {day.activities.map((activity) => (
+                        <div className="card" key={activity.id}>
+                            <div className="card-image-wrapper">
+                                <img src={activity.image} alt={activity.name} loading="lazy" />
+                            </div>
+
+                            <div className="card-content">
+                                <div className="card-header">
+                                    <span className="card-time">🕐 {activity.time}</span>
+                                    <button
+                                        className="icon-btn"
+                                        onClick={() => onToggleFavorite(activity.id)}
+                                    >
+                                        {favorites.includes(activity.id) ? "❤️" : "🤍"}
+                                    </button>
+                                </div>
+
+                                <h3 className="card-title">{activity.name}</h3>
+                                <span className="card-category">{activity.category}</span>
+
+                                <div className="card-info">📍 {activity.location}</div>
+
+                                {activity.description && (
+                                    <p className="card-description">{activity.description}</p>
+                                )}
+
+                                {editMode && (
+                                    <div className="edit-controls">
+                                        <button 
+                                            className="btn" 
+                                            onClick={() => onEditActivity(activity)}
+                                        >
+                                            ✏️ 編輯
+                                        </button>
+                                        <button 
+                                            className="btn danger" 
+                                            onClick={() => onDeleteActivity(activity.id)}
+                                        >
+                                            🗑️ 刪除
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+
+        // 活動編輯 Modal
+        function ActivityModal({ activity, onSave, onClose }) {
+            const [formData, setFormData] = useState(
+                activity || {
+                    time: "",
+                    name: "",
+                    category: "景點",
+                    location: "",
+                    description: "",
+                    image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800",
+                    lat: 0,
+                    lng: 0
+                }
+            );
+
+            const handleSubmit = () => {
+                if (!formData.name || !formData.time) {
+                    alert("請填寫活動名稱和時間");
+                    return;
+                }
+                onSave(formData);
+            };
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <h3>{activity ? "編輯活動" : "新增活動"}</h3>
+
+                        <div className="form-group">
+                            <label>時間 *</label>
+                            <input
+                                type="time"
+                                value={formData.time}
+                                onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label>活動名稱 *</label>
+                            <input
+                                type="text"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                placeholder="例如：清水寺"
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label>類別</label>
+                            <select
+                                value={formData.category}
+                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                            >
+                                <option value="景點">景點</option>
+                                <option value="美食">美食</option>
+                                <option value="購物">購物</option>
+                                <option value="交通">交通</option>
+                                <option value="住宿">住宿</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </div>
+
+                        <div className="form-group">
+                            <label>地點</label>
+                            <input
+                                type="text"
+                                value={formData.location}
+                                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                                placeholder="例如：京都市東山區"
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label>描述</label>
+                            <textarea
+                                value={formData.description}
+                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                placeholder="活動描述..."
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label>圖片網址</label>
+                            <input
+                                type="url"
+                                value={formData.image}
+                                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                                placeholder="https://..."
+                            />
+                        </div>
+
+                        <div className="modal-buttons">
+                            <button className="btn" onClick={onClose}>
+                                取消
+                            </button>
+                            <button className="btn success" onClick={handleSubmit}>
+                                {activity ? "更新" : "新增"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // 地圖視圖
+        function MapView({ trip, currentDay }) {
+            const mapRef = useRef(null);
+            const mapInstanceRef = useRef(null);
+
+            useEffect(() => {
+                if (!mapRef.current) return;
+
+                const activities = trip.days[currentDay].activities.filter(
+                    a => a.lat && a.lng
+                );
+
+                if (activities.length === 0) return;
+
+                // 清除舊地圖
+                if (mapInstanceRef.current) {
+                    mapInstanceRef.current.remove();
+                }
+
+                // 建立新地圖
+                const map = L.map(mapRef.current).setView(
+                    [activities[0].lat, activities[0].lng],
+                    12
+                );
+
+                L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+
+                // 加入標記
+                activities.forEach((activity, idx) => {
+                    const marker = L.marker([activity.lat, activity.lng]).addTo(map);
+                    marker.bindPopup(`
+                        <div style="text-align: center;">
+                            <strong>${idx + 1}. ${activity.name}</strong><br/>
+                            <span style="font-size: 12px; color: #666;">${activity.time}</span><br/>
+                            <span style="font-size: 12px;">${activity.category}</span>
+                        </div>
+                    `);
+                });
+
+                // 調整視野
+                if (activities.length > 1) {
+                    const bounds = L.latLngBounds(
+                        activities.map(a => [a.lat, a.lng])
+                    );
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                }
+
+                mapInstanceRef.current = map;
+
+                return () => {
+                    if (mapInstanceRef.current) {
+                        mapInstanceRef.current.remove();
+                    }
+                };
+            }, [trip, currentDay]);
+
+            return (
+                <div className="map-container">
+                    <h2 style={{ marginBottom: '16px', color: '#1a2a4e' }}>
+                        🗺️ {trip.days[currentDay].title}
+                    </h2>
+                    <div ref={mapRef} id="map"></div>
+                </div>
+            );
+        }
+
+        // 行李清單
+        function PackingList() {
+            const [items, setItems] = useState(
+                JSON.parse(localStorage.getItem("packing") || "[]")
+            );
+            const [input, setInput] = useState("");
+
+            const addItem = () => {
+                if (input.trim()) {
+                    const updated = [...items, { text: input, done: false }];
+                    setItems(updated);
+                    localStorage.setItem("packing", JSON.stringify(updated));
+                    setInput("");
+                }
+            };
+
+            const toggleItem = (idx) => {
+                const updated = [...items];
+                updated[idx].done = !updated[idx].done;
+                setItems(updated);
+                localStorage.setItem("packing", JSON.stringify(updated));
+            };
+
+            const deleteItem = (idx) => {
+                const updated = items.filter((_, i) => i !== idx);
+                setItems(updated);
+                localStorage.setItem("packing", JSON.stringify(updated));
+            };
+
+            return (
+                <div style={{ padding: '24px 16px' }}>
+                    <h2 style={{ marginBottom: '20px', color: '#1a2a4e' }}>🎒 行李清單</h2>
+                    
+                    <div style={{ background: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+                        {items.length === 0 ? (
+                            <div className="empty-state">
+                                <div className="empty-icon">📦</div>
+                                <p>還沒有新增任何物品</p>
+                            </div>
+                        ) : (
+                            <div style={{ marginBottom: '20px' }}>
+                                {items.map((item, idx) => (
+                                    <div 
+                                        key={idx} 
+                                        style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            padding: '12px',
+                                            borderBottom: '1px solid #eee',
+                                            opacity: item.done ? 0.5 : 1
+                                        }}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={item.done}
+                                            onChange={() => toggleItem(idx)}
+                                            style={{ width: '20px', height: '20px', marginRight: '12px', cursor: 'pointer' }}
+                                        />
+                                        <span style={{ flex: 1, textDecoration: item.done ? 'line-through' : 'none' }}>
+                                            {item.text}
+                                        </span>
+                                        <button 
+                                            className="btn danger" 
+                                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                                            onClick={() => deleteItem(idx)}
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <input
+                                type="text"
+                                placeholder="新增物品..."
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && addItem()}
+                                style={{ flex: 1, padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }}
+                            />
+                            <button className="btn success" onClick={addItem}>
+                                ➕ 新增
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // 預算記帳
+        function BudgetList() {
+            const [items, setItems] = useState(
+                JSON.parse(localStorage.getItem("budget") || "[]")
+            );
+            const [name, setName] = useState("");
+            const [cost, setCost] = useState("");
+
+            const addItem = () => {
+                if (name.trim() && cost) {
+                    const updated = [...items, { name, cost: Number(cost) }];
+                    setItems(updated);
+                    localStorage.setItem("budget", JSON.stringify(updated));
+                    setName("");
+                    setCost("");
+                }
+            };
+
+            const deleteItem = (idx) => {
+                const updated = items.filter((_, i) => i !== idx);
+                setItems(updated);
+                localStorage.setItem("budget", JSON.stringify(updated));
+            };
+
+            const total = items.reduce((a, b) => a + b.cost, 0);
+
+            return (
+                <div style={{ padding: '24px 16px' }}>
+                    <h2 style={{ marginBottom: '20px', color: '#1a2a4e' }}>💰 預算記帳</h2>
+                    
+                    <div style={{ 
+                        background: 'linear-gradient(135deg, #1a2a4e 0%, #2d4a7c 100%)',
+                        color: 'white',
+                        padding: '24px',
+                        borderRadius: '16px',
+                        textAlign: 'center',
+                        marginBottom: '20px'
+                    }}>
+                        <div style={{ fontSize: '48px', fontWeight: 'bold', marginBottom: '8px' }}>
+                            ¥{total.toLocaleString()}
+                        </div>
+                        <div style={{ fontSize: '16px', opacity: 0.9 }}>總支出</div>
+                    </div>
+
+                    <div style={{ background: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+                        {items.length === 0 ? (
+                            <div className="empty-state">
+                                <div className="empty-icon">💸</div>
+                                <p>還沒有記錄任何支出</p>
+                            </div>
+                        ) : (
+                            <div style={{ marginBottom: '20px' }}>
+                                {items.map((item, idx) => (
+                                    <div 
+                                        key={idx} 
+                                        style={{ 
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            padding: '12px',
+                                            borderBottom: '1px solid #eee'
+                                        }}
+                                    >
+                                        <span style={{ fontWeight: 600 }}>{item.name}</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <span style={{ color: '#1a2a4e', fontWeight: 'bold' }}>
+                                                ¥{item.cost.toLocaleString()}
+                                            </span>
+                                            <button 
+                                                className="btn danger" 
+                                                style={{ padding: '6px 12px', fontSize: '12px' }}
+                                                onClick={() => deleteItem(idx)}
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            <input
+                                type="text"
+                                placeholder="項目名稱"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                style={{ flex: '1 1 200px', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }}
+                            />
+                            <input
+                                type="number"
+                                placeholder="金額"
+                                value={cost}
+                                onChange={(e) => setCost(e.target.value)}
+                                style={{ flex: '1 1 120px', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }}
+                            />
+                            <button className="btn success" onClick={addItem}>
+                                ➕ 新增
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // 收藏列表
+        function FavoritesList({ trip, favorites, toggleFavorite }) {
+            const favItems = trip.days
+                .flatMap((d) => d.activities)
+                .filter((a) => favorites.includes(a.id));
+
+            return (
+                <div style={{ padding: '24px 16px' }}>
+                    <h2 style={{ marginBottom: '20px', color: '#1a2a4e' }}>❤️ 收藏景點</h2>
+
+                    {favItems.length === 0 ? (
+                        <div className="empty-state">
+                            <div className="empty-icon">💔</div>
+                            <p>尚未收藏任何景點</p>
+                        </div>
+                    ) : (
+                        favItems.map((a) => (
+                            <div className="card" key={a.id}>
+                                <div className="card-image-wrapper">
+                                    <img src={a.image} alt={a.name} loading="lazy" />
+                                </div>
+
+                                <div className="card-content">
+                                    <div className="card-header">
+                                        <span className="card-time">🕐 {a.time}</span>
+                                        <button 
+                                            className="icon-btn"
+                                            onClick={() => toggleFavorite(a.id)}
+                                        >
+                                            ❤️
+                                        </button>
+                                    </div>
+
+                                    <h3 className="card-title">{a.name}</h3>
+                                    <span className="card-category">{a.category}</span>
+                                    <div className="card-info">📍 {a.location}</div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            );
+        }
+
+        // 渲染應用
+        ReactDOM.render(<App />, document.getElementById("root"));
+    </script>
+</body>
+</html>
 
