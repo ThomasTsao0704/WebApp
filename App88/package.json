@@ -1,0 +1,31 @@
+{
+  "name": "travel-app-capacitor",
+  "version": "1.0.0",
+  "description": "旅行規劃 APP - React + Capacitor + SQLite",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "sync": "npx cap sync",
+    "android": "npx cap open android",
+    "ios": "npx cap open ios",
+    "build:android": "npm run build && npx cap sync && npx cap open android",
+    "build:ios": "npm run build && npx cap sync && npx cap open ios"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@capacitor/core": "^5.5.0",
+    "@capacitor/android": "^5.5.0",
+    "@capacitor/ios": "^5.5.0",
+    "@capacitor-community/sqlite": "^5.4.2",
+    "leaflet": "^1.9.4",
+    "react-leaflet": "^4.2.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^5.5.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "vite": "^5.0.0"
+  }
+}
