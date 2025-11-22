@@ -65,17 +65,19 @@
     
     <!-- PWA Registration -->
     <script>
-        // Service Worker 註冊
-        if ('serviceWorker' in navigator) {
+        // Service Worker 註冊（可選功能，失敗不影響主程式）
+        if ('serviceWorker' in navigator && location.protocol !== 'file:') {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('service-worker.js')
                     .then(registration => {
-                        console.log('✅ Service Worker 註冊成功:', registration.scope);
+                        console.log('✅ Service Worker 註冊成功，支援離線使用');
                     })
                     .catch(error => {
-                        console.log('❌ Service Worker 註冊失敗:', error);
+                        console.warn('⚠️  Service Worker 註冊失敗（不影響使用）:', error.message);
                     });
             });
+        } else {
+            console.log('ℹ️  Service Worker 未啟用（需要 HTTP/HTTPS 環境）');
         }
 
         // PWA 安裝提示

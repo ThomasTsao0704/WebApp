@@ -1,5 +1,8 @@
-// ==================== React App ====================
+// ==================== React App (Debug Version) ====================
 const { useState, useEffect, useMemo, useCallback } = React;
+
+console.log('🔍 除錯: React 載入完成');
+console.log('React version:', React.version);
 
 // ==================== Main App Component ====================
 function App() {
@@ -13,21 +16,27 @@ function App() {
         JSON.parse(localStorage.getItem("favorites") || "[]")
     );
 
+    console.log('🔍 除錯: App 元件已初始化');
+
     // 載入景點資料
     useEffect(() => {
+        console.log('🔍 除錯: 開始載入景點資料...');
+        
         fetch("data/trip.json")
             .then(response => {
+                console.log('🔍 除錯: fetch 回應狀態:', response.status);
                 if (!response.ok) {
-                    throw new Error('無法載入景點資料');
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 return response.json();
             })
             .then(data => {
+                console.log('🔍 除錯: 景點資料載入成功，數量:', data.length);
                 setPlaces(data);
                 setLoading(false);
             })
             .catch(err => {
-                console.error('載入失敗:', err);
+                console.error('❌ 除錯: 載入失敗:', err);
                 setError(err.message);
                 setLoading(false);
             });
@@ -57,17 +66,14 @@ function App() {
     const filteredPlaces = useMemo(() => {
         let filtered = places;
 
-        // 分頁篩選
         if (activeTab === 'favorites') {
             filtered = filtered.filter(p => favorites.includes(p.id));
         }
 
-        // 類別篩選
         if (selectedCategory !== 'all') {
             filtered = filtered.filter(p => p.category === selectedCategory);
         }
 
-        // 搜尋
         if (searchQuery) {
             const query = searchQuery.toLowerCase().trim();
             filtered = filtered.filter(p => 
@@ -88,61 +94,55 @@ function App() {
         filtered: filteredPlaces.length
     }), [places, favorites, categories, filteredPlaces]);
 
+    console.log('🔍 除錯: 當前狀態 - loading:', loading, ', places:', places.length, ', error:', error);
+
     if (loading) {
-        return (
-            <div className="loading-container">
-                <div className="spinner"></div>
-                <p>載入旅遊資料中...</p>
-            </div>
+        return React.createElement('div', { className: 'loading-container' },
+            React.createElement('div', { className: 'spinner' }),
+            React.createElement('p', null, '載入旅遊資料中...')
         );
     }
 
     if (error) {
-        return (
-            <div className="empty-state">
-                <div className="empty-state-icon">❌</div>
-                <p>載入失敗：{error}</p>
-                <button className="btn btn-primary" onClick={() => window.location.reload()}>
-                    重新載入
-                </button>
-            </div>
+        return React.createElement('div', { className: 'empty-state' },
+            React.createElement('div', { className: 'empty-state-icon' }, '❌'),
+            React.createElement('p', null, '載入失敗：' + error),
+            React.createElement('button', {
+                className: 'btn btn-primary',
+                onClick: () => window.location.reload()
+            }, '重新載入')
         );
     }
 
-    return (
-        <>
-            <Navigation 
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                stats={stats}
-            />
+    return React.createElement(React.Fragment, null,
+        React.createElement(Navigation, {
+            activeTab: activeTab,
+            setActiveTab: setActiveTab,
+            stats: stats
+        }),
 
-            {(activeTab === 'all' || activeTab === 'favorites') && (
-                <>
-                    <SearchFilter
-                        searchQuery={searchQuery}
-                        setSearchQuery={setSearchQuery}
-                        selectedCategory={selectedCategory}
-                        setSelectedCategory={setSelectedCategory}
-                        categories={categories}
-                    />
+        (activeTab === 'all' || activeTab === 'favorites') && React.createElement(React.Fragment, null,
+            React.createElement(SearchFilter, {
+                searchQuery: searchQuery,
+                setSearchQuery: setSearchQuery,
+                selectedCategory: selectedCategory,
+                setSelectedCategory: setSelectedCategory,
+                categories: categories
+            }),
 
-                    <div className="day-section">
-                        <StatsBar stats={stats} activeTab={activeTab} />
+            React.createElement('div', { className: 'day-section' },
+                React.createElement(StatsBar, { stats: stats, activeTab: activeTab }),
+                React.createElement(PlacesList, {
+                    places: filteredPlaces,
+                    favorites: favorites,
+                    toggleFavorite: toggleFavorite,
+                    isShowingFavorites: activeTab === 'favorites'
+                })
+            )
+        ),
 
-                        <PlacesList
-                            places={filteredPlaces}
-                            favorites={favorites}
-                            toggleFavorite={toggleFavorite}
-                            isShowingFavorites={activeTab === 'favorites'}
-                        />
-                    </div>
-                </>
-            )}
-
-            {activeTab === 'packing' && <PackingList />}
-            {activeTab === 'budget' && <Budget />}
-        </>
+        activeTab === 'packing' && React.createElement(PackingList),
+        activeTab === 'budget' && React.createElement(Budget)
     );
 }
 
@@ -155,26 +155,17 @@ function Navigation({ activeTab, setActiveTab, stats }) {
         { id: 'budget', label: '預算記帳', icon: '💰' }
     ];
 
-    return (
-        <nav className="nav-tabs" role="navigation" aria-label="主選單">
-            {tabs.map(tab => (
-                <div
-                    key={tab.id}
-                    className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
-                    onClick={() => setActiveTab(tab.id)}
-                    role="tab"
-                    aria-selected={activeTab === tab.id}
-                    tabIndex={0}
-                    onKeyPress={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            setActiveTab(tab.id);
-                        }
-                    }}
-                >
-                    <span aria-hidden="true">{tab.icon}</span> {tab.label}
-                </div>
-            ))}
-        </nav>
+    return React.createElement('nav', { className: 'nav-tabs', role: 'navigation' },
+        tabs.map(tab => 
+            React.createElement('div', {
+                key: tab.id,
+                className: `nav-tab ${activeTab === tab.id ? 'active' : ''}`,
+                onClick: () => setActiveTab(tab.id)
+            },
+                React.createElement('span', null, tab.icon),
+                ' ' + tab.label
+            )
+        )
     );
 }
 
@@ -188,91 +179,69 @@ function SearchFilter({ searchQuery, setSearchQuery, selectedCategory, setSelect
         '景點': '🏯 景點'
     };
 
-    return (
-        <div className="search-filter-section">
-            <div className="search-box">
-                <span className="search-icon" aria-hidden="true">🔍</span>
-                <input
-                    type="text"
-                    placeholder="搜尋景點、地點、描述..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    aria-label="搜尋景點"
-                />
-            </div>
+    return React.createElement('div', { className: 'search-filter-section' },
+        React.createElement('div', { className: 'search-box' },
+            React.createElement('span', { className: 'search-icon' }, '🔍'),
+            React.createElement('input', {
+                type: 'text',
+                placeholder: '搜尋景點、地點、描述...',
+                value: searchQuery,
+                onChange: (e) => setSearchQuery(e.target.value)
+            })
+        ),
 
-            <div className="filter-chips" role="tablist" aria-label="類別篩選">
-                {categories.map(cat => (
-                    <div
-                        key={cat}
-                        className={`filter-chip ${selectedCategory === cat ? 'active' : ''}`}
-                        onClick={() => setSelectedCategory(cat)}
-                        role="tab"
-                        aria-selected={selectedCategory === cat}
-                        tabIndex={0}
-                        onKeyPress={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                                setSelectedCategory(cat);
-                            }
-                        }}
-                    >
-                        {categoryLabels[cat] || cat}
-                    </div>
-                ))}
-            </div>
-        </div>
+        React.createElement('div', { className: 'filter-chips' },
+            categories.map(cat =>
+                React.createElement('div', {
+                    key: cat,
+                    className: `filter-chip ${selectedCategory === cat ? 'active' : ''}`,
+                    onClick: () => setSelectedCategory(cat)
+                }, categoryLabels[cat] || cat)
+            )
+        )
     );
 }
 
 // ==================== Stats Bar Component ====================
 function StatsBar({ stats, activeTab }) {
     const displayStats = [
-        { label: '景點總數', value: stats.total, show: true },
-        { label: '已收藏', value: stats.favorites, show: true },
-        { label: '類別', value: stats.categories, show: true },
-        { label: '搜尋結果', value: stats.filtered, show: activeTab === 'all' }
-    ].filter(s => s.show);
+        { label: '景點總數', value: stats.total },
+        { label: '已收藏', value: stats.favorites },
+        { label: '類別', value: stats.categories }
+    ];
 
-    return (
-        <div className="stats-bar">
-            {displayStats.map((stat, index) => (
-                <div className="stat-item" key={index}>
-                    <div className="stat-value">{stat.value}</div>
-                    <div className="stat-label">{stat.label}</div>
-                </div>
-            ))}
-        </div>
+    return React.createElement('div', { className: 'stats-bar' },
+        displayStats.map((stat, index) =>
+            React.createElement('div', { className: 'stat-item', key: index },
+                React.createElement('div', { className: 'stat-value' }, stat.value),
+                React.createElement('div', { className: 'stat-label' }, stat.label)
+            )
+        )
     );
 }
 
 // ==================== Places List Component ====================
 function PlacesList({ places, favorites, toggleFavorite, isShowingFavorites }) {
     if (places.length === 0) {
-        return (
-            <div className="empty-state">
-                <div className="empty-state-icon">
-                    {isShowingFavorites ? '❤️' : '🔍'}
-                </div>
-                <p>
-                    {isShowingFavorites 
-                        ? '尚未收藏任何景點' 
-                        : '找不到符合條件的景點'}
-                </p>
-            </div>
+        return React.createElement('div', { className: 'empty-state' },
+            React.createElement('div', { className: 'empty-state-icon' }, 
+                isShowingFavorites ? '❤️' : '🔍'
+            ),
+            React.createElement('p', null, 
+                isShowingFavorites ? '尚未收藏任何景點' : '找不到符合條件的景點'
+            )
         );
     }
 
-    return (
-        <div className="cards-grid">
-            {places.map(place => (
-                <PlaceCard
-                    key={place.id}
-                    place={place}
-                    isFavorite={favorites.includes(place.id)}
-                    toggleFavorite={toggleFavorite}
-                />
-            ))}
-        </div>
+    return React.createElement('div', { className: 'cards-grid' },
+        places.map(place =>
+            React.createElement(PlaceCard, {
+                key: place.id,
+                place: place,
+                isFavorite: favorites.includes(place.id),
+                toggleFavorite: toggleFavorite
+            })
+        )
     );
 }
 
@@ -280,99 +249,43 @@ function PlacesList({ places, favorites, toggleFavorite, isShowingFavorites }) {
 function PlaceCard({ place, isFavorite, toggleFavorite }) {
     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`;
 
-    return (
-        <article className="card">
-            <div className="card-image-container">
-                <img 
-                    src={place.image} 
-                    alt={place.name}
-                    loading="lazy"
-                    onError={(e) => {
-                        e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><rect width="400" height="300" fill="%23f0f0f0"/><text x="50%" y="50%" text-anchor="middle" fill="%23999" font-size="16">圖片載入失敗</text></svg>';
-                    }}
-                />
-                <span 
-                    className="favorite" 
-                    onClick={() => toggleFavorite(place.id)}
-                    title={isFavorite ? '取消收藏' : '加入收藏'}
-                    role="button"
-                    aria-label={isFavorite ? '取消收藏' : '加入收藏'}
-                    tabIndex={0}
-                    onKeyPress={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            toggleFavorite(place.id);
-                        }
-                    }}
-                >
-                    {isFavorite ? "❤️" : "🤍"}
-                </span>
-                {place.category && (
-                    <div className="category-badge">{place.category}</div>
-                )}
-            </div>
+    return React.createElement('article', { className: 'card' },
+        React.createElement('div', { className: 'card-image-container' },
+            React.createElement('img', {
+                src: place.image,
+                alt: place.name,
+                loading: 'lazy'
+            }),
+            React.createElement('span', {
+                className: 'favorite',
+                onClick: () => toggleFavorite(place.id),
+                title: isFavorite ? '取消收藏' : '加入收藏'
+            }, isFavorite ? '❤️' : '🤍'),
+            place.category && React.createElement('div', { className: 'category-badge' }, place.category)
+        ),
 
-            <div className="card-content">
-                <h3 className="card-title">{place.name}</h3>
-                <div className="card-sub">
-                    <span aria-hidden="true">📍</span>
-                    <span>{place.location}</span>
-                </div>
-                {place.description && (
-                    <p className="card-description">{place.description}</p>
-                )}
+        React.createElement('div', { className: 'card-content' },
+            React.createElement('h3', { className: 'card-title' }, place.name),
+            React.createElement('div', { className: 'card-sub' },
+                React.createElement('span', null, '📍'),
+                React.createElement('span', null, place.location)
+            ),
+            place.description && React.createElement('p', { className: 'card-description' }, place.description),
 
-                <div className="card-actions">
-                    <a 
-                        className="btn" 
-                        href={mapUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        aria-label={`在 Google 地圖開啟 ${place.name}`}
-                    >
-                        📍 地圖
-                    </a>
-                    <button 
-                        className="btn" 
-                        onClick={() => sendNotify(place)}
-                        aria-label={`設定 ${place.name} 的提醒`}
-                    >
-                        🔔 提醒
-                    </button>
-                </div>
-            </div>
-        </article>
+            React.createElement('div', { className: 'card-actions' },
+                React.createElement('a', {
+                    className: 'btn',
+                    href: mapUrl,
+                    target: '_blank',
+                    rel: 'noopener noreferrer'
+                }, '📍 地圖'),
+                React.createElement('button', {
+                    className: 'btn',
+                    onClick: () => alert(`已設定 ${place.name} 的提醒`)
+                }, '🔔 提醒')
+            )
+        )
     );
-}
-
-// ==================== Notification Function ====================
-function sendNotify(place) {
-    if (!("Notification" in window)) {
-        alert("此瀏覽器不支援通知功能");
-        return;
-    }
-
-    if (Notification.permission === "granted") {
-        new Notification(`📍 ${place.name}`, {
-            body: `${place.location}\n${place.description || ''}`,
-            icon: place.image,
-            badge: place.image,
-            tag: `place-${place.id}`,
-            requireInteraction: false
-        });
-    } else if (Notification.permission !== "denied") {
-        Notification.requestPermission().then(permission => {
-            if (permission === "granted") {
-                new Notification(`📍 ${place.name}`, {
-                    body: `${place.location}\n${place.description || ''}`,
-                    icon: place.image
-                });
-            } else {
-                alert("需要通知權限才能設定提醒");
-            }
-        });
-    } else {
-        alert("通知權限已被拒絕，請在瀏覽器設定中開啟通知權限");
-    }
 }
 
 // ==================== Packing List Component ====================
@@ -382,94 +295,76 @@ function PackingList() {
     );
     const [input, setInput] = useState("");
 
-    const addItem = useCallback(() => {
-        const trimmed = input.trim();
-        if (!trimmed) return;
-        
-        const newList = [...items, { 
-            text: trimmed, 
-            done: false, 
-            id: Date.now() 
-        }];
+    const addItem = () => {
+        if (!input.trim()) return;
+        const newList = [...items, { text: input, done: false, id: Date.now() }];
         setItems(newList);
         localStorage.setItem("pack", JSON.stringify(newList));
         setInput("");
-    }, [input, items]);
+    };
 
-    const toggleItem = useCallback((id) => {
-        const newList = items.map(item => 
+    const toggleItem = (id) => {
+        const newList = items.map(item =>
             item.id === id ? { ...item, done: !item.done } : item
         );
         setItems(newList);
         localStorage.setItem("pack", JSON.stringify(newList));
-    }, [items]);
+    };
 
-    const deleteItem = useCallback((id) => {
+    const deleteItem = (id) => {
         const newList = items.filter(item => item.id !== id);
         setItems(newList);
         localStorage.setItem("pack", JSON.stringify(newList));
-    }, [items]);
-
-    const handleKeyPress = (e) => {
-        if (e.key === 'Enter') addItem();
     };
 
     const completedCount = items.filter(i => i.done).length;
 
-    return (
-        <div className="day-section">
-            <div className="list-container">
-                <h2>🎒 行李清單</h2>
-                
-                <div className="input-group">
-                    <input
-                        type="text"
-                        placeholder="新增行李物品..."
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        aria-label="新增行李物品"
-                    />
-                    <button className="btn btn-primary" onClick={addItem}>
-                        ➕ 新增
-                    </button>
-                </div>
+    return React.createElement('div', { className: 'day-section' },
+        React.createElement('div', { className: 'list-container' },
+            React.createElement('h2', null, '🎒 行李清單'),
+            
+            React.createElement('div', { className: 'input-group' },
+                React.createElement('input', {
+                    type: 'text',
+                    placeholder: '新增行李物品...',
+                    value: input,
+                    onChange: (e) => setInput(e.target.value),
+                    onKeyPress: (e) => e.key === 'Enter' && addItem()
+                }),
+                React.createElement('button', {
+                    className: 'btn btn-primary',
+                    onClick: addItem
+                }, '➕ 新增')
+            ),
 
-                {items.length > 0 && (
-                    <div style={{ marginBottom: '16px', color: '#777', fontSize: '14px' }}>
-                        已完成: {completedCount} / {items.length} 
-                        ({items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0}%)
-                    </div>
-                )}
+            items.length > 0 && React.createElement('div', { style: { marginBottom: '16px', color: '#777', fontSize: '14px' } },
+                `已完成: ${completedCount} / ${items.length}`
+            ),
 
-                {items.length === 0 ? (
-                    <div className="empty-state">
-                        <div className="empty-state-icon">🎒</div>
-                        <p>尚未加入任何物品</p>
-                    </div>
-                ) : (
-                    items.map((item) => (
-                        <div key={item.id} className={`list-item ${item.done ? 'done' : ''}`}>
-                            <input
-                                type="checkbox"
-                                checked={item.done}
-                                onChange={() => toggleItem(item.id)}
-                                aria-label={`標記 ${item.text} 為${item.done ? '未完成' : '已完成'}`}
-                            />
-                            <span>{item.text}</span>
-                            <button 
-                                className="btn" 
-                                onClick={() => deleteItem(item.id)}
-                                style={{ padding: '8px 14px', fontSize: '13px' }}
-                                aria-label={`刪除 ${item.text}`}
-                            >
-                                🗑️
-                            </button>
-                        </div>
-                    ))
-                )}
-            </div>
-        </div>
+            items.length === 0 ? 
+                React.createElement('div', { className: 'empty-state' },
+                    React.createElement('div', { className: 'empty-state-icon' }, '🎒'),
+                    React.createElement('p', null, '尚未加入任何物品')
+                ) :
+                items.map(item =>
+                    React.createElement('div', {
+                        key: item.id,
+                        className: `list-item ${item.done ? 'done' : ''}`
+                    },
+                        React.createElement('input', {
+                            type: 'checkbox',
+                            checked: item.done,
+                            onChange: () => toggleItem(item.id)
+                        }),
+                        React.createElement('span', { style: { flex: 1 } }, item.text),
+                        React.createElement('button', {
+                            className: 'btn',
+                            onClick: () => deleteItem(item.id),
+                            style: { padding: '8px 14px', fontSize: '13px' }
+                        }, '🗑️')
+                    )
+                )
+        )
     );
 }
 
@@ -481,125 +376,106 @@ function Budget() {
     const [name, setName] = useState("");
     const [cost, setCost] = useState("");
 
-    const addBudget = useCallback(() => {
-        const trimmedName = name.trim();
-        const numCost = Number(cost);
+    const addBudget = () => {
+        if (!name.trim() || !cost) return;
         
-        if (!trimmedName || !numCost || numCost <= 0) {
-            alert('請輸入有效的項目名稱和金額');
-            return;
-        }
-        
-        const newList = [...list, { 
-            name: trimmedName, 
-            cost: numCost, 
+        const newList = [...list, {
+            name: name.trim(),
+            cost: Number(cost),
             id: Date.now(),
-            date: new Date().toLocaleDateString('zh-TW', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            })
+            date: new Date().toLocaleDateString('zh-TW')
         }];
         setList(newList);
         localStorage.setItem("budget", JSON.stringify(newList));
         setName("");
         setCost("");
-    }, [name, cost, list]);
+    };
 
-    const deleteItem = useCallback((id) => {
+    const deleteItem = (id) => {
         if (confirm('確定要刪除這筆記錄嗎?')) {
             const newList = list.filter(item => item.id !== id);
             setList(newList);
             localStorage.setItem("budget", JSON.stringify(newList));
         }
-    }, [list]);
-
-    const handleKeyPress = (e) => {
-        if (e.key === 'Enter') addBudget();
     };
 
     const total = list.reduce((sum, item) => sum + item.cost, 0);
 
-    return (
-        <div className="day-section">
-            <div className="budget-container">
-                <h2>💰 預算記帳</h2>
+    return React.createElement('div', { className: 'day-section' },
+        React.createElement('div', { className: 'budget-container' },
+            React.createElement('h2', null, '💰 預算記帳'),
 
-                <div className="input-group">
-                    <input
-                        type="text"
-                        placeholder="項目名稱"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        aria-label="項目名稱"
-                    />
-                    <input
-                        type="number"
-                        placeholder="金額 (TWD)"
-                        value={cost}
-                        onChange={(e) => setCost(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        min="0"
-                        step="1"
-                        style={{ maxWidth: '150px' }}
-                        aria-label="金額"
-                    />
-                    <button className="btn btn-primary" onClick={addBudget}>
-                        ➕ 新增
-                    </button>
-                </div>
+            React.createElement('div', { className: 'input-group' },
+                React.createElement('input', {
+                    type: 'text',
+                    placeholder: '項目名稱',
+                    value: name,
+                    onChange: (e) => setName(e.target.value),
+                    onKeyPress: (e) => e.key === 'Enter' && addBudget()
+                }),
+                React.createElement('input', {
+                    type: 'number',
+                    placeholder: '金額',
+                    value: cost,
+                    onChange: (e) => setCost(e.target.value),
+                    onKeyPress: (e) => e.key === 'Enter' && addBudget(),
+                    style: { maxWidth: '150px' }
+                }),
+                React.createElement('button', {
+                    className: 'btn btn-primary',
+                    onClick: addBudget
+                }, '➕ 新增')
+            ),
 
-                {list.length === 0 ? (
-                    <div className="empty-state">
-                        <div className="empty-state-icon">💰</div>
-                        <p>尚未記錄任何支出</p>
-                    </div>
-                ) : (
-                    <>
-                        {list.map((item) => (
-                            <div key={item.id} className="budget-item">
-                                <div>
-                                    <div style={{ fontWeight: '600', marginBottom: '4px' }}>
-                                        {item.name}
-                                    </div>
-                                    {item.date && (
-                                        <div style={{ fontSize: '13px', color: '#999' }}>
-                                            {item.date}
-                                        </div>
-                                    )}
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                                    <span style={{ fontWeight: '700', color: '#FF6B6B', fontSize: '16px' }}>
-                                        NT$ {item.cost.toLocaleString('zh-TW')}
-                                    </span>
-                                    <button 
-                                        className="btn" 
-                                        onClick={() => deleteItem(item.id)}
-                                        style={{ padding: '8px 14px', fontSize: '13px' }}
-                                        aria-label={`刪除 ${item.name}`}
-                                    >
-                                        🗑️
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+            list.length === 0 ?
+                React.createElement('div', { className: 'empty-state' },
+                    React.createElement('div', { className: 'empty-state-icon' }, '💰'),
+                    React.createElement('p', null, '尚未記錄任何支出')
+                ) :
+                React.createElement(React.Fragment, null,
+                    list.map(item =>
+                        React.createElement('div', { key: item.id, className: 'budget-item' },
+                            React.createElement('div', null,
+                                React.createElement('div', { style: { fontWeight: '600' } }, item.name),
+                                item.date && React.createElement('div', {
+                                    style: { fontSize: '13px', color: '#999', marginTop: '4px' }
+                                }, item.date)
+                            ),
+                            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '14px' } },
+                                React.createElement('span', {
+                                    style: { fontWeight: '700', color: '#FF6B6B', fontSize: '16px' }
+                                }, `NT$ ${item.cost.toLocaleString('zh-TW')}`),
+                                React.createElement('button', {
+                                    className: 'btn',
+                                    onClick: () => deleteItem(item.id),
+                                    style: { padding: '8px 14px', fontSize: '13px' }
+                                }, '🗑️')
+                            )
+                        )
+                    ),
 
-                        <div className="budget-total">
-                            總計: NT$ {total.toLocaleString('zh-TW')}
-                        </div>
-                    </>
-                )}
-            </div>
-        </div>
+                    React.createElement('div', { className: 'budget-total' },
+                        `總計: NT$ ${total.toLocaleString('zh-TW')}`
+                    )
+                )
+        )
     );
 }
 
 // ==================== Initialize App ====================
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+console.log('🔍 除錯: 準備渲染 App...');
+
+try {
+    ReactDOM.render(
+        React.createElement(App),
+        document.getElementById('root')
+    );
+    console.log('✅ 除錯: App 渲染成功！');
+} catch (err) {
+    console.error('❌ 除錯: 渲染失敗:', err);
+}
 
 // ==================== Console Welcome Message ====================
 console.log('%c🇯🇵 Thomas Japan Travel', 'font-size: 24px; font-weight: bold; color: #1A2A4E;');
 console.log('%c歡迎使用大阪旅遊助手！', 'font-size: 14px; color: #666;');
-console.log('%c版本: 2.0 | 作者: Thomas', 'font-size: 12px; color: #999;');
+console.log('%c版本: 2.0 (Debug) | 作者: Thomas', 'font-size: 12px; color: #999;');
