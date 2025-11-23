@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大阪旅遊地圖 🗺️</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            overflow: hidden;
+        }
+
+        #container {
+            display: flex;
+            height: 100%;
+        }
+
+        #map {
+            flex: 1;
+            height: 100%;
+            position: relative;
+        }
+
+        /* 桌機版 Panel */
+        #panel {
+            width: 380px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            overflow-y: auto;
+            padding: 20px;
+            border-left: 1px solid rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(20px);
+            box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+        }
+
+        #panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #panel::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        #panel::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        #panel::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .panel-header {
+            margin-bottom: 24px;
+        }
+
+        .panel-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-subtitle {
+            font-size: 14px;
+            color: #666;
+        }
+
+        #searchBox,
+        .mobile-search {
+            width: 100%;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            border-radius: 12px;
+            border: 2px solid #e0e0e0;
+            font-size: 15px;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        #searchBox:focus,
+        .mobile-search:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            background: white;
+            color: #555;
+            border-radius: 20px;
+            cursor: pointer;
+            border: 2px solid #e0e0e0;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .filter-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .cards-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 0;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            color: #333;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-image-wrapper {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+
+        .card:hover img {
+            transform: scale(1.05);
+        }
+
+        .card-content {
+            padding: 16px;
+        }
+
+        .card-cat {
+            display: inline-block;
+            padding: 4px 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #222;
+        }
+
+        .card-desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .favorite-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            color: #ddd;
+            cursor: pointer;
+            user-select: none;
+            border-radius: 50%;
+            transition: all 0.3s;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .favorite-btn:hover {
+            transform: scale(1.1);
+            background: white;
+        }
+
+        .favorite-btn.active {
+            color: #ff385c;
+            animation: heartbeat 0.3s;
+        }
+
+        @keyframes heartbeat {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.2);
+            }
+        }
+
+        .gmaps-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            background: #1a73e8;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .gmaps-btn:hover {
+            background: #1557b0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(26, 115, 232, 0.4);
+        }
+
+        .gmaps-btn::before {
+            content: '📍';
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .no-results-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        /* 手機版 */
+        #mobilePanel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 70%;
+            background: white;
+            border-radius: 24px 24px 0 0;
+            padding: 20px;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+            z-index: 9999;
+            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        #mobilePanel.open {
+            transform: translateY(0);
+        }
+
+        #mobilePanel::-webkit-scrollbar {
+            display: none;
+        }
+
+        .mobile-panel-handle {
+            width: 40px;
+            height: 5px;
+            background: #ddd;
+            border-radius: 3px;
+            margin: 0 auto 20px;
+            cursor: pointer;
+        }
+
+        #togglePanelBtn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            display: none;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+            z-index: 9998;
+            transition: all 0.3s;
+        }
+
+        #togglePanelBtn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        #togglePanelBtn:active {
+            transform: scale(0.95);
+        }
+
+        /* 圖片載入效果 */
+        .card img {
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .card img.loaded {
+            opacity: 1;
+        }
+
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: translate(-50%, -50%) rotate(0deg);
+            }
+
+            100% {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            #panel {
+                display: none;
+            }
+
+            #togglePanelBtn {
+                display: flex;
+            }
+
+            .card-image-wrapper {
+                height: 180px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .panel-title {
+                font-size: 24px;
+            }
+
+            .filter-btn {
+                font-size: 13px;
+                padding: 6px 12px;
+            }
+
+            #togglePanelBtn {
+                bottom: 20px;
+                right: 20px;
+                width: 52px;
+                height: 52px;
+            }
+        }
+
+        /* Leaflet 客製化 */
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .leaflet-popup-content {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="container">
+        <div id="map"></div>
+
+        <!-- 桌機 Panel -->
+        <div id="panel">
+            <div class="panel-header">
+                <div class="panel-title">🗾 大阪旅遊地圖</div>
+                <div class="panel-subtitle">探索美食、購物、文化景點</div>
+            </div>
+
+            <input id="searchBox" placeholder="🔍 搜尋地名（中文/日文）">
+
+            <div class="filter-row">
+                <div class="filter-btn active" data-cat="全部">全部</div>
+                <div class="filter-btn" data-cat="購物">購物</div>
+                <div class="filter-btn" data-cat="美食">美食</div>
+                <div class="filter-btn" data-cat="拍照">拍照</div>
+                <div class="filter-btn" data-cat="文化">文化</div>
+                <div class="filter-btn" data-cat="收藏">⭐ 收藏</div>
+            </div>
+
+            <div class="cards-container" id="cards"></div>
+        </div>
+    </div>
+
+    <!-- 手機版 -->
+    <div id="mobilePanel">
+        <div class="mobile-panel-handle"></div>
+    </div>
+    <div id="togglePanelBtn">☰</div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        let places = [];
+        let markers = {};
+        let currentFilter = "全部";
+        let currentSearch = "";
+
+        /* ============================================================
+           載入外部 JSON
+        ============================================================ */
+        fetch("/data/osaka.json")
+            .then(res => res.json())
+            .then(json => {
+                places = json;
+                initMap();
+                renderCards();
+                renderMobilePanel();
+            })
+            .catch(err => {
+                console.error("載入資料失敗:", err);
+                document.getElementById("cards").innerHTML = `
+                    <div class="no-results">
+                        <div class="no-results-icon">⚠️</div>
+                        <div>無法載入景點資料</div>
+                        <div style="font-size: 12px; margin-top: 8px;">請確認 /data/osaka.json 檔案存在</div>
+                    </div>
+                `;
+            });
+
+        /* ============================================================
+           收藏功能
+        ============================================================ */
+        function getFavorites() {
+            return JSON.parse(localStorage.getItem("favorites") || "[]");
+        }
+
+        function isFavorite(id) {
+            return getFavorites().includes(id);
+        }
+
+        function toggleFavorite(e, id) {
+            e.stopPropagation();
+            let favs = getFavorites();
+            if (favs.includes(id)) {
+                favs = favs.filter(x => x !== id);
+            } else {
+                favs.push(id);
+            }
+            localStorage.setItem("favorites", JSON.stringify(favs));
+            renderCards();
+            renderMobilePanel();
+        }
+
+        /* ============================================================
+           初始化地圖
+        ============================================================ */
+        function initMap() {
+            window.map = L.map("map").setView([34.6937, 135.5023], 12);
+
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            places.forEach(p => {
+                const marker = L.marker([p.lat, p.lng]).addTo(map);
+
+                marker.bindPopup(`<strong>${p.name}</strong><br>${p.category}`);
+
+                marker.on("click", () => {
+                    showPlaceDetail(p);
+                });
+
+                markers[p.id] = marker;
+            });
+        }
+
+        /* ============================================================
+           顯示地點詳情 → 改為顯示 Google Map 內嵌
+============================================================ */
+        function showPlaceDetail(p) {
+            // 建立 Google Maps 內嵌 URL
+            const googleMapURL = `https://www.google.com/maps?q=${p.name}       &hl=zh-TW&z=15&output=embed`;
+
+            // 建立 iframe HTML
+            const googleMapIframe = `
+        <div class="map-embed-container">
+            <iframe
+                width="100%"
+                height="360"
+                style="border:0;border-radius:12px;"
+                loading="lazy"
+                allowfullscreen
+                src="${googleMapURL}">
+            </iframe>
+        </div>
+    `;
+            // 原本卡片內容（若你還想保留文字描述）
+            const cardHTML = `
+        ${createCardHTML(p, true)}
+        ${googleMapIframe}
+    `;
+
+            /* === 桌機版 === */
+            const desk = document.getElementById("cards");
+            desk.innerHTML = cardHTML;
+            initCardImages();
+
+            /* === 手機版 === */
+            const mp = document.getElementById("mobilePanel");
+            mp.innerHTML = `
+        <div class="mobile-panel-handle"></div>
+        ${cardHTML}
+    `;
+
+            mp.classList.add("open");
+
+            initCardImages();
+
+            // 綁定手機面板 handle
+            document.querySelector(".mobile-panel-handle").onclick = toggleMobilePanel;
+        }
+
+        /* ============================================================
+           MAP 聚焦
+        ============================================================ */
+        function focusPlace(p) {
+            showPlaceDetail(p);
+        }
+
+        /* ============================================================
+            建立卡片 HTML
+        ============================================================ */
+        function createCardHTML(p, isDetail = false) {
+            return `
+                <div class="card" ${!isDetail ? `onclick="focusPlace(places.find(x=>x.id===${p.id}))"` : ''}>
+                    <div class="card-content">
+                        <div class="card-cat">${p.category}</div>
+                        <div class="card-title">${p.name}</div>
+                        <div class="card-desc">${p.description}</div>
+                        <a class="gmaps-btn"
+                            href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name)}"
+                            target="_blank"
+                            onclick="event.stopPropagation()">在 Google 地圖開啟</a>
+                    </div>
+                </div>
+            `;
+        }
+
+        /* ============================================================
+            圖片載入處理
+        ============================================================ */
+        function initCardImages() {
+            document.querySelectorAll('.card img').forEach(img => {
+                if (img.complete) {
+                    img.classList.add('loaded');
+                    const spinner = img.parentElement.querySelector('.loading-spinner');
+                    if (spinner) spinner.remove();
+                } else {
+                    img.onload = () => {
+                        img.classList.add('loaded');
+                        const spinner = img.parentElement.querySelector('.loading-spinner');
+                        if (spinner) spinner.remove();
+                    };
+                }
+            });
+        }
+
+        /* ============================================================
+            篩選資料
+        ============================================================ */
+        function filterPlaces() {
+            return places.filter(p => {
+                // 分類篩選
+                let categoryMatch = true;
+                if (currentFilter === "收藏") {
+                    categoryMatch = isFavorite(p.id);
+                } else if (currentFilter !== "全部") {
+                    categoryMatch = p.category === currentFilter;
+                }
+
+                // 搜尋篩選
+                let searchMatch = true;
+                if (currentSearch) {
+                    searchMatch = p.name.includes(currentSearch) ||
+                        (p.jp && p.jp.includes(currentSearch));
+                }
+
+                return categoryMatch && searchMatch;
+            });
+        }
+
+        /* ============================================================
+            渲染卡片列表
+        ============================================================ */
+        function renderCards() {
+            const box = document.getElementById("cards");
+            const filtered = filterPlaces();
+
+            if (filtered.length === 0) {
+                box.innerHTML = `
+                    <div class="no-results">
+                        <div class="no-results-icon">🔍</div>
+                        <div>找不到符合條件的景點</div>
+                        <div style="font-size: 12px; margin-top: 8px; color: #999;">試試其他關鍵字或篩選條件</div>
+                    </div>
+                `;
+                return;
+            }
+
+            box.innerHTML = filtered.map(p => createCardHTML(p)).join('');
+            initCardImages();
+        }
+
+        /* ============================================================
+            分類按鈕
+        ============================================================ */
+        function setupFilterButtons(container) {
+            container.querySelectorAll(".filter-btn").forEach(btn => {
+                btn.onclick = () => {
+                    container.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+                    btn.classList.add("active");
+                    currentFilter = btn.dataset.cat;
+                    renderCards();
+                    renderMobilePanel();
+                };
+            });
+        }
+
+        // 桌機版按鈕
+        setupFilterButtons(document.getElementById("panel"));
+
+        /* ============================================================
+            搜尋功能
+        ============================================================ */
+        function setupSearch(input) {
+            input.addEventListener("input", e => {
+                currentSearch = e.target.value.trim();
+                renderCards();
+                renderMobilePanel();
+
+                // 如果只有一個結果，自動聚焦
+                const filtered = filterPlaces();
+                if (filtered.length === 1) {
+                    setTimeout(() => {
+                        map.flyTo([filtered[0].lat, filtered[0].lng], 14, { duration: 0.6 });
+                    }, 300);
+                }
+            });
+        }
+
+        setupSearch(document.getElementById("searchBox"));
+
+        /* ============================================================
+           手機版面板
+        ============================================================ */
+        function renderMobilePanel() {
+            const mp = document.getElementById("mobilePanel");
+            const filtered = filterPlaces();
+
+            let html = `
+                <div class="mobile-panel-handle"></div>
+                <div class="panel-header">
+                    <div class="panel-title">🗾 大阪旅遊地圖</div>
+                    <div class="panel-subtitle">探索美食、購物、文化景點</div>
+                </div>
+                <input class="mobile-search" id="mobileSearch"
+                       placeholder="🔍 搜尋地名（中文/日文)" value="${currentSearch}">
+                <div class="filter-row">
+                    <div class="filter-btn ${currentFilter === '全部' ? 'active' : ''}" data-cat="全部">全部</div>
+                    <div class="filter-btn ${currentFilter === '購物' ? 'active' : ''}" data-cat="購物">購物</div>
+                    <div class="filter-btn ${currentFilter === '美食' ? 'active' : ''}" data-cat="美食">美食</div>
+                    <div class="filter-btn ${currentFilter === '拍照' ? 'active' : ''}" data-cat="拍照">拍照</div>
+                    <div class="filter-btn ${currentFilter === '文化' ? 'active' : ''}" data-cat="文化">文化</div>
+                    <div class="filter-btn ${currentFilter === '收藏' ? 'active' : ''}" data-cat="收藏">⭐ 收藏</div>
+                </div>
+                <div class="cards-container">
+            `;
+
+            if (filtered.length === 0) {
+                html += `
+                    <div class="no-results">
+                        <div class="no-results-icon">🔍</div>
+                        <div>找不到符合條件的景點</div>
+                    </div>
+                `;
+            } else {
+                html += filtered.map(p => createCardHTML(p)).join('');
+            }
+
+            html += `</div>`;
+            mp.innerHTML = html;
+
+            // 重新綁定事件
+            setupFilterButtons(mp);
+            setupSearch(document.getElementById("mobileSearch"));
+            document.querySelector(".mobile-panel-handle").onclick = toggleMobilePanel;
+            initCardImages();
+
+            // 為手機版卡片添加點擊事件 - 點擊後關閉面板
+            mp.querySelectorAll('.card').forEach(card => {
+                card.addEventListener('click', () => {
+                    setTimeout(() => {
+                        mp.classList.remove('open');
+                    }, 300);
+                });
+            });
+        }
+
+        /* ============================================================
+            手機 Panel 開關
+        ============================================================ */
+        function toggleMobilePanel() {
+            document.getElementById("mobilePanel").classList.toggle("open");
+        }
+
+        document.getElementById("togglePanelBtn").onclick = toggleMobilePanel;
+
+        // 點擊地圖時關閉手機面板
+        document.getElementById("map").addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                document.getElementById("mobilePanel").classList.remove("open");
+            }
+        });
+
+    </script>
+
+</body>
+
+</html>
