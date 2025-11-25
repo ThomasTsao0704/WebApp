@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文字格式化工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .panel h2 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel h2::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+        }
+
+        .input-area, .output-area {
+            width: 100%;
+            min-height: 400px;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            line-height: 1.8;
+            resize: vertical;
+            font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif;
+            transition: border-color 0.3s;
+        }
+
+        .input-area:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .output-area {
+            background: #f9f9f9;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .controls {
+            background: #f5f5f5;
+            padding: 25px;
+            border-radius: 12px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .control-group select,
+        .control-group input[type="number"] {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .control-group select:hover,
+        .control-group input[type="number"]:hover {
+            border-color: #667eea;
+        }
+
+        .control-group select:focus,
+        .control-group input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Microsoft JhengHei', sans-serif;
+        }
+
+        .btn-format {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-format:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-clear {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-clear:hover {
+            background: #d32f2f;
+            transform: translateY(-2px);
+        }
+
+        .btn-copy {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-copy:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .format-preview {
+            margin-top: 10px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .format-preview-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        .format-preview-content {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #333;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 自定義格式樣式 */
+        .style-article {
+            text-indent: 2em;
+            text-align: justify;
+        }
+
+        .style-news {
+            text-align: left;
+        }
+
+        .style-center {
+            text-align: center;
+        }
+
+        .style-left {
+            text-align: left;
+        }
+
+        .style-right {
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📝 文字格式化工具</h1>
+            <p>輕鬆調整文字格式、段落、對齊方式，讓你的內容更專業</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>📋 格式樣式</label>
+                <select id="formatStyle">
+                    <option value="article">文章格式（首行縮排）</option>
+                    <option value="news">新聞報導格式</option>
+                    <option value="plain">一般格式</option>
+                    <option value="poetry">詩詞格式</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>↔️ 對齊方式</label>
+                <select id="alignment">
+                    <option value="left">靠左對齊</option>
+                    <option value="center">置中對齊</option>
+                    <option value="right">靠右對齊</option>
+                    <option value="justify">左右對齊</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>📏 段落間隔</label>
+                <input type="number" id="paragraphSpacing" min="0" max="5" step="0.5" value="1.5">
+            </div>
+
+            <div class="control-group">
+                <label>📐 行高</label>
+                <input type="number" id="lineHeight" min="1" max="3" step="0.1" value="1.8">
+            </div>
+
+            <div class="control-group">
+                <label>🔤 字體大小</label>
+                <input type="number" id="fontSize" min="12" max="24" step="1" value="16">
+            </div>
+
+            <div class="control-group">
+                <label>📖 首行縮排</label>
+                <select id="textIndent">
+                    <option value="0">無縮排</option>
+                    <option value="2" selected>2字元</option>
+                    <option value="4">4字元</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="panel">
+                <h2>輸入區</h2>
+                <textarea class="input-area" id="inputText" placeholder="請在此輸入你的文字內容...
+
+範例：
+這是一段測試文字。你可以在這裡輸入任何內容，系統會根據你選擇的格式自動調整排版。
+
+支援多段落文字，每個段落會根據設定進行格式化。你可以調整對齊方式、段落間隔、行高等參數。
+
+試試看不同的格式選項，找到最適合你的排版風格！"></textarea>
+                
+                <div class="button-group">
+                    <button class="btn-format" onclick="formatText()">✨ 格式化</button>
+                    <button class="btn-clear" onclick="clearAll()">🗑️ 清空</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>輸出區</h2>
+                <div class="output-area" id="outputText">格式化後的文字將顯示在這裡...</div>
+                
+                <div class="button-group">
+                    <button class="btn-copy" onclick="copyOutput()">📋 複製輸出</button>
+                    <button class="btn-copy" onclick="copyHTML()">🔗 複製 HTML</button>
+                </div>
+
+                <div class="format-preview">
+                    <div class="format-preview-label">格式預覽說明：</div>
+                    <div class="format-preview-content" id="formatDescription">
+                        選擇不同的格式選項來查看效果說明
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 格式描述
+        const formatDescriptions = {
+            article: '文章格式：每段首行縮排兩個字元，適合一般文章、散文',
+            news: '新聞格式：靠左對齊，無縮排，段落分明，適合新聞報導',
+            plain: '一般格式：簡潔排版，適合一般用途',
+            poetry: '詩詞格式：置中對齊，適合詩歌、短句'
+        };
+
+        // 自動格式化
+        document.getElementById('inputText').addEventListener('input', formatText);
+        document.getElementById('formatStyle').addEventListener('change', updateFormatDescription);
+        document.getElementById('alignment').addEventListener('change', formatText);
+        document.getElementById('paragraphSpacing').addEventListener('input', formatText);
+        document.getElementById('lineHeight').addEventListener('input', formatText);
+        document.getElementById('fontSize').addEventListener('input', formatText);
+        document.getElementById('textIndent').addEventListener('change', formatText);
+
+        // 初始化
+        updateFormatDescription();
+
+        function formatText() {
+            const inputText = document.getElementById('inputText').value;
+            const formatStyle = document.getElementById('formatStyle').value;
+            const alignment = document.getElementById('alignment').value;
+            const paragraphSpacing = document.getElementById('paragraphSpacing').value;
+            const lineHeight = document.getElementById('lineHeight').value;
+            const fontSize = document.getElementById('fontSize').value;
+            const textIndent = document.getElementById('textIndent').value;
+            
+            const outputElement = document.getElementById('outputText');
+            
+            if (!inputText.trim()) {
+                outputElement.textContent = '格式化後的文字將顯示在這裡...';
+                outputElement.style.cssText = '';
+                return;
+            }
+
+            // 分割段落
+            const paragraphs = inputText.split('\n').filter(p => p.trim());
+            
+            // 應用格式
+            let formattedHTML = '';
+            
+            paragraphs.forEach((paragraph, index) => {
+                const trimmedParagraph = paragraph.trim();
+                if (trimmedParagraph) {
+                    formattedHTML += `<p style="margin-bottom: ${paragraphSpacing}em;">${trimmedParagraph}</p>`;
+                }
+            });
+
+            // 設置樣式
+            let styleCSS = `
+                font-size: ${fontSize}px;
+                line-height: ${lineHeight};
+                text-align: ${alignment};
+            `;
+
+            // 根據格式樣式添加特殊樣式
+            if (formatStyle === 'article' && textIndent !== '0') {
+                styleCSS += `text-indent: ${textIndent}em;`;
+            } else if (formatStyle === 'poetry') {
+                styleCSS += `text-align: center;`;
+            }
+
+            outputElement.innerHTML = formattedHTML;
+            outputElement.style.cssText = styleCSS;
+        }
+
+        function updateFormatDescription() {
+            const formatStyle = document.getElementById('formatStyle').value;
+            const descriptionElement = document.getElementById('formatDescription');
+            descriptionElement.textContent = formatDescriptions[formatStyle];
+        }
+
+        function clearAll() {
+            document.getElementById('inputText').value = '';
+            document.getElementById('outputText').innerHTML = '格式化後的文字將顯示在這裡...';
+            document.getElementById('outputText').style.cssText = '';
+        }
+
+        function copyOutput() {
+            const outputText = document.getElementById('outputText').innerText;
+            
+            if (outputText === '格式化後的文字將顯示在這裡...') {
+                showToast('⚠️ 沒有可複製的內容');
+                return;
+            }
+
+            navigator.clipboard.writeText(outputText).then(() => {
+                showToast('✅ 已複製到剪貼簿！');
+            }).catch(err => {
+                showToast('❌ 複製失敗');
+            });
+        }
+
+        function copyHTML() {
+            const outputElement = document.getElementById('outputText');
+            const html = outputElement.innerHTML;
+            const style = outputElement.style.cssText;
+            
+            if (html === '格式化後的文字將顯示在這裡...') {
+                showToast('⚠️ 沒有可複製的內容');
+                return;
+            }
+
+            const fullHTML = `<div style="${style}">\n${html}\n</div>`;
+            
+            navigator.clipboard.writeText(fullHTML).then(() => {
+                showToast('✅ HTML 已複製到剪貼簿！');
+            }).catch(err => {
+                showToast('❌ 複製失敗');
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
