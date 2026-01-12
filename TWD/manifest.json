@@ -1,0 +1,9 @@
+{
+  "name": "歷史匯率分析工具 v3",
+  "short_name": "FX Analyzer v3",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0b1120",
+  "theme_color": "#0b1120",
+  "icons": []
+}
