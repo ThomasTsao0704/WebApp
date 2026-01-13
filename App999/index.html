@@ -1,1 +1,53 @@
-hhhh
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📈 Stock Cards Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="toolbar">
+      <div class="toolbar-left">
+        <h2>📈 Stock Cards Dashboard</h2>
+        <div class="toolbar-sub">Latest daily data, with search, sort and mini trends.</div>
+      </div>
+      <div class="toolbar-right">
+        <select id="dataFileSelect" class="select">
+          <option value="">Loading files...</option>
+        </select>
+        <input
+          id="searchInput"
+          class="search-input"
+          placeholder="Search by Symbol or Name..."
+          type="text"
+        />
+        <select id="sortField" class="select">
+          <option value="ChangePct">Change % (漲跌幅)</option>
+          <option value="Volume">Volume (成交量)</option>
+          <option value="Turnover">Turnover (成交金額)</option>
+        </select>
+        <select id="sortOrder" class="select">
+          <option value="desc">Desc ↓</option>
+          <option value="asc">Asc ↑</option>
+        </select>
+      </div>
+    </header>
+
+    <div id="loadingMessage" style="display: none;">
+      <p>Loading data...</p>
+    </div>
+    <div id="errorMessage" style="display: none;">
+      <p class="error"></p>
+    </div>
+
+    <div id="grid" class="grid"></div>
+  </div>
+
+  <!-- PapaParse Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- Main Application Script -->
+  <script src="app.js"></script>
+</body>
+</html>

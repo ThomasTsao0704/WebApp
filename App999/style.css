@@ -1,0 +1,259 @@
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f1f5f9;
+  margin: 0;
+}
+
+.page {
+  padding: 16px 20px 32px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.toolbar-left h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.toolbar-sub {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.toolbar-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.search-input {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  min-width: 220px;
+}
+
+.select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  cursor: pointer;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: 160px;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.card.flipped {
+  transform: rotateY(180deg);
+}
+
+.card-front,
+.card-back {
+  backface-visibility: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.card-front {
+  transform: rotateY(0deg);
+  display: flex;
+  flex-direction: column;
+}
+
+.card-back {
+  transform: rotateY(180deg);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  cursor: pointer;
+  user-select: none;
+}
+
+.title:hover {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.date {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.main-row {
+  display: flex;
+  gap: 8px;
+}
+
+.main-left {
+  flex: 1.1;
+}
+
+.main-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.price-value {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.price-change {
+  font-size: 14px;
+}
+
+.sub {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.sparkline-placeholder {
+  font-size: 10px;
+  color: #cbd5e1;
+}
+
+.candlestick {
+  width: 120px;
+  height: 60px;
+  display: block;
+}
+
+.avg-wick {
+  stroke: #7dd3fc;
+  stroke-width: 1px;
+}
+
+.avg-body {
+  fill: #7dd3fc;
+  opacity: 0.9;
+}
+
+.candlestick-wrap {
+  position: relative;
+  width: 120px;
+  height: 60px;
+}
+
+.candle-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: #0f172a;
+  color: #f8fafc;
+  font-size: 10px;
+  line-height: 1.2;
+  padding: 4px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+  transform: translate(-50%, -115%);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
+  z-index: 10;
+}
+
+.candle-tooltip-date {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.error {
+  color: #b91c1c;
+  margin-bottom: 8px;
+}
+
+#loadingMessage,
+#errorMessage {
+  margin-bottom: 16px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13px;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.info-value {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.back-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.flip-hint {
+  font-size: 10px;
+  color: #9ca3af;
+  text-align: center;
+  margin-top: auto;
+  padding-top: 6px;
+}
