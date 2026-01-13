@@ -1,353 +1,380 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <title>管理員登入（Auth-Only）</title>
-    <style>
-        * {
-            box-sizing: border-box
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>歷史匯率計算機</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    @import url(//fonts.googleapis.com/css?family=Montserrat:9000);
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f3f4f6;
-            margin: 0;
-            color: #111827
-        }
+    *:before,
+    *:after {
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+    }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 24px
-        }
+    body {
+      font-family: Arial, "Hiragino Kaku Gothic Pro W3", Meiryo, sans-serif;
+      background-color: #fff;
+      color: #999;
+      text-align: center;
+    }
 
-        .card {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, .1);
-            padding: 20px;
-            margin-bottom: 16px
-        }
+    body a,
+    body a:visited {
+      color: #999;
+      text-decoration: none;
+    }
 
-        h1 {
-            font-size: 28px;
-            margin: 8px 0 16px
-        }
+    body a:hover {
+      color: #777;
+    }
 
-        h3 {
-            margin: 0 0 12px
-        }
+    h1 {
+      font-size: 36px;
+      font-family: "Montserrat", sans-serif;
+      color: #53E2E4;
+      margin: 10px auto 30px;
+    }
 
-        .row {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap
-        }
+    .filter-controls {
+      text-align: center;
+      margin-bottom: 30px;
+    }
 
-        .input {
-            flex: 1;
-            min-width: 180px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            padding: 10px;
-            font-size: 14px
-        }
+    .filter-controls .control {
+      display: inline-block;
+      width: 240px;
+      margin: 0 10px;
+    }
 
-        .btn {
-            border: 0;
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-weight: 600;
-            cursor: pointer
-        }
+    .filter-controls .control * {
+      box-sizing: border-box;
+    }
 
-        .btn-primary {
-            background: #3b82f6;
-            color: #fff
-        }
+    .filter-controls .control .form-control {
+      width: 100%;
+      height: 40px;
+      padding: 0 20px;
+      border: 2px solid #ccc;
+      border-radius: 3px;
+      background-color: #fff;
+      color: #666;
+      font-size: 16px;
+      cursor: pointer;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+    }
 
-        .btn-secondary {
-            background: #6b7280;
-            color: #fff
-        }
+    .filter-controls .control .form-control:focus {
+      outline: 0;
+      border-color: #0CAAF5;
+    }
 
-        .btn-danger {
-            background: #ef4444;
-            color: #fff
-        }
+    .grid {
+      position: relative;
+      width: 878px;
+      max-width: 100%;
+      margin: 0 auto;
+    }
 
-        .tag {
-            font-size: 12px;
-            background: #eef2ff;
-            color: #4338ca;
-            border: 1px solid #c7d2fe;
-            border-radius: 9999px;
-            padding: 4px 8px
-        }
+    .item {
+      position: absolute;
+      width: 99px;
+      height: 99px;
+      margin: 5px;
+      z-index: 1;
+      transition: transform 0.6s ease;
+      cursor: move;
+    }
 
-        .hidden {
-            display: none
-        }
+    .item.blue .custom-content {
+      border-color: #0CAAF5;
+      color: #0CAAF5;
+    }
 
-        .muted {
-            color: #6b7280
-        }
-    </style>
+    .item.red .custom-content {
+      border-color: #F54487;
+      color: #F54487;
+    }
+
+    .item.green .custom-content {
+      border-color: #00DE73;
+      color: #00DE73;
+    }
+
+    .item.w2 {
+      width: 208px;
+    }
+
+    .item.h2 {
+      height: 208px;
+    }
+
+    .item-content {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: table;
+    }
+
+    .custom-content {
+      display: table-cell;
+      vertical-align: middle;
+      text-align: center;
+      background: #fff;
+      color: #666;
+      border: 2px solid;
+      border-radius: 3px;
+    }
+
+    .item.muuri-item-dragging {
+      z-index: 3;
+      transition: none;
+    }
+
+    .item.muuri-item-releasing {
+      z-index: 2;
+    }
+
+    @media (max-width: 877px) {
+      .item {
+        width: calc(33.33% - 11px);
+        height: calc(33.33vw - 11px);
+      }
+
+      .item.w2 {
+        width: calc(33.33% - 11px);
+      }
+
+      .item.h2 {
+        height: calc(33.33vw - 11px);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .item {
+        width: calc(50% - 10px);
+        height: calc(50vw - 10px);
+      }
+
+      .item.w2 {
+        width: calc(50% - 10px);
+      }
+
+      .item.h2 {
+        height: calc(50vw - 10px);
+      }
+    }
+  </style>
 </head>
 
 <body>
-    <div class="container">
-        <h1>🔐 管理員登入（Auth-Only）</h1>
+  <h1>Grid Layout by Muuri.js</h1>
 
-        <!-- 連線 -->
-        <div class="card">
-            <h3>📡 連接 Apps Script</h3>
-            <div class="row" style="margin-bottom:8px">
-                <input id="gasUrl" class="input" placeholder="貼上 /exec 結尾的 Web App URL" selection="https://script.google.com/macros/s/AKfycbyKb9IupdmKVcgtDmFHvKq3YLD89kaTmLZknP65n1rw0NfHLwAIosArraOkvgu2346E/exec">
-                <button id="connectBtn" class="btn btn-primary">連接</button>
-                <button id="disconnectBtn" class="btn btn-secondary hidden">中斷</button>
-                <span id="connStatus" class="tag">未連接</span>
-            </div>
-            <p class="muted">部署為 Web 應用程式（任何人），複製最新 /exec URL 貼上。</p>
-        </div>
-
-        <!-- 登入 -->
-        <div class="card">
-            <h3>👥 管理員登入</h3>
-            <div class="row" style="margin-bottom:8px">
-                <input id="username" class="input" placeholder="帳號">
-                <input id="password" type="password" class="input" placeholder="密碼">
-            </div>
-            <div class="row">
-                <button id="loginBtn" class="btn btn-primary">登入</button>
-                <button id="logoutBtn" class="btn btn-danger" disabled>登出</button>
-                <span id="authStatus" class="tag">未登入</span>
-                <span id="roleHint" class="tag">權限：-</span>
-            </div>
-        </div>
-
-        <!-- 👑 Owner 工具 -->
-        <div id="ownerTools" class="card hidden">
-            <h3>👑 Owner 工具</h3>
-
-            <div style="margin-bottom:12px">
-                <strong>建立管理員</strong>
-                <div class="row" style="margin-top:6px">
-                    <input id="oaUser" class="input" placeholder="帳號">
-                    <input id="oaPass" type="password" class="input" placeholder="初始密碼">
-                    <select id="oaRole" class="input" style="max-width:160px">
-                        <option value="admin">admin</option>
-                        <option value="editor">editor</option>
-                        <option value="viewer">viewer</option>
-                    </select>
-                    <button id="oaCreateBtn" class="btn btn-primary">建立</button>
-                </div>
-            </div>
-
-            <div style="margin-bottom:12px">
-                <strong>調整角色 / 啟用停用</strong>
-                <div class="row" style="margin-top:6px">
-                    <input id="oaTarget" class="input" placeholder="目標帳號">
-                    <select id="oaNewRole" class="input" style="max-width:160px">
-                        <option value="owner">owner</option>
-                        <option value="admin">admin</option>
-                        <option value="editor">editor</option>
-                        <option value="viewer">viewer</option>
-                    </select>
-                    <button id="oaSetRoleBtn" class="btn btn-secondary">設定角色</button>
-                </div>
-                <div class="row" style="margin-top:6px">
-                    <select id="oaActive" class="input" style="max-width:160px">
-                        <option value="true">啟用</option>
-                        <option value="false">停用</option>
-                    </select>
-                    <button id="oaSetActiveBtn" class="btn btn-secondary">啟用/停用</button>
-                </div>
-            </div>
-
-            <div>
-                <strong>重設密碼</strong>
-                <div class="row" style="margin-top:6px">
-                    <input id="oaResetUser" class="input" placeholder="目標帳號">
-                    <input id="oaNewPassword" type="password" class="input" placeholder="新密碼">
-                    <button id="oaResetPassBtn" class="btn btn-danger">重設密碼</button>
-                </div>
-            </div>
-
-            <p class="muted" style="margin-top:8px">僅 owner 可操作；密碼雜湊與 salt 由後端自動處理。</p>
-        </div>
+  <section class="grid-wrapper">
+    <div class="filter-controls">
+      <div class="control">Search
+        <input class="search-field form-control" type="text" name="search" placeholder="Enter the fruit name">
+      </div>
+      <div class="control">Filter
+        <select class="filter-field form-control">
+          <option value="">None</option>
+          <option value="red">Red</option>
+          <option value="blue">Blue</option>
+          <option value="green">Green</option>
+        </select>
+      </div>
+      <div class="control">Sort
+        <select class="sort-field form-control">
+          <option value="order">None</option>
+          <option value="title">Order by fruit name</option>
+          <option value="color">Order by color name</option>
+        </select>
+      </div>
     </div>
 
+    <div class="grid">
+      <!-- Items will be injected from items.csv -->
+    </div>
+
+
     <script>
-        // ===== 狀態 =====
-        let gasUrl = localStorage.getItem('gasUrl') || '';
-        let isConnected = false;
-        let TOKEN = localStorage.getItem('token') || null;
-        let CURRENT_USER = JSON.parse(localStorage.getItem('user') || 'null');
+      document.addEventListener('DOMContentLoaded', function () {
+        var grid = null,
+          wrapper = document.querySelector('.grid-wrapper'),
+          searchField = wrapper.querySelector('.search-field'),
+          filterField = wrapper.querySelector('.filter-field'),
+          sortField = wrapper.querySelector('.sort-field'),
+          gridElem = wrapper.querySelector('.grid'),
+          searchAttr = 'data-title',
+          filterAttr = 'data-color',
+          searchFieldValue,
+          filterFieldValue,
+          sortFieldValue,
+          dragOrder = [];
 
-        // ===== 初始化 =====
-        document.addEventListener('DOMContentLoaded', () => {
-            if (gasUrl) document.getElementById('gasUrl').value = gasUrl;
-            bindEvents();
-            reflectAuthToUI();
-            if (gasUrl) connect(true);
+        function parseCSV(text) {
+          var lines = text.split(/\r?\n/).filter(function (line) {
+            return line.trim().length > 0;
+          });
+          if (!lines.length) {
+            return [];
+          }
+
+          var headers = lines.shift().split(',').map(function (header) {
+            return header.trim();
+          });
+
+          return lines.map(function (line) {
+            var values = line.split(',');
+            var row = {};
+            headers.forEach(function (header, index) {
+              row[header] = (values[index] || '').trim();
+            });
+            return row;
+          });
+        }
+
+        function createItem(row) {
+          var item = document.createElement('div');
+          item.classList.add('item');
+          if (row.Color) {
+            item.classList.add(row.Color);
+            item.setAttribute('data-color', row.Color);
+          }
+          if (row.Width) {
+            item.classList.add(row.Width);
+          }
+          if (row.Height) {
+            item.classList.add(row.Height);
+          }
+          if (row.Title) {
+            item.setAttribute('data-title', row.Title);
+          }
+
+          var itemContent = document.createElement('div');
+          itemContent.className = 'item-content';
+
+          var customContent = document.createElement('div');
+          customContent.className = 'custom-content';
+          if (row.Item) {
+            customContent.appendChild(document.createTextNode(row.Item));
+          }
+
+          if (row.Title) {
+            customContent.appendChild(document.createElement('br'));
+            customContent.appendChild(document.createTextNode('(' + row.Title + ')'));
+          }
+
+          itemContent.appendChild(customContent);
+          item.appendChild(itemContent);
+
+          return item;
+        }
+
+        function loadItems() {
+          return fetch('items.csv')
+            .then(function (response) {
+              if (!response.ok) {
+                throw new Error('Failed to load items.csv');
+              }
+              return response.text();
+            })
+            .then(function (text) {
+              var rows = parseCSV(text);
+              gridElem.innerHTML = '';
+              rows.forEach(function (row) {
+                gridElem.appendChild(createItem(row));
+              });
+            });
+        }
+
+        loadItems().then(function () {
+          // Init the grid layout after items are rendered.
+          grid = new Muuri(gridElem, {
+            dragEnabled: true
+          });
+
+          // Set initial search query, active filter, active sort value and active layout.
+          searchFieldValue = searchField.value.toLowerCase();
+          filterFieldValue = filterField.value;
+          sortFieldValue = sortField.value;
+
+          // Search field event binding
+          searchField.addEventListener('keyup', function () {
+            var newSearch = searchField.value.toLowerCase();
+            if (searchFieldValue !== newSearch) {
+              searchFieldValue = newSearch;
+              filter();
+            }
+          });
+
+          // Filter field event binding
+          filterField.addEventListener('change', filter);
+
+          // Sort field event binding
+          sortField.addEventListener('change', sort);
+
+        // Filtering
+          function filter() {
+            filterFieldValue = filterField.value;
+            grid.filter(function (item) {
+              var element = item.getElement(),
+                isSearchMatch = !searchFieldValue ? true : (element.getAttribute(searchAttr) || '').toLowerCase().indexOf(searchFieldValue) > -1,
+                isFilterMatch = !filterFieldValue ? true : (element.getAttribute(filterAttr) || '') === filterFieldValue;
+              return isSearchMatch && isFilterMatch;
+            });
+          }
+
+        // Sorting
+          function sort() {
+            // Do nothing if sort value did not change.
+            var currentSort = sortField.value;
+            if (sortFieldValue === currentSort) {
+              return;
+            }
+
+            // If we are changing from "order" sorting to something else
+            // let's store the drag order.
+            if (sortFieldValue === 'order') {
+              dragOrder = grid.getItems();
+            }
+
+            // Sort the items.
+            grid.sort(
+              currentSort === 'title' ? compareItemTitle :
+                currentSort === 'color' ? compareItemColor :
+                  dragOrder
+            );
+            sortFieldValue = currentSort;
+          }
+
+        // Compare data-title
+          function compareItemTitle(a, b) {
+            var aVal = a.getElement().getAttribute(searchAttr) || '';
+            var bVal = b.getElement().getAttribute(searchAttr) || '';
+            return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+
+          }
+
+        // Compare data-color
+          function compareItemColor(a, b) {
+            var aVal = a.getElement().getAttribute(filterAttr) || '';
+            var bVal = b.getElement().getAttribute(filterAttr) || '';
+            return aVal < bVal ? -1 : aVal > bVal ? 1 : compareItemTitle(a, b);
+          }
+        }).catch(function (error) {
+          console.error(error);
         });
-
-        // ===== 綁定事件 =====
-        function bindEvents() {
-            document.getElementById('connectBtn').addEventListener('click', () => connect(false));
-            document.getElementById('disconnectBtn').addEventListener('click', disconnect);
-
-            document.getElementById('loginBtn').addEventListener('click', login);
-            document.getElementById('logoutBtn').addEventListener('click', logout);
-
-            document.getElementById('oaCreateBtn').addEventListener('click', onCreate);
-            document.getElementById('oaSetActiveBtn').addEventListener('click', onSetActive);
-            document.getElementById('oaSetRoleBtn').addEventListener('click', onSetRole);
-            document.getElementById('oaResetPassBtn').addEventListener('click', onResetPass);
-        }
-
-        // ===== 連線 =====
-        async function connect(silent) {
-            gasUrl = document.getElementById('gasUrl').value.trim() || gasUrl;
-            if (!gasUrl) return alert('請輸入 Web App /exec URL');
-            try {
-                const r = await fetch(gasUrl + '?action=test');
-                const j = await r.json();
-                if (!j.success) throw new Error('GAS 回應非 success');
-                isConnected = true;
-                localStorage.setItem('gasUrl', gasUrl);
-                document.getElementById('connStatus').textContent = '已連接';
-                document.getElementById('disconnectBtn').classList.remove('hidden');
-                if (TOKEN) await whoami(true);
-                if (!silent) alert('連線成功');
-            } catch (e) {
-                isConnected = false;
-                document.getElementById('connStatus').textContent = '未連接';
-                document.getElementById('disconnectBtn').classList.add('hidden');
-                alert('連線失敗：' + e.message);
-            }
-        }
-        function disconnect() {
-            isConnected = false; gasUrl = ''; localStorage.removeItem('gasUrl');
-            document.getElementById('gasUrl').value = '';
-            document.getElementById('connStatus').textContent = '未連接';
-            document.getElementById('disconnectBtn').classList.add('hidden');
-        }
-
-        // ===== Auth =====
-        async function login() {
-            if (!isConnected) return alert('請先連線');
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-            if (!username || !password) return alert('請輸入帳號與密碼');
-            try {
-                const res = await fetch(gasUrl, {
-                    method: 'POST', headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({ action: 'adminLogin', data: { username, password } })
-                }).then(r => r.json());
-                if (!res.success) return alert('登入失敗：' + (res.message || ''));
-                TOKEN = res.token; CURRENT_USER = res.user;
-                localStorage.setItem('token', TOKEN);
-                localStorage.setItem('user', JSON.stringify(CURRENT_USER));
-                reflectAuthToUI();
-                alert(`登入成功：${CURRENT_USER.username}（${CURRENT_USER.role}）`);
-            } catch (e) { alert('登入錯誤：' + e.message); }
-        }
-        async function logout() {
-            try {
-                if (TOKEN) await fetch(gasUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'adminLogout', token: TOKEN }) });
-            } catch (_) { }
-            TOKEN = null; CURRENT_USER = null;
-            localStorage.removeItem('token'); localStorage.removeItem('user');
-            reflectAuthToUI();
-            alert('已登出');
-        }
-        async function whoami(silent) {
-            if (!TOKEN) { clearAuth(); reflectAuthToUI(); return; }
-            try {
-                const res = await fetch(gasUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'whoami', token: TOKEN }) }).then(r => r.json());
-                if (res.success) { CURRENT_USER = res.user; localStorage.setItem('user', JSON.stringify(CURRENT_USER)); reflectAuthToUI(); }
-                else { clearAuth(); reflectAuthToUI(); if (!silent) alert('登入已過期，請重新登入'); }
-            } catch (e) { if (!silent) alert('驗證失敗：' + e.message); }
-        }
-        function clearAuth() { TOKEN = null; CURRENT_USER = null; localStorage.removeItem('token'); localStorage.removeItem('user'); }
-
-        function reflectAuthToUI() {
-            const authStatus = document.getElementById('authStatus');
-            const roleHint = document.getElementById('roleHint');
-            const logoutBtn = document.getElementById('logoutBtn');
-            const loginBtn = document.getElementById('loginBtn');
-            if (CURRENT_USER) {
-                authStatus.textContent = `已登入：${CURRENT_USER.username}`;
-                roleHint.textContent = `權限：${CURRENT_USER.role}`;
-                logoutBtn.disabled = false; loginBtn.disabled = true;
-            } else {
-                authStatus.textContent = '未登入'; roleHint.textContent = '權限：-';
-                logoutBtn.disabled = true; loginBtn.disabled = false;
-            }
-            // Owner 面板顯示控制
-            document.getElementById('ownerTools').classList.toggle('hidden', !(CURRENT_USER && CURRENT_USER.role === 'owner'));
-        }
-
-        // ===== Owner API Helper =====
-        async function callOwnerAPI(action, data) {
-            if (!isConnected) throw new Error('未連線');
-            if (!TOKEN || !CURRENT_USER || CURRENT_USER.role !== 'owner') throw new Error('需 owner 登入');
-            const res = await fetch(gasUrl, {
-                method: 'POST', headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({ action, token: TOKEN, data })
-            }).then(r => r.json());
-            if (!res.success) throw new Error(res.message || (action + ' 失敗'));
-            return res;
-        }
-        const ownerCreateAdmin = (u, p, r) => callOwnerAPI('createadmin', { username: u, password: p, role: r });
-        const ownerSetAdminActive = (u, a) => callOwnerAPI('setadminactive', { username: u, isActive: a });
-        const ownerSetAdminRole = (u, r) => callOwnerAPI('setadminrole', { username: u, role: r });
-        const ownerResetAdminPassword = (u, p) => callOwnerAPI('resetadminpassword', { username: u, newPassword: p });
-
-        // ===== Owner 面板事件 =====
-        async function onCreate() {
-            try {
-                const u = document.getElementById('oaUser').value.trim();
-                const p = document.getElementById('oaPass').value;
-                const r = document.getElementById('oaRole').value;
-                if (!u || !p) return alert('請輸入帳號與密碼');
-                await ownerCreateAdmin(u, p, r);
-                alert('建立成功'); document.getElementById('oaUser').value = ''; document.getElementById('oaPass').value = '';
-            } catch (e) { alert(e.message); }
-        }
-        async function onSetActive() {
-            try {
-                const u = document.getElementById('oaTarget').value.trim();
-                const a = document.getElementById('oaActive').value === 'true';
-                if (!u) return alert('請輸入目標帳號');
-                await ownerSetAdminActive(u, a);
-                alert(a ? '已啟用' : '已停用');
-            } catch (e) { alert(e.message); }
-        }
-        async function onSetRole() {
-            try {
-                const u = document.getElementById('oaTarget').value.trim();
-                const r = document.getElementById('oaNewRole').value;
-                if (!u) return alert('請輸入目標帳號');
-                await ownerSetAdminRole(u, r);
-                alert('角色已更新為：' + r);
-            } catch (e) { alert(e.message); }
-        }
-        async function onResetPass() {
-            try {
-                const u = document.getElementById('oaResetUser').value.trim();
-                const p = document.getElementById('oaNewPassword').value;
-                if (!u || !p) return alert('請輸入目標帳號與新密碼');
-                await ownerResetAdminPassword(u, p);
-                alert('密碼已重設'); document.getElementById('oaNewPassword').value = '';
-            } catch (e) { alert(e.message); }
-        }
-    </script>
-</body>
+      });</script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/web-animations/2.3.1/web-animations.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/muuri/0.5.4/muuri.min.js"></script>
+    </body>
 
 </html>
