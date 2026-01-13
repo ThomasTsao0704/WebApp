@@ -11,6 +11,8 @@ const state = {
   selectedFile: null
 };
 
+const DATA_BASE_PATH = 'data';
+
 // 常數
 const CHART_WIDTH = 120;
 const CHART_HEIGHT = 60;
@@ -32,7 +34,7 @@ function loadCsv(path) {
 // 載入可用的數據文件列表
 async function loadManifest() {
   try {
-    const manifestRes = await fetch('/data/manifest.json');
+    const manifestRes = await fetch(`${DATA_BASE_PATH}/manifest.json`);
     if (!manifestRes.ok) {
       throw new Error('Failed to load manifest.json');
     }
@@ -75,7 +77,7 @@ async function loadDataFile(filename) {
   try {
     setLoading(true);
 
-    const data = await loadCsv(`/data/${filename}`);
+    const data = await loadCsv(`${DATA_BASE_PATH}/${filename}`);
     const clean = data.filter(r => r && r.Symbol);
 
     const historyMap = {};
