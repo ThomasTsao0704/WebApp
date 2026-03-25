@@ -4,347 +4,741 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>API Dropdown Demo</title>
+    <title>API 資料檢視器</title>
     <style>
-        /* ====== 基本排版 ====== */
+        :root {
+            --blue: #0d6efd;
+            --green: #198754;
+            --gray: #6c757d;
+            --border: #dee2e6;
+            --bg-dark: #1e1e2e;
+            --fg-dark: #cdd6f4;
+        }
+
+        * { box-sizing: border-box; }
+
         body {
             font-family: system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans TC', Arial, sans-serif;
-            padding: 24px;
+            padding: 20px 24px;
+            background: #f8f9fa;
+            color: #212529;
+            margin: 0;
         }
-        .row {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        select, input[type=text] {
-            padding: 8px 10px;
-        }
-        .muted { color: #666; }
-        .view-toggle {
-            margin-top: 8px;
+
+        h1 { font-size: 1.25rem; margin: 0 0 4px; }
+        .subtitle { font-size: 12px; color: var(--gray); margin-bottom: 16px; }
+        .subtitle code { background: #e9ecef; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+
+        /* ── 控制列 ── */
+        .controls {
             display: flex;
             gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
         }
-        .view-toggle button {
-            padding: 6px 12px;
-            border: 1px solid #ddd;
-            background: white;
-            cursor: pointer;
-            border-radius: 3px;
-            font-size: 12px;
-        }
-        .view-toggle button.active {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
-        }
-        .filter-controls {
-            margin-bottom: 12px;
-        }
-        .filter-controls input {
+
+        .controls input[type=text] {
             padding: 6px 10px;
-            width: 200px;
-            font-size: 12px;
-        }
-        .stats {
-            margin-left: 8px;
-            font-size: 12px;
-            color: #666;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 13px;
+            width: 180px;
         }
 
-        /* ====== 輸出容器（JSON/表格共用）====== */
-        .output-container {
-            /* 讓內容在視窗內可滾動（JSON & 表格） */
-            background: #111;
-            color: #0f0;
-            padding: 12px;
+        .controls select {
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 13px;
+            flex: 1;
+            min-width: 220px;
+            max-width: 520px;
+        }
+
+        /* ── 工具列 ── */
+        .toolbar {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .toolbar .view-group,
+        .toolbar .action-group {
+            display: flex;
+            gap: 4px;
+        }
+
+        .toolbar .sep {
+            width: 1px;
+            height: 24px;
+            background: var(--border);
+            margin: 0 4px;
+        }
+
+        button {
+            padding: 5px 12px;
+            border: 1px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+            transition: background .15s, color .15s;
+        }
+
+        button:hover { background: #e9ecef; }
+
+        button.active {
+            background: var(--blue);
+            color: #fff;
+            border-color: var(--blue);
+        }
+
+        button.btn-green {
+            background: var(--green);
+            color: #fff;
+            border-color: var(--green);
+        }
+        button.btn-green:hover { background: #157347; }
+
+        button.btn-fetch {
+            background: var(--blue);
+            color: #fff;
+            border-color: var(--blue);
+            font-weight: 600;
+        }
+        button.btn-fetch:hover { background: #0b5ed7; }
+
+        /* ── 篩選列 ── */
+        .filter-bar {
+            display: none;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .filter-bar input {
+            padding: 5px 10px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 12px;
+            width: 220px;
+        }
+        .filter-bar .stats { font-size: 12px; color: var(--gray); }
+
+        /* ── URL 列 ── */
+        .url-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #fff;
+            border: 1px solid var(--border);
             border-radius: 6px;
-            margin-top: 12px;
+            padding: 6px 12px;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        .url-bar .url-label {
+            color: var(--gray);
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        .url-bar .url-text {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 12px;
+            color: #0a58ca;
+            word-break: break-all;
+            flex: 1;
+        }
+        .url-bar .url-open {
+            font-size: 11px;
+            padding: 3px 8px;
+            white-space: nowrap;
+        }
 
-            /* 關鍵：限制高度 + 啟用捲軸 */
-            max-height: 70vh;
+        /* ── 狀態列 ── */
+        .status-bar {
+            font-size: 11px;
+            color: var(--gray);
+            margin-bottom: 4px;
+            min-height: 16px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .status-bar .tag {
+            background: #e9ecef;
+            border-radius: 3px;
+            padding: 1px 6px;
+        }
+        .status-bar .tag.json  { background: #cfe2ff; color: #084298; }
+        .status-bar .tag.csv   { background: #d1e7dd; color: #0f5132; }
+        .status-bar .tag.text  { background: #fff3cd; color: #664d03; }
+        .status-bar .tag.error { background: #f8d7da; color: #842029; }
+
+        /* ── 輸出區 ── */
+        .output-wrap {
+            background: var(--bg-dark);
+            color: var(--fg-dark);
+            border-radius: 8px;
+            padding: 12px;
+            max-height: 68vh;
             overflow: auto;
-
-            /* 讓手機也好用 */
             -webkit-overflow-scrolling: touch;
         }
-        .json-display {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-            font-size: 14px;
-            line-height: 1.5;
-            white-space: pre;           /* 保留等寬格式 */
-        }
 
-        /* ====== 表格視圖外觀 ====== */
-        .table-view {
+        .output-wrap.table-mode {
             background: #fff;
-            color: #333;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-
-            /* 讓外層也可捲（保險） */
-            overflow: auto;
+            color: #212529;
+            border: 1px solid var(--border);
+            padding: 0;
         }
 
-        /* 內層再包一層，專責水平/垂直滾動，避免 sticky 失效 */
+        .json-display {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre;
+            margin: 0;
+        }
+
+        /* JSON 語法高亮 */
+        .json-display .jk { color: #89b4fa; }   /* key */
+        .json-display .js { color: #a6e3a1; }   /* string value */
+        .json-display .jn { color: #fab387; }   /* number */
+        .json-display .jb { color: #cba6f7; }   /* bool/null */
+
+        /* CSV 純文字 */
+        .csv-display {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: pre;
+            margin: 0;
+        }
+
+        /* ── 表格 ── */
         .table-scroller {
-            overflow: auto;        /* 關鍵：水平 + 垂直捲軸 */
-            max-height: 70vh;      /* 與外層一致 */
-            min-height: 240px;     /* 太少列時保持視覺穩定 */
+            overflow: auto;
+            max-height: 68vh;
         }
 
-        .table-view table {
-            width: max(100%, 960px);  /* 避免欄多時擠爆；必要時橫向捲動 */
+        .table-scroller table {
+            width: max(100%, 800px);
             border-collapse: collapse;
             font-size: 13px;
-            table-layout: auto;       /* 自動分配欄寬 */
+            table-layout: auto;
         }
-        .table-view th,
-        .table-view td {
-            padding: 8px 12px;
+
+        .table-scroller th,
+        .table-scroller td {
+            padding: 7px 11px;
             text-align: left;
             border-bottom: 1px solid #eee;
-
-            /* 預設：不換行 + 省略號，避免表格猛跳行 */
             white-space: nowrap;
-            max-width: 360px;
+            max-width: 320px;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .table-view th {
+
+        .table-scroller th {
             background: #f8f9fa;
             font-weight: 600;
             color: #555;
-            position: sticky;  /* 表頭置頂 */
+            position: sticky;
             top: 0;
             z-index: 1;
-        }
-        .table-view tr:hover {
-            background: #f5f5f5;
+            border-bottom: 2px solid var(--border);
         }
 
-        /* 欄位語意化調整 */
-        .table-view .url-cell {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-            font-size: 11px;
-            color: #0a58ca;
-            /* URL 太長時允許斷行；同時支援水平捲軸 */
-            white-space: normal;
-            word-break: break-all;
-            max-width: 560px;
+        .table-scroller tr:hover td { background: #f5f5f5; }
+        .table-scroller .num-cell { text-align: right; font-variant-numeric: tabular-nums; }
+        .table-scroller .url-cell {
+            font-family: monospace; font-size: 11px; color: #0a58ca;
+            white-space: normal; word-break: break-all; max-width: 480px;
         }
-        .table-view .name-cell { font-weight: 500; }
-        .table-view .id-cell {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-            color: #666;
-            font-size: 11px;
-        }
+        .table-scroller .code-cell { font-family: monospace; color: #666; font-size: 11px; }
     </style>
 </head>
 
 <body>
-    <h1>API Dropdown Demo</h1>
-    <p class="muted">Worker：<code>https://cors-proxy.s01yg3642.workers.dev/</code> ｜ 資料：<code>api-list.json</code></p>
+    <h1>API 資料檢視器</h1>
+    <p class="subtitle">
+        Worker：<code>https://cors-proxy.s01yg3642.workers.dev/</code>
+        ｜ 共 <strong id="totalCount">-</strong> 個端點
+    </p>
 
-    <div class="row">
-        <input id="q" type="text" placeholder="輸入關鍵字篩選（名稱或網址）" />
+    <div class="controls">
+        <input id="q" type="text" placeholder="關鍵字篩選（名稱 / 網址）" />
         <select id="sel"></select>
-        <button id="go">Fetch</button>
+        <button class="btn-fetch" id="go">▶ Fetch</button>
     </div>
 
-    <div class="view-toggle">
-        <button id="jsonView" class="active">JSON 檢視</button>
-        <button id="tableView">表格檢視</button>
+    <div class="url-bar" id="urlBar">
+        <span class="url-label">URL</span>
+        <span class="url-text" id="urlText">—</span>
+        <button class="url-open" id="urlOpen" title="在新分頁開啟">↗ 開啟</button>
     </div>
 
-    <div class="filter-controls" id="filterControls" style="display: none;">
+    <div class="toolbar">
+        <div class="view-group">
+            <button id="jsonView" class="active">{ } JSON</button>
+            <button id="tableView">⊞ 表格</button>
+            <button id="csvView">⇌ CSV</button>
+        </div>
+        <div class="sep"></div>
+        <div class="action-group">
+            <button id="copyBtn">⎘ 複製</button>
+            <button id="dlJson" class="btn-green">↓ JSON</button>
+            <button id="dlCsv"  class="btn-green">↓ CSV</button>
+        </div>
+    </div>
+
+    <div class="filter-bar" id="filterBar">
         <input id="tableFilter" type="text" placeholder="篩選表格內容..." />
         <span class="stats" id="tableStats"></span>
     </div>
 
-    <div class="output-container">
-        <div id="out" class="json-display">// 等待請求中…</div>
+    <div class="status-bar" id="statusBar"></div>
+
+    <div class="output-wrap" id="outputWrap">
+        <pre class="json-display" id="out">// 選擇端點後按 Fetch…</pre>
     </div>
+
     <script type="module">
-        const WORKER = "https://cors-proxy.s01yg3642.workers.dev/";
-        /* 若你的 api-list.json 與 index.html 同資料夾，建議用相對路徑： */
-        const listUrl = "./api-list.json"; // 原本是 "./.VSCODE/api-list.json"
+        const WORKER  = "https://cors-proxy.s01yg3642.workers.dev/";
+        const listUrl = "/api/api-list.json";
 
-        const toProxy = (u) => WORKER + "?url=" + encodeURIComponent(u);
+        const proxy = u => WORKER + "?url=" + encodeURIComponent(u);
 
-        const out = document.getElementById('out');
-        const sel = document.getElementById('sel');
-        const q = document.getElementById('q');
-        const jsonViewBtn = document.getElementById('jsonView');
-        const tableViewBtn = document.getElementById('tableView');
-        const filterControls = document.getElementById('filterControls');
-        const tableFilter = document.getElementById('tableFilter');
-        const tableStats = document.getElementById('tableStats');
+        /* ── DOM refs ── */
+        const $  = id => document.getElementById(id);
+        const out        = $('out');
+        const outputWrap = $('outputWrap');
+        const sel        = $('sel');
+        const q          = $('q');
+        const filterBar  = $('filterBar');
+        const tableFilter= $('tableFilter');
+        const tableStats = $('tableStats');
+        const statusBar  = $('statusBar');
+        const totalCount = $('totalCount');
+        const urlText    = $('urlText');
+        const urlOpen    = $('urlOpen');
 
-        let items = [];
-        let currentData = null;
+        /* ── state ── */
+        let items       = [];
+        let currentData = null;   // parsed (array/object) or raw string
+        let rawText     = "";     // always the raw response text
         let currentView = 'json';
+        let dataType    = 'unknown'; // 'json' | 'csv' | 'text'
+        const urlStatusMap = {};  // url → 'ok' | 'empty' | 'error'
 
-        function fill(list) {
-            sel.innerHTML = "";
-            for (const it of list) {
-                const o = document.createElement('option');
-                o.value = it.url;
-                o.textContent = (it.category ? `[${it.category}] ` : "") + it.name;
-                sel.appendChild(o);
-            }
-        }
-
+        /* ──────────────────────────────────────────
+           LOAD LIST
+        ────────────────────────────────────────── */
         async function load() {
-            const res = await fetch(listUrl);
+            const res  = await fetch(listUrl);
             const data = await res.json();
             items = data.items || [];
-            fill(items);
-            if (items.length) await run(items[0].url);
+            totalCount.textContent = items.length;
+            fillSelect(items);
+            if (items.length) {
+                updateUrlBar(items[0].url);
+                await run(items[0].url);
+            }
         }
 
+        function fillSelect(list) {
+            sel.innerHTML = "";
+
+            // 先嘗試依 category 分組
+            const cats = {};
+            for (const it of list) {
+                const c = it.category || "（未分類）";
+                (cats[c] = cats[c] || []).push(it);
+            }
+            const catKeys = Object.keys(cats);
+            const useGroup = catKeys.length > 1;
+
+            for (const [cat, its] of Object.entries(cats)) {
+                const container = useGroup
+                    ? (() => { const g = document.createElement('optgroup'); g.label = cat; return g; })()
+                    : sel;
+
+                for (const it of its) {
+                    const o = document.createElement('option');
+                    o.value = it.url;
+                    o.textContent = (useGroup ? "" : (it.category ? `[${it.category}] ` : "")) + it.name;
+                    applyOptionStatus(o, urlStatusMap[it.url]);
+                    container.appendChild(o);
+                }
+                if (useGroup) sel.appendChild(container);
+            }
+        }
+
+        /* 關鍵字篩選 select */
         q.addEventListener('input', () => {
             const s = q.value.trim().toLowerCase();
-            if (!s) return fill(items);
-            const f = items.filter(it =>
-                (it.name || "").toLowerCase().includes(s) ||
-                (it.url || "").toLowerCase().includes(s)
+            fillSelect(s
+                ? items.filter(it =>
+                    (it.name || "").toLowerCase().includes(s) ||
+                    (it.url  || "").toLowerCase().includes(s))
+                : items
             );
-            fill(f);
         });
 
-        function isArrayOfObjects(data) {
-            return Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && data[0] !== null;
+        /* ──────────────────────────────────────────
+           FETCH
+        ────────────────────────────────────────── */
+        async function run(url) {
+            setStatus("loading", `Fetching… ${url}`);
+            out.textContent = "// Fetching...\n" + url;
+            outputWrap.className = 'output-wrap';
+            out.className = 'json-display';
+            filterBar.style.display = 'none';
+
+            try {
+                const res = await fetch(proxy(url));
+                const ct  = (res.headers.get('content-type') || "").toLowerCase();
+                rawText   = await res.text();
+
+                if (ct.includes("application/json")) {
+                    try {
+                        currentData = JSON.parse(rawText);
+                        dataType = 'json';
+                    } catch {
+                        currentData = rawText;
+                        dataType = 'text';
+                    }
+                } else if (ct.includes("text/csv") || ct.includes("application/csv")) {
+                    dataType = 'csv';
+                    currentData = parseCsv(rawText);
+                } else {
+                    // 嘗試自動偵測
+                    dataType = autoDetect(rawText);
+                    if (dataType === 'json') {
+                        try { currentData = JSON.parse(rawText); } catch { currentData = rawText; dataType = 'text'; }
+                    } else if (dataType === 'csv') {
+                        currentData = parseCsv(rawText);
+                    } else {
+                        currentData = rawText;
+                    }
+                }
+
+                const isEmpty = Array.isArray(currentData) && currentData.length === 0;
+                const rows = isAoO(currentData) ? currentData.length : (typeof currentData === 'string' ? null : 1);
+                const emptyHint = isEmpty ? " ⚠️ 空陣列（非交易日或需參數）" : "";
+                setStatus(dataType, `${dataType.toUpperCase()}${rows != null ? ` · ${rows} 筆` : ""}${emptyHint} · ${(rawText.length / 1024).toFixed(1)} KB`);
+                markOption(url, isEmpty ? 'empty' : 'ok');
+                updateDisplay();
+
+            } catch (e) {
+                currentData = "Error: " + e.message;
+                rawText = currentData;
+                dataType = 'text';
+                setStatus('error', e.message);
+                markOption(url, 'error');
+                updateDisplay();
+            }
         }
 
-        function renderAsTable(data) {
-            if (!isArrayOfObjects(data)) {
-                return '<div class="json-display">' + escapeHtml(JSON.stringify(data, null, 2)) + '</div>';
+        /* ── option 狀態標記 ── */
+        function markOption(url, status) {
+            urlStatusMap[url] = status;
+            // 套用到目前 select 中對應的 option
+            for (const o of sel.options) {
+                if (o.value === url) { applyOptionStatus(o, status); break; }
             }
-            const headers = Object.keys(data[0]);
+        }
 
-            // 包一層 .table-scroller 以保證捲軸 & sticky header 穩定
-            const tableHtml = `
-                <div class="table-scroller">
-                    <table>
-                        <thead>
-                            <tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr>
-                        </thead>
-                        <tbody>
-                            ${data.map(row => `
-                                <tr>
-                                    ${headers.map(header => {
-                                        const raw = row[header] ?? '';
-                                        const value = String(raw);
-                                        let cellClass = '';
-                                        const hLower = header.toLowerCase();
-                                        if (hLower.includes('url') || hLower.includes('link')) {
-                                            cellClass = 'url-cell';
-                                        } else if (hLower.includes('name') || hLower.includes('title')) {
-                                            cellClass = 'name-cell';
-                                        } else if (hLower === 'id' || hLower.endsWith('_id')) {
-                                            cellClass = 'id-cell';
-                                        }
-                                        return `<td class="${cellClass}" title="${escapeHtml(value)}">${escapeHtml(value)}</td>`;
-                                    }).join('')}
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-            return tableHtml;
+        function applyOptionStatus(option, status) {
+            if (status === 'error') {
+                option.style.color = '#dc3545';
+                option.style.fontWeight = '600';
+            } else if (status === 'empty') {
+                option.style.color = '#fd7e14';
+                option.style.fontWeight = '500';
+            } else if (status === 'ok') {
+                option.style.color = '';
+                option.style.fontWeight = '';
+            }
+        }
+
+        /* ──────────────────────────────────────────
+           AUTO DETECT
+        ────────────────────────────────────────── */
+        function autoDetect(text) {
+            const t = text.trimStart();
+            if (t.startsWith('{') || t.startsWith('[')) return 'json';
+            // 簡單判斷：前幾行都有逗號，且欄位數一致
+            const lines = t.split('\n').slice(0, 5).filter(Boolean);
+            if (lines.length >= 2) {
+                const counts = lines.map(l => l.split(',').length);
+                if (counts[0] > 1 && counts.every(c => c === counts[0])) return 'csv';
+            }
+            return 'text';
+        }
+
+        /* ──────────────────────────────────────────
+           CSV PARSER（支援引號欄位）
+        ────────────────────────────────────────── */
+        function parseCsv(text) {
+            const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+            const nonEmpty = lines.filter(l => l.trim());
+            if (nonEmpty.length < 2) return text;
+
+            const parseRow = line => {
+                const cols = [];
+                let cur = '', inQ = false;
+                for (let i = 0; i < line.length; i++) {
+                    const ch = line[i];
+                    if (ch === '"') {
+                        if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+                        else inQ = !inQ;
+                    } else if (ch === ',' && !inQ) {
+                        cols.push(cur); cur = '';
+                    } else {
+                        cur += ch;
+                    }
+                }
+                cols.push(cur);
+                return cols;
+            };
+
+            const headers = parseRow(nonEmpty[0]);
+            return nonEmpty.slice(1).map(line => {
+                const vals = parseRow(line);
+                const obj = {};
+                headers.forEach((h, i) => { obj[h.trim()] = (vals[i] ?? '').trim(); });
+                return obj;
+            });
+        }
+
+        /* ──────────────────────────────────────────
+           JSON → CSV 轉換
+        ────────────────────────────────────────── */
+        function toCsvText(data) {
+            if (typeof data === 'string') return data;
+            if (!isAoO(data)) return JSON.stringify(data, null, 2);
+            const headers = Object.keys(data[0]);
+            const esc = v => {
+                const s = String(v ?? '');
+                return (s.includes(',') || s.includes('"') || s.includes('\n'))
+                    ? `"${s.replaceAll('"', '""')}"` : s;
+            };
+            return [
+                headers.join(','),
+                ...data.map(row => headers.map(h => esc(row[h])).join(','))
+            ].join('\n');
+        }
+
+        /* ──────────────────────────────────────────
+           DISPLAY
+        ────────────────────────────────────────── */
+        function isAoO(d) {
+            return Array.isArray(d) && d.length > 0 && d[0] !== null && typeof d[0] === 'object';
         }
 
         function updateDisplay() {
-            if (!currentData) return;
+            if (currentData === null) return;
 
-            const container = out.parentElement;
-
-            if (currentView === 'table' && isArrayOfObjects(currentData)) {
-                container.className = 'output-container table-view';
-                out.innerHTML = renderAsTable(currentData);
-                out.className = ''; // 清掉 json 的字型樣式
-                filterControls.style.display = 'block';
-                updateTableStats(currentData);
-            } else {
-                container.className = 'output-container';
+            // 空陣列：各模式統一顯示提示
+            if (Array.isArray(currentData) && currentData.length === 0) {
+                outputWrap.className = 'output-wrap';
                 out.className = 'json-display';
-                const displayText = typeof currentData === 'string'
-                    ? currentData
-                    : JSON.stringify(currentData, null, 2);
-                out.textContent = displayText;
-                filterControls.style.display = 'none';
-            }
-        }
-
-        function updateTableStats(data) {
-            if (isArrayOfObjects(data)) {
-                tableStats.textContent = `共 ${data.length} 筆記錄，${Object.keys(data[0]).length} 個欄位`;
-            }
-        }
-
-        function filterTable() {
-            if (!currentData || !isArrayOfObjects(currentData)) return;
-
-            const filterText = tableFilter.value.toLowerCase();
-            if (!filterText) {
-                updateDisplay();
+                out.textContent = '// 回傳空陣列 []\n//\n// 可能原因：\n//  1. 今天是非交易日（假日、收盤後）\n//  2. 此 API 需要帶入查詢參數（股票代碼、日期等）\n//  3. TWSE 伺服器暫時無資料\n//\n// 請改天再試，或確認 API 文件是否需要額外參數。';
+                filterBar.style.display = 'none';
                 return;
             }
 
-            const filteredData = currentData.filter(row =>
-                Object.values(row).some(value =>
-                    String(value).toLowerCase().includes(filterText)
-                )
-            );
+            // 表格模式
+            if (currentView === 'table' && isAoO(currentData)) {
+                outputWrap.className = 'output-wrap table-mode';
+                out.className = '';
+                out.innerHTML = buildTable(currentData);
+                filterBar.style.display = 'flex';
+                updateStats(currentData.length, currentData.length);
+                return;
+            }
 
-            const container = out.parentElement;
-            container.className = 'output-container table-view';
-            out.innerHTML = renderAsTable(filteredData);
-            tableStats.textContent = `顯示 ${filteredData.length} / ${currentData.length} 筆記錄`;
-        }
+            // CSV 文字模式
+            if (currentView === 'csv') {
+                outputWrap.className = 'output-wrap';
+                out.className = 'csv-display';
+                out.textContent = toCsvText(currentData);
+                filterBar.style.display = 'none';
+                return;
+            }
 
-        async function run(url) {
-            out.textContent = "// Fetching...\n" + url;
-            try {
-                const res = await fetch(toProxy(url));
-                const ct = res.headers.get('content-type') || "";
-                if (ct.includes("application/json")) {
-                    currentData = await res.json();
-                } else {
-                    currentData = await res.text();
-                }
-                updateDisplay();
-            } catch (e) {
-                currentData = "Error: " + e.message;
-                updateDisplay();
+            // JSON / fallback 模式
+            outputWrap.className = 'output-wrap';
+            out.className = 'json-display';
+            filterBar.style.display = 'none';
+            if (typeof currentData === 'string') {
+                out.textContent = currentData;
+            } else {
+                out.innerHTML = syntaxHighlight(JSON.stringify(currentData, null, 2));
             }
         }
 
-        // 視圖切換
-        jsonViewBtn.addEventListener('click', () => {
-            currentView = 'json';
-            jsonViewBtn.classList.add('active');
-            tableViewBtn.classList.remove('active');
-            updateDisplay();
-        });
-        tableViewBtn.addEventListener('click', () => {
-            currentView = 'table';
-            tableViewBtn.classList.add('active');
-            jsonViewBtn.classList.remove('active');
-            updateDisplay();
+        /* ──────────────────────────────────────────
+           TABLE BUILDER
+        ────────────────────────────────────────── */
+        function buildTable(data) {
+            if (!isAoO(data)) return `<pre class="json-display">${escHtml(JSON.stringify(data, null, 2))}</pre>`;
+            const headers = Object.keys(data[0]);
+            const rows = data.map(row => {
+                const cells = headers.map(h => {
+                    const v   = row[h] ?? '';
+                    const str = String(v);
+                    const hl  = h.toLowerCase();
+                    let cls = '';
+                    if (hl.includes('url') || hl.includes('link')) cls = 'url-cell';
+                    else if (hl === 'id' || hl.endsWith('_id') || hl.endsWith('id')) cls = 'code-cell';
+                    else if (!isNaN(v) && str !== '') cls = 'num-cell';
+                    return `<td class="${cls}" title="${escHtml(str)}">${escHtml(str)}</td>`;
+                }).join('');
+                return `<tr>${cells}</tr>`;
+            }).join('');
+
+            return `<div class="table-scroller"><table>
+                <thead><tr>${headers.map(h => `<th>${escHtml(h)}</th>`).join('')}</tr></thead>
+                <tbody>${rows}</tbody>
+            </table></div>`;
+        }
+
+        function filterTable() {
+            if (!isAoO(currentData)) return;
+            const kw = tableFilter.value.toLowerCase();
+            const filtered = kw
+                ? currentData.filter(row => Object.values(row).some(v => String(v).toLowerCase().includes(kw)))
+                : currentData;
+            outputWrap.innerHTML = '';
+            const wrap = document.createElement('div');
+            wrap.id = 'out';
+            wrap.innerHTML = buildTable(filtered);
+            outputWrap.appendChild(wrap);
+            updateStats(filtered.length, currentData.length);
+        }
+
+        function updateStats(shown, total) {
+            tableStats.textContent = shown === total
+                ? `共 ${total} 筆・${Object.keys(currentData[0]).length} 欄`
+                : `顯示 ${shown} / ${total} 筆`;
+        }
+
+        /* ──────────────────────────────────────────
+           JSON 語法高亮
+        ────────────────────────────────────────── */
+        function syntaxHighlight(json) {
+            return escHtml(json).replace(
+                /("(\\u[\dA-Fa-f]{4}|\\[^u]|[^"\\])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
+                m => {
+                    let cls = 'jn';
+                    if (/^"/.test(m)) cls = /:$/.test(m) ? 'jk' : 'js';
+                    else if (/true|false|null/.test(m)) cls = 'jb';
+                    return `<span class="${cls}">${m}</span>`;
+                }
+            );
+        }
+
+        /* ──────────────────────────────────────────
+           STATUS BAR
+        ────────────────────────────────────────── */
+        function setStatus(type, msg) {
+            statusBar.innerHTML = `<span class="tag ${type}">${escHtml(msg)}</span>`;
+        }
+
+        /* ──────────────────────────────────────────
+           DOWNLOAD
+        ────────────────────────────────────────── */
+        function download(text, filename, mime) {
+            const a   = document.createElement('a');
+            a.href    = URL.createObjectURL(new Blob([text], { type: mime }));
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        function getFilename(ext) {
+            const name = sel.options[sel.selectedIndex]?.textContent || 'data';
+            return name.replace(/[\[\]\/\\:*?"<>|]/g, '_').slice(0, 60) + '.' + ext;
+        }
+
+        $('dlJson').addEventListener('click', () => {
+            const text = typeof currentData === 'string'
+                ? currentData
+                : JSON.stringify(currentData, null, 2);
+            download(text, getFilename('json'), 'application/json;charset=utf-8');
         });
 
-        // 表格篩選
+        $('dlCsv').addEventListener('click', () => {
+            download(toCsvText(currentData), getFilename('csv'), 'text/csv;charset=utf-8-sig');
+        });
+
+        /* ──────────────────────────────────────────
+           COPY
+        ────────────────────────────────────────── */
+        $('copyBtn').addEventListener('click', async () => {
+            const text = currentView === 'csv'
+                ? toCsvText(currentData)
+                : (typeof currentData === 'string' ? currentData : JSON.stringify(currentData, null, 2));
+            await navigator.clipboard.writeText(text);
+            const btn = $('copyBtn');
+            btn.textContent = '✓ 已複製';
+            setTimeout(() => { btn.textContent = '⎘ 複製'; }, 1500);
+        });
+
+        /* ──────────────────────────────────────────
+           VIEW TOGGLE
+        ────────────────────────────────────────── */
+        function setView(v) {
+            currentView = v;
+            ['jsonView','tableView','csvView'].forEach(id => {
+                $(id).classList.toggle('active', id === v + 'View');
+            });
+            updateDisplay();
+        }
+
+        $('jsonView') .addEventListener('click', () => setView('json'));
+        $('tableView').addEventListener('click', () => setView('table'));
+        $('csvView')  .addEventListener('click', () => setView('csv'));
+
+        /* ──────────────────────────────────────────
+           TABLE FILTER
+        ────────────────────────────────────────── */
         tableFilter.addEventListener('input', filterTable);
 
-        // 事件：送出請求
-        document.getElementById('go').addEventListener('click', () => run(sel.value));
+        /* ──────────────────────────────────────────
+           FETCH BUTTON + 選單自動觸發
+        ────────────────────────────────────────── */
+        $('go').addEventListener('click', () => run(sel.value));
 
-        // 安全的 HTML escape（避免少數 API 回傳含 HTML 字元時影響渲染）
-        function escapeHtml(str) {
+        // 切換選單後自動 fetch（這是主要問題所在）
+        sel.addEventListener('change', () => {
+            updateUrlBar(sel.value);
+            run(sel.value);
+        });
+
+        urlOpen.addEventListener('click', () => {
+            const u = sel.value;
+            if (u) window.open(u, '_blank', 'noopener');
+        });
+
+        /* ──────────────────────────────────────────
+           UTILS
+        ────────────────────────────────────────── */
+        function updateUrlBar(url) {
+            urlText.textContent = url || '—';
+        }
+
+        function escHtml(str) {
             return String(str)
                 .replaceAll('&', '&amp;')
                 .replaceAll('<', '&lt;')
@@ -353,8 +747,8 @@
                 .replaceAll("'", '&#39;');
         }
 
+        /* ── INIT ── */
         load();
     </script>
 </body>
-
 </html>
