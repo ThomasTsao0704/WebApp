@@ -1,6 +1,6 @@
 /* ── 台股分析工具組 · 共用導覽列 ── */
 (function(){
-  const BASE = 'https://thomastsao0704.github.io/WebApp/App16/';
+  const BASE = 'https://thomastsao0704.github.io/WebApp/App33/';
   const TOOLS = [
     { file:'home.html',          icon:'🏠', label:'工具首頁',    sub:'總覽與快速入口' },
     { file:'long-short.html',    icon:'⚖️', label:'隔日多空評估', sub:'融資融券+處置評分' },
