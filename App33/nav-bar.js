@@ -2,7 +2,7 @@
 (function(){
   const BASE = 'https://thomastsao0704.github.io/WebApp/App33/';
   const TOOLS = [
-    { file:'home.html',          icon:'🏠', label:'工具首頁',    sub:'總覽與快速入口' },
+    { file:'index.html',          icon:'🏠', label:'工具首頁',    sub:'總覽與快速入口' },
     { file:'long-short.html',    icon:'⚖️', label:'隔日多空評估', sub:'融資融券+處置評分' },
     { file:'revenue.html',       icon:'💹', label:'月營收分析',   sub:'成長衰退排行榜' },
     { file:'income-analysis.html',icon:'🏦',label:'財務體質分析', sub:'100分財務健康評分' },
@@ -11,7 +11,7 @@
     { file:'news.html',          icon:'📰', label:'重大訊息',     sub:'上市公司即時公告' },
   ];
 
-  const cur = location.pathname.split('/').pop() || 'home.html';
+  const cur = location.pathname.split('/').pop() || 'index.html';
 
   /* ── styles ── */
   const style = document.createElement('style');
