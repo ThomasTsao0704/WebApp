@@ -1,1 +1,362 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>台股分析工具組 · TWSE</title>
+<style>
+:root{
+  --ink:#0f172a;--ink2:#334155;--ink3:#64748b;--ink4:#94a3b8;
+  --bg:#f1f5f9;--surface:#fff;--border:#e2e8f0;
+  --g:#059669;--g2:#d1fae5;--g3:#ecfdf5;
+  --r:#dc2626;--r2:#fecaca;--r3:#fef2f2;
+  --b:#2563eb;--b2:#bfdbfe;--b3:#eff6ff;
+  --am:#d97706;--am2:#fde68a;--am3:#fffbeb;
+  --pu:#7c3aed;--pu2:#ede9fe;
+  --rad:12px;--sh:0 2px 8px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,-apple-system,'Noto Sans TC',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;min-height:100vh;}
 
+/* ── HERO ── */
+.hero{
+  background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 60%,#1d4ed8 100%);
+  color:#fff;padding:40px 32px 36px;position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;right:-80px;top:-60px;
+  width:360px;height:360px;border-radius:50%;
+  background:radial-gradient(circle,rgba(37,99,235,.25) 0%,transparent 70%);
+}
+.hero::after{
+  content:'';position:absolute;left:-40px;bottom:-80px;
+  width:250px;height:250px;border-radius:50%;
+  background:radial-gradient(circle,rgba(16,185,129,.18) 0%,transparent 70%);
+}
+.hero-inner{max-width:900px;margin:0 auto;position:relative;z-index:1;}
+.hero-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:4px 12px;font-size:11px;
+  color:#94a3b8;margin-bottom:14px;letter-spacing:.4px;}
+.hero h1{font-size:1.9rem;font-weight:800;letter-spacing:-.6px;line-height:1.15;margin-bottom:8px;}
+.hero h1 em{color:#60a5fa;font-style:normal;}
+.hero p{font-size:13px;color:#94a3b8;max-width:500px;line-height:1.6;}
+.hero-stats{display:flex;gap:24px;margin-top:22px;flex-wrap:wrap;}
+.hst{display:flex;flex-direction:column;}
+.hst-v{font-size:1.5rem;font-weight:800;color:#fff;}
+.hst-l{font-size:10px;color:#64748b;margin-top:1px;}
+.hero-date{position:absolute;right:0;top:0;font-size:11px;color:#475569;background:rgba(0,0,0,.2);
+  padding:5px 12px;border-radius:0 0 0 8px;}
+
+/* ── SECTION ── */
+.section{max-width:960px;margin:0 auto;padding:28px 20px;}
+.sec-hd{display:flex;align-items:center;gap:8px;margin-bottom:16px;}
+.sec-hd h2{font-size:14px;font-weight:700;color:var(--ink2);}
+.sec-hd::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── TOOL GRID ── */
+.tool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+
+/* ── TOOL CARD ── */
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);
+  padding:20px;display:flex;flex-direction:column;gap:12px;
+  box-shadow:var(--sh);cursor:pointer;text-decoration:none;color:inherit;
+  transition:transform .15s,box-shadow .15s,border-color .15s;
+  position:relative;overflow:hidden;
+}
+.card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.12);border-color:var(--b2);}
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:12px 0 0 12px;}
+.card.c-blue::before{background:var(--b);}
+.card.c-green::before{background:var(--g);}
+.card.c-red::before{background:var(--r);}
+.card.c-amber::before{background:var(--am);}
+.card.c-purple::before{background:var(--pu);}
+.card.c-teal::before{background:#0d9488;}
+.card.c-rose::before{background:#e11d48;}
+
+.card-top{display:flex;align-items:flex-start;gap:12px;}
+.card-ico{
+  width:44px;height:44px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;
+}
+.ico-blue{background:var(--b3);}
+.ico-green{background:var(--g3);}
+.ico-red{background:var(--r3);}
+.ico-amber{background:var(--am3);}
+.ico-purple{background:var(--pu2);}
+.ico-teal{background:#f0fdfa;}
+.ico-rose{background:#fff1f2;}
+
+.card-title{font-size:1rem;font-weight:700;line-height:1.2;margin-bottom:3px;}
+.card-sub{font-size:11px;color:var(--ink3);line-height:1.4;}
+.card-body{font-size:12px;color:var(--ink2);line-height:1.6;}
+.card-tags{display:flex;flex-wrap:wrap;gap:5px;}
+.tag{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;}
+.tag-blue{background:var(--b3);color:#1d4ed8;}
+.tag-green{background:var(--g3);color:#065f46;}
+.tag-red{background:var(--r3);color:#991b1b;}
+.tag-amber{background:var(--am3);color:#92400e;}
+.tag-purple{background:var(--pu2);color:#5b21b6;}
+.tag-teal{background:#f0fdfa;color:#0f766e;}
+.tag-rose{background:#fff1f2;color:#be123c;}
+.tag-gray{background:#f1f5f9;color:#475569;}
+
+.card-footer{
+  display:flex;align-items:center;justify-content:space-between;
+  padding-top:10px;border-top:1px solid var(--border);margin-top:auto;
+}
+.cf-apis{font-size:10px;color:var(--ink4);font-family:monospace;}
+.btn-open{
+  padding:6px 14px;border-radius:6px;border:none;font-size:12px;font-weight:600;
+  cursor:pointer;transition:opacity .12s;
+}
+.btn-open:hover{opacity:.82;}
+.btn-blue{background:var(--b);color:#fff;}
+.btn-green{background:var(--g);color:#fff;}
+.btn-red{background:var(--r);color:#fff;}
+.btn-amber{background:var(--am);color:#fff;}
+.btn-purple{background:var(--pu);color:#fff;}
+.btn-teal{background:#0d9488;color:#fff;}
+.btn-rose{background:#e11d48;color:#fff;}
+
+.feat{display:flex;flex-direction:column;gap:4px;}
+.feat-row{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink2);}
+.feat-row::before{content:'✓';color:var(--g);font-weight:700;font-size:11px;flex-shrink:0;}
+
+/* ── SHORTCUTS ── */
+.shortcuts{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+.sc{
+  display:flex;align-items:center;gap:6px;padding:7px 12px;
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  text-decoration:none;color:var(--ink2);font-size:12px;font-weight:600;
+  transition:background .1s,border-color .1s;
+}
+.sc:hover{background:var(--b3);border-color:var(--b2);color:var(--b);}
+.sc-ico{font-size:14px;}
+
+/* ── FOOTER ── */
+.footer{text-align:center;font-size:11px;color:var(--ink4);padding:24px;border-top:1px solid var(--border);margin-top:8px;}
+.footer a{color:var(--b);text-decoration:none;}
+</style>
+</head>
+<body>
+
+<!-- ── HERO ── -->
+<div class="hero">
+  <div id="heroDate" class="hero-date"></div>
+  <div class="hero-inner">
+    <div class="hero-tag">📈 TWSE · 台灣證券交易所</div>
+    <h1>台股分析<em>工具組</em></h1>
+    <p>整合 TWSE OpenAPI，快速瀏覽月營收、財務體質、融資融券多空訊號與重大公告。即時數據，輔助投資決策。</p>
+    <div class="hero-stats">
+      <div class="hst"><span class="hst-v">6</span><span class="hst-l">分析工具</span></div>
+      <div class="hst"><span class="hst-v">9+</span><span class="hst-l">串接 API</span></div>
+      <div class="hst"><span class="hst-v">即時</span><span class="hst-l">TWSE 數據</span></div>
+      <div class="hst"><span class="hst-v">免費</span><span class="hst-l">開放使用</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── QUICK SHORTCUTS ── -->
+<div class="section" style="padding-bottom:4px;">
+  <div class="sec-hd"><h2>⚡ 快速入口</h2></div>
+  <div class="shortcuts">
+    <a class="sc" href="https://thomastsao0704.github.io/WebApp/App16/long-short.html"><span class="sc-ico">⚖️</span>隔日多空評估</a>
+    <a class="sc" href="https://thomastsao0704.github.io/WebApp/App16/revenue.html"><span class="sc-ico">💹</span>月營收排行</a>
+    <a class="sc" href="https://thomastsao0704.github.io/WebApp/App16/income-analysis.html"><span class="sc-ico">🏦</span>財務體質評分</a>
+    <a class="sc" href="https://thomastsao0704.github.io/WebApp/App16/balance-sheet.html"><span class="sc-ico">📊</span>資產負債分析</a>
+    <a class="sc" href="https://thomastsao0704.github.io/WebApp/App16/market-signal.html"><span class="sc-ico">🚦</span>市場訊號</a>
+    <a class="sc" href="https://thomastsao0704.github.io/WebApp/App16/news.html"><span class="sc-ico">📰</span>重大訊息</a>
+  </div>
+</div>
+
+<!-- ── MAIN TOOLS ── -->
+<div class="section">
+  <div class="sec-hd"><h2>🗂 全部工具</h2></div>
+  <div class="tool-grid">
+
+    <!-- 隔日多空評估 -->
+    <a class="card c-blue" href="https://thomastsao0704.github.io/WebApp/App16/long-short.html">
+      <div class="card-top">
+        <div class="card-ico ico-blue">⚖️</div>
+        <div>
+          <div class="card-title">隔日多空評估</div>
+          <div class="card-sub">融資融券 × 處置股票 × K線訊號</div>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-row">-10 ～ +10 多空綜合評分模型</div>
+        <div class="feat-row">融資增減率 × 融券使用率分析</div>
+        <div class="feat-row">處置股票扣分 · 強多/強空分級</div>
+        <div class="feat-row">TOP 15 做多 / 做空排行榜</div>
+      </div>
+      <div class="card-tags">
+        <span class="tag tag-blue">K線</span>
+        <span class="tag tag-amber">融資</span>
+        <span class="tag tag-red">融券</span>
+        <span class="tag tag-rose">處置</span>
+      </div>
+      <div class="card-footer">
+        <span class="cf-apis">punish · MI_MARGN · STOCK_DAY_ALL</span>
+        <button class="btn-open btn-blue">開啟 →</button>
+      </div>
+    </a>
+
+    <!-- 月營收分析 -->
+    <a class="card c-green" href="https://thomastsao0704.github.io/WebApp/App16/revenue.html">
+      <div class="card-top">
+        <div class="card-ico ico-green">💹</div>
+        <div>
+          <div class="card-title">月營收成長分析</div>
+          <div class="card-sub">上市公司月營收成長 / 衰退排行</div>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-row">YoY / MoM / 累計 三種指標切換</div>
+        <div class="feat-row">成長 TOP 30 · 衰退 TOP 30 並排</div>
+        <div class="feat-row">產業別篩選 · 全排行榜搜尋</div>
+        <div class="feat-row">成長/衰退色階視覺化</div>
+      </div>
+      <div class="card-tags">
+        <span class="tag tag-green">YoY</span>
+        <span class="tag tag-teal">MoM</span>
+        <span class="tag tag-gray">累計</span>
+      </div>
+      <div class="card-footer">
+        <span class="cf-apis">t187ap05_L</span>
+        <button class="btn-open btn-green">開啟 →</button>
+      </div>
+    </a>
+
+    <!-- 財務體質分析 -->
+    <a class="card c-purple" href="https://thomastsao0704.github.io/WebApp/App16/income-analysis.html">
+      <div class="card-top">
+        <div class="card-ico ico-purple">🏦</div>
+        <div>
+          <div class="card-title">財務體質分析</div>
+          <div class="card-sub">100 分財務健康評分 · 分析師視角</div>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-row">流動能力 / 財務槓桿 / 盈餘品質</div>
+        <div class="feat-row">A ~ D 等級評定 · 自動評析文字</div>
+        <div class="feat-row">資本結構圓餅圖視覺化</div>
+        <div class="feat-row">點擊個股展開詳細健康報告</div>
+      </div>
+      <div class="card-tags">
+        <span class="tag tag-purple">評分</span>
+        <span class="tag tag-blue">槓桿</span>
+        <span class="tag tag-green">盈餘</span>
+      </div>
+      <div class="card-footer">
+        <span class="cf-apis">t187ap07_L_ci</span>
+        <button class="btn-open btn-purple">開啟 →</button>
+      </div>
+    </a>
+
+    <!-- 資產負債分析 -->
+    <a class="card c-amber" href="https://thomastsao0704.github.io/WebApp/App16/balance-sheet.html">
+      <div class="card-top">
+        <div class="card-ico ico-amber">📊</div>
+        <div>
+          <div class="card-title">資產負債分析</div>
+          <div class="card-sub">合併資產負債表 · 財務比率計算</div>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-row">流動比率 / 負債比 / D/E Ratio</div>
+        <div class="feat-row">權益比率 · 每股參考淨值</div>
+        <div class="feat-row">綠/橘/紅三色健康警示</div>
+        <div class="feat-row">點擊個股展開左右雙欄詳析</div>
+      </div>
+      <div class="card-tags">
+        <span class="tag tag-amber">負債比</span>
+        <span class="tag tag-green">流動比</span>
+        <span class="tag tag-blue">淨值</span>
+      </div>
+      <div class="card-footer">
+        <span class="cf-apis">t187ap07_L_ci</span>
+        <button class="btn-open btn-amber">開啟 →</button>
+      </div>
+    </a>
+
+    <!-- 市場訊號 -->
+    <a class="card c-teal" href="https://thomastsao0704.github.io/WebApp/App16/market-signal.html">
+      <div class="card-top">
+        <div class="card-ico ico-teal">🚦</div>
+        <div>
+          <div class="card-title">市場訊號偵測</div>
+          <div class="card-sub">停止買賣 · 停止過戶 事件分析</div>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-row">BFI84U 停止買賣 / TWTBAU1 停止過戶</div>
+        <div class="feat-row">ETF 正/反分割 · 分配收益分類</div>
+        <div class="feat-row">股東大會 / 受益人大會時程</div>
+        <div class="feat-row">倒數天數 · 事件解讀說明</div>
+      </div>
+      <div class="card-tags">
+        <span class="tag tag-green">牛市</span>
+        <span class="tag tag-red">熊市</span>
+        <span class="tag tag-teal">分配</span>
+        <span class="tag tag-gray">股東會</span>
+      </div>
+      <div class="card-footer">
+        <span class="cf-apis">BFI84U · TWTBAU1</span>
+        <button class="btn-open btn-teal">開啟 →</button>
+      </div>
+    </a>
+
+    <!-- 重大訊息 -->
+    <a class="card c-rose" href="https://thomastsao0704.github.io/WebApp/App16/news.html">
+      <div class="card-top">
+        <div class="card-ico ico-rose">📰</div>
+        <div>
+          <div class="card-title">重大訊息公告</div>
+          <div class="card-sub">上市公司每日即時重大訊息</div>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-row">自動 5 分鐘刷新 · NEW 角標提示</div>
+        <div class="feat-row">展開/收合全文 · 關鍵字搜尋</div>
+        <div class="feat-row">符合條款標籤分類</div>
+        <div class="feat-row">民國/西元日期自動轉換</div>
+      </div>
+      <div class="card-tags">
+        <span class="tag tag-rose">即時</span>
+        <span class="tag tag-gray">每5分鐘</span>
+      </div>
+      <div class="card-footer">
+        <span class="cf-apis">t187ap04_L</span>
+        <button class="btn-open btn-rose">開啟 →</button>
+      </div>
+    </a>
+
+  </div>
+</div>
+
+<!-- ── DATA SOURCE NOTICE ── -->
+<div class="section" style="padding-top:0;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);padding:14px 18px;display:flex;align-items:center;gap:12px;font-size:12px;color:var(--ink3);">
+    <span style="font-size:18px;">ℹ️</span>
+    <span>數據來源：<strong style="color:var(--ink2)">台灣證券交易所 TWSE OpenAPI</strong>（openapi.twse.com.tw/v1）· 透過 CORS Proxy 即時取得 · 所有數據僅供參考，不構成投資建議。</span>
+  </div>
+</div>
+
+<div class="footer">
+  台股分析工具組 · 數據來源 <a href="https://openapi.twse.com.tw" target="_blank">TWSE OpenAPI</a> · 僅供學習研究使用
+</div>
+
+<script>
+/* 今日日期 */
+(function(){
+  const d = new Date();
+  const roc = d.getFullYear()-1911;
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  document.getElementById('heroDate').textContent = `民國 ${roc}年${mm}月${dd}日`;
+})();
+</script>
+<script src="nav-bar.js"></script>
+</body>
+</html>

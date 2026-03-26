@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>上市公司綜合財務體質分析 · TWSE</title>
+<style>
+:root{
+  --ink:#0f172a; --ink2:#334155; --ink3:#64748b; --ink4:#94a3b8;
+  --bg:#f8fafc; --surface:#fff; --border:#e2e8f0;
+  --blue:#2563eb; --blue-s:#eff6ff; --blue-m:#bfdbfe;
+  --green:#059669; --green-s:#ecfdf5; --green-m:#a7f3d0;
+  --red:#dc2626;  --red-s:#fef2f2;  --red-m:#fecaca;
+  --amber:#d97706;--amber-s:#fffbeb;--amber-m:#fde68a;
+  --purple:#7c3aed;--purple-s:#f5f3ff;
+  --r:8px; --sh:0 1px 4px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',system-ui,-apple-system,'Noto Sans TC',sans-serif;background:var(--bg);color:var(--ink);font-size:14px;}
+
+/* ═══ HEADER ═══ */
+.page-header{
+  background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);
+  color:#fff; padding:20px 32px;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+}
+.page-header .logo{font-size:26px;}
+.page-header .titles h1{font-size:1.15rem;font-weight:700;letter-spacing:-.3px;}
+.page-header .titles p{font-size:12px;color:#94a3b8;margin-top:2px;}
+.page-header .chips{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;}
+.chip{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+.chip-blue{background:#1d4ed8;color:#bfdbfe;}
+.chip-warn{background:#92400e;color:#fde68a;}
+.meta-bar{background:#1e293b;color:#64748b;font-size:11px;padding:6px 32px;border-bottom:1px solid #1e3a5f;}
+.meta-bar span{color:#94a3b8;}
+
+/* ═══ SUMMARY ROW ═══ */
+.summary-row{display:flex;gap:12px;padding:16px 32px;overflow-x:auto;}
+.kpi{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:14px 18px;min-width:170px;flex-shrink:0;box-shadow:var(--sh);
+}
+.kpi .k-label{font-size:11px;color:var(--ink3);font-weight:500;margin-bottom:4px;}
+.kpi .k-value{font-size:1.6rem;font-weight:700;letter-spacing:-.5px;line-height:1;}
+.kpi .k-sub{font-size:11px;color:var(--ink4);margin-top:3px;}
+.kpi .k-trend{font-size:11px;font-weight:600;margin-top:4px;}
+.k-green{color:var(--green);}
+.k-red  {color:var(--red);}
+.k-amber{color:var(--amber);}
+
+/* ═══ TOOLBAR ═══ */
+.toolbar{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:10px 32px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  position:sticky;top:0;z-index:30;box-shadow:0 2px 6px rgba(0,0,0,.06);
+}
+.toolbar input,.toolbar select{
+  padding:6px 11px;border:1px solid var(--border);border-radius:6px;
+  font-size:13px;outline:none;background:var(--surface);color:var(--ink);
+}
+.toolbar input:focus,.toolbar select:focus{border-color:var(--blue);}
+#searchQ{width:200px;}
+.sep{width:1px;height:22px;background:var(--border);margin:0 4px;}
+.btn{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s;}
+.btn:hover{opacity:.85;}
+.btn-blue{background:var(--blue);color:#fff;}
+.btn-ghost{background:var(--bg);color:var(--ink2);border:1px solid var(--border);}
+.right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.stats-txt{font-size:12px;color:var(--ink3);}
+
+/* ═══ LAYOUT ═══ */
+.workspace{display:grid;grid-template-columns:1fr 480px;min-height:calc(100vh - 220px);}
+@media(max-width:1120px){.workspace{grid-template-columns:1fr;}}
+
+/* ═══ TABLE PANEL ═══ */
+.tbl-panel{overflow:auto;background:var(--surface);border-right:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+thead th{
+  padding:9px 12px;background:#f8fafc;border-bottom:2px solid var(--border);
+  color:var(--ink3);font-weight:600;white-space:nowrap;
+  cursor:pointer;user-select:none;position:sticky;top:0;z-index:2;
+}
+thead th:hover{background:#f1f5f9;color:var(--ink);}
+thead th.sort-asc::after{content:" ▲";font-size:9px;}
+thead th.sort-desc::after{content:" ▼";font-size:9px;}
+tbody tr{border-bottom:1px solid #f8fafc;cursor:pointer;transition:background .1s;}
+tbody tr:hover{background:#f8fafc;}
+tbody tr.active{background:var(--blue-s) !important;border-left:3px solid var(--blue);}
+td{padding:8px 12px;white-space:nowrap;}
+td.co-code{font-family:monospace;font-weight:700;color:var(--blue);font-size:12px;}
+td.co-name{font-weight:600;max-width:90px;overflow:hidden;text-overflow:ellipsis;color:var(--ink);}
+td.r-right{text-align:right;font-variant-numeric:tabular-nums;}
+
+/* Score badge */
+.score{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;font-size:11px;font-weight:700;}
+.score-A{background:var(--green-s);color:#065f46;border:1.5px solid var(--green-m);}
+.score-B{background:var(--blue-s);color:#1e40af;border:1.5px solid var(--blue-m);}
+.score-C{background:var(--amber-s);color:#92400e;border:1.5px solid var(--amber-m);}
+.score-D{background:var(--red-s);color:#991b1b;border:1.5px solid var(--red-m);}
+
+/* Small pill */
+.p{display:inline-block;padding:2px 7px;border-radius:12px;font-size:11px;font-weight:600;}
+.p-g{background:var(--green-s);color:#065f46;}
+.p-a{background:var(--amber-s);color:#92400e;}
+.p-r{background:var(--red-s);color:#991b1b;}
+.p-b{background:var(--blue-s);color:#1e40af;}
+
+/* ═══ DETAIL PANEL ═══ */
+.det-panel{background:var(--bg);overflow-y:auto;max-height:calc(100vh - 195px);position:sticky;top:195px;padding:0;}
+.det-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--ink4);padding:60px 20px;text-align:center;}
+.det-empty .ico{font-size:48px;}
+
+/* Detail content */
+.det-inner{padding:18px 20px;}
+
+.analyst-header{background:linear-gradient(135deg,#0f172a,#1e3a5f);color:#fff;padding:16px 20px;border-radius:var(--r);margin-bottom:14px;}
+.analyst-header .ah-code{font-family:monospace;font-size:11px;color:#60a5fa;font-weight:700;margin-bottom:4px;}
+.analyst-header h2{font-size:1.1rem;font-weight:700;margin-bottom:4px;}
+.analyst-header .ah-period{font-size:11px;color:#94a3b8;}
+.analyst-header .ah-score-row{display:flex;align-items:center;gap:12px;margin-top:10px;}
+.overall-score{width:52px;height:52px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;}
+.overall-score .grade{font-size:1.4rem;line-height:1;}
+.overall-score .pts{font-size:9px;opacity:.8;}
+.ah-verdict{font-size:12px;color:#cbd5e1;line-height:1.55;}
+
+/* Section */
+.det-section{background:var(--surface);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;box-shadow:var(--sh);}
+.det-section h3{font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+
+/* Metric rows */
+.m-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f8fafc;}
+.m-row:last-child{border:none;}
+.m-label{font-size:12px;color:var(--ink2);flex:1;}
+.m-val{font-size:12px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.m-bar-wrap{width:70px;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;}
+.m-bar{height:100%;border-radius:3px;transition:width .6s ease;}
+.m-note{font-size:10px;width:36px;text-align:right;flex-shrink:0;}
+.m-note.good{color:var(--green);}
+.m-note.warn{color:var(--amber);}
+.m-note.bad {color:var(--red);}
+
+/* BS structure bar */
+.structure-chart{margin:8px 0;}
+.structure-chart .sc-label{font-size:10px;color:var(--ink4);margin-bottom:4px;}
+.sc-bar{display:flex;height:28px;border-radius:5px;overflow:hidden;gap:1px;}
+.sc-seg{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff;min-width:0;overflow:hidden;transition:width .6s;}
+
+/* Equity breakdown ring-style */
+.eq-row{display:flex;align-items:center;gap:10px;padding:4px 0;}
+.eq-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+.eq-label{font-size:12px;color:var(--ink2);flex:1;}
+.eq-bar-outer{width:100px;height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden;}
+.eq-bar-inner{height:100%;border-radius:3px;}
+.eq-pct{font-size:11px;font-variant-numeric:tabular-nums;color:var(--ink3);width:36px;text-align:right;}
+
+/* Risk grid */
+.risk-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.risk-item{background:var(--bg);border-radius:6px;padding:10px 12px;border:1px solid var(--border);}
+.risk-item .ri-label{font-size:10px;color:var(--ink4);margin-bottom:3px;}
+.risk-item .ri-val{font-size:1.1rem;font-weight:700;}
+.risk-item .ri-note{font-size:10px;margin-top:2px;}
+
+/* Analyst commentary */
+.commentary{font-size:12px;color:var(--ink2);line-height:1.7;background:#f8fafc;border-left:3px solid var(--blue);padding:10px 14px;border-radius:0 6px 6px 0;}
+.commentary strong{color:var(--ink);}
+
+/* loading */
+.loading{display:flex;flex-direction:column;align-items:center;padding:60px 20px;color:var(--ink3);}
+.spin{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="logo">📈</div>
+  <div class="titles">
+    <h1>上市公司綜合財務體質分析</h1>
+    <p>資本結構 · 權益品質 · 財務安全評分 · Analyst Grade</p>
+  </div>
+  <div class="chips">
+    <span class="chip chip-blue">TWSE OpenAPI</span>
+    <span class="chip chip-warn" id="periodChip">載入中…</span>
+  </div>
+</div>
+<div class="meta-bar">
+  <span id="metaLine">來源：t187ap07_L_ci ｜ 合併資產負債表 ｜ 載入中…</span>
+</div>
+
+<div class="summary-row" id="kpiRow">
+  <div class="kpi"><div class="k-label">資料公司數</div><div class="k-value" id="k-n">—</div><div class="k-sub">上市公司家數</div></div>
+  <div class="kpi"><div class="k-label">平均流動比率</div><div class="k-value" id="k-cr">—</div><div class="k-sub">全市場均值</div></div>
+  <div class="kpi"><div class="k-label">平均負債比率</div><div class="k-value" id="k-dr">—</div><div class="k-sub">全市場均值</div></div>
+  <div class="kpi"><div class="k-label">平均每股淨值</div><div class="k-value" id="k-nav">—</div><div class="k-sub">NT$ / 股</div></div>
+  <div class="kpi"><div class="k-label">A 級公司</div><div class="k-value k-green" id="k-a">—</div><div class="k-sub">財務體質優良</div></div>
+  <div class="kpi"><div class="k-label">D 級公司</div><div class="k-value k-red" id="k-d">—</div><div class="k-sub">高風險預警</div></div>
+  <div class="kpi"><div class="k-label">保留盈餘最高</div><div class="k-value k-blue" id="k-re">—</div><div class="k-sub">獲利累積最強</div></div>
+</div>
+
+<div class="toolbar">
+  <input id="searchQ" type="text" placeholder="代號 / 公司名稱"/>
+  <select id="selGrade">
+    <option value="">評級：全部</option>
+    <option value="A">A 級 — 優良</option>
+    <option value="B">B 級 — 良好</option>
+    <option value="C">C 級 — 普通</option>
+    <option value="D">D 級 — 預警</option>
+  </select>
+  <select id="selSort">
+    <option value="">排序：預設</option>
+    <option value="score-d">評分 高→低</option>
+    <option value="cr-d">流動比率 高→低</option>
+    <option value="dr-a">負債比率 低→高</option>
+    <option value="re-d">保留盈餘 高→低</option>
+    <option value="nav-d">每股淨值 高→低</option>
+    <option value="ta-d">資產規模 高→低</option>
+  </select>
+  <div class="sep"></div>
+  <button class="btn btn-blue" id="refreshBtn">↻ 更新</button>
+  <div class="right">
+    <span class="stats-txt" id="statsTxt"></span>
+  </div>
+</div>
+
+<div class="workspace">
+  <!-- 左：表格 -->
+  <div class="tbl-panel">
+    <div id="tblArea"><div class="loading"><div class="spin"></div>載入資料中…</div></div>
+  </div>
+  <!-- 右：分析面板 -->
+  <div class="det-panel" id="detPanel">
+    <div class="det-empty">
+      <div class="ico">📊</div>
+      <div style="font-weight:600;color:#475569">點選公司查看專業分析報告</div>
+      <div style="font-size:12px">包含評分、資本結構、權益品質與分析師觀點</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const WORKER = "https://cors-proxy.s01yg3642.workers.dev/";
+const API    = "https://openapi.twse.com.tw/v1/opendata/t187ap07_L_ci";
+
+let raw=[], rows=[], activeIdx=-1;
+
+/* ── 解析 ── */
+const pn = s => parseFloat(String(s??'').replace(/,/g,''))||0;
+const pct= (n,d=1)=> isFinite(n) ? n.toFixed(d)+'%' : '—';
+const fix= (n,d=2)=> isFinite(n) ? n.toFixed(d) : '—';
+const fmt= n => {
+  const a=Math.abs(n);
+  if(a>=1e9) return (n/1e9).toFixed(1)+'B';
+  if(a>=1e6) return (n/1e6).toFixed(1)+'M';
+  if(a>=1e3) return (n/1e3).toFixed(0)+'K';
+  return n.toLocaleString();
+};
+const fmtFull = n => n ? pn(n).toLocaleString('zh-TW') : '—';
+const rocToAd = s => { const r=String(s||''); if(r.length>=3) return (parseInt(r.slice(0,3))+1911)+'年'; return s; };
+
+/* ── 評分模型（100分） ── */
+function score(c){
+  let s=0, notes=[];
+  // 流動比率 (25分)
+  if(c.cr>=2)       { s+=25; notes.push({cat:'流動能力',pt:25,max:25,msg:'流動比率 '+fix(c.cr)+'x，短期償債能力極佳'}); }
+  else if(c.cr>=1.5){ s+=20; notes.push({cat:'流動能力',pt:20,max:25,msg:'流動比率 '+fix(c.cr)+'x，短期償債能力良好'}); }
+  else if(c.cr>=1)  { s+=12; notes.push({cat:'流動能力',pt:12,max:25,msg:'流動比率 '+fix(c.cr)+'x，勉強可支應短期負債'}); }
+  else if(c.cr>0)   { s+=4;  notes.push({cat:'流動能力',pt:4, max:25,msg:'流動比率 '+fix(c.cr)+'x，短期流動性不足，需注意'}); }
+  else                notes.push({cat:'流動能力',pt:0,max:25,msg:'流動負債資料不足'});
+  // 負債比率 (25分)
+  if(c.dr<=0.3)     { s+=25; notes.push({cat:'財務槓桿',pt:25,max:25,msg:'負債比率 '+pct(c.dr*100)+'，財務結構穩健'}); }
+  else if(c.dr<=0.5){ s+=18; notes.push({cat:'財務槓桿',pt:18,max:25,msg:'負債比率 '+pct(c.dr*100)+'，屬適度槓桿水準'}); }
+  else if(c.dr<=0.7){ s+=10; notes.push({cat:'財務槓桿',pt:10,max:25,msg:'負債比率 '+pct(c.dr*100)+'，槓桿偏高，需追蹤'}); }
+  else if(c.dr<1)   { s+=3;  notes.push({cat:'財務槓桿',pt:3, max:25,msg:'負債比率 '+pct(c.dr*100)+'，高槓桿，財務風險高'}); }
+  else                notes.push({cat:'財務槓桿',pt:0,max:25,msg:'負債已超過資產，需留意'});
+  // 保留盈餘品質 (25分)：保留盈餘 / 股本 越高越好
+  const rer = c.sc>0 ? c.re/c.sc : 0;
+  if(rer>=2)        { s+=25; notes.push({cat:'盈餘品質',pt:25,max:25,msg:'保留盈餘為股本 '+fix(rer)+'倍，獲利累積能力極強'}); }
+  else if(rer>=1)   { s+=18; notes.push({cat:'盈餘品質',pt:18,max:25,msg:'保留盈餘為股本 '+fix(rer)+'倍，獲利累積能力良好'}); }
+  else if(rer>=0.5) { s+=12; notes.push({cat:'盈餘品質',pt:12,max:25,msg:'保留盈餘為股本 '+fix(rer)+'倍，有一定盈餘積累'}); }
+  else if(rer>=0)   { s+=5;  notes.push({cat:'盈餘品質',pt:5, max:25,msg:'保留盈餘為股本 '+fix(rer)+'倍，獲利累積偏弱'}); }
+  else              { s+=0;  notes.push({cat:'盈餘品質',pt:0, max:25,msg:'保留盈餘為負（'+fix(rer)+'倍），累積虧損狀態'}); }
+  // 每股淨值 (25分)
+  if(c.nav>=50)     { s+=25; notes.push({cat:'淨值水準',pt:25,max:25,msg:'每股淨值 NT$'+fix(c.nav)+'，資產含金量高'}); }
+  else if(c.nav>=20){ s+=18; notes.push({cat:'淨值水準',pt:18,max:25,msg:'每股淨值 NT$'+fix(c.nav)+'，遠高於票面值'}); }
+  else if(c.nav>=10){ s+=12; notes.push({cat:'淨值水準',pt:12,max:25,msg:'每股淨值 NT$'+fix(c.nav)+'，略高於票面值'}); }
+  else if(c.nav>0)  { s+=5;  notes.push({cat:'淨值水準',pt:5, max:25,msg:'每股淨值 NT$'+fix(c.nav)+'，接近票面值，空間有限'}); }
+  else              { s+=0;  notes.push({cat:'淨值水準',pt:0, max:25,msg:'每股淨值為負，資本侵蝕警示'}); }
+  return {total:s, notes};
+}
+
+function grade(s){
+  if(s>=80) return 'A';
+  if(s>=60) return 'B';
+  if(s>=40) return 'C';
+  return 'D';
+}
+const gradeColor={'A':'#059669','B':'#2563eb','C':'#d97706','D':'#dc2626'};
+const gradeBg   ={'A':'#ecfdf5','B':'#eff6ff','C':'#fffbeb','D':'#fef2f2'};
+
+/* ── 分析師觀點生成 ── */
+function analystVerdict(c, sc){
+  const g=grade(sc.total);
+  const rer=c.sc>0?c.re/c.sc:0;
+  const verdicts={
+    A:`財務體質評為 <strong>A 級（優良）</strong>。流動比率達 ${fix(c.cr)}x，短期償債無虞；負債比率僅 ${pct(c.dr*100)}，屬低槓桿穩健架構。保留盈餘為股本 ${fix(rer)} 倍，顯示長期獲利能力強勁。每股淨值 NT$${fix(c.nav)}，資產含金量高。建議納入「財務優質」觀察名單。`,
+    B:`財務體質評為 <strong>B 級（良好）</strong>。整體財務結構健全，流動比率 ${fix(c.cr)}x 顯示短期流動性無虞。負債比率 ${pct(c.dr*100)} 屬合理範圍。保留盈餘積累顯示有一定獲利歷史。建議持續追蹤負債結構變化及盈餘配發政策。`,
+    C:`財務體質評為 <strong>C 級（普通）</strong>。部分財務指標表現平淡，流動比率 ${fix(c.cr)}x${c.cr<1.5?' 偏低':'尚可'}，負債比率 ${pct(c.dr*100)}${c.dr>0.6?' 偏高，財務槓桿需留意':' 尚在可接受範圍'}。保留盈餘積累${rer<0.5?' 不足':' 尚可'}。建議深入研究其產業特性與現金流量能力。`,
+    D:`財務體質評為 <strong>D 級（預警）</strong>。財務結構存在明顯壓力：${c.cr<1?'流動比率 '+fix(c.cr)+'x 低於 1，短期償債能力嚴重不足；':''}${c.dr>0.7?'負債比率 '+pct(c.dr*100)+' 超過 70% 高槓桿警戒線；':''}${c.nav<10?'每股淨值 NT$'+fix(c.nav)+' 偏低；':''}。需密切追蹤現金流量與債務到期結構，評估是否具備持續經營能力。`
+  };
+  return verdicts[g]||'';
+}
+
+/* ── 計算 ── */
+function compute(r){
+  const ca=pn(r['流動資產']),nca=pn(r['非流動資產']),ta=pn(r['資產總額']);
+  const cl=pn(r['流動負債']),ncl=pn(r['非流動負債']),tl=pn(r['負債總額']);
+  const sc=pn(r['股本']),cps=pn(r['資本公積']),re=pn(r['保留盈餘']);
+  const oe=pn(r['其他權益']),ts=pn(r['庫藏股票']);
+  const eq=pn(r['權益總額']),mi=pn(r['非控制權益']);
+  const nav=pn(r['每股參考淨值']);
+  const cr=cl?ca/cl:null, dr=ta?tl/ta:null, de=eq?tl/eq:null, eqr=ta?eq/ta:null;
+  const rer=sc?re/sc:null;
+  return {r,ca,nca,ta,cl,ncl,tl,sc,cps,re,oe,ts,eq,mi,nav,cr,dr,de,eqr,rer};
+}
+
+/* ── 載入 ── */
+async function load(){
+  document.getElementById('refreshBtn').textContent='⟳ 載入中…';
+  document.getElementById('tblArea').innerHTML='<div class="loading"><div class="spin"></div>載入資料中…</div>';
+  try{
+    const res=await fetch(WORKER+'?url='+encodeURIComponent(API));
+    const data=await res.json();
+    raw=Array.isArray(data)?data:[];
+    rows=raw.map(compute);
+    updateKPI();
+    render();
+    const r0=raw[0]||{};
+    document.getElementById('periodChip').textContent= `${rocToAd(r0['年度'])} 第${r0['季別']}季`;
+    document.getElementById('metaLine').textContent=
+      `來源：TWSE t187ap07_L_ci ｜ 合併資產負債表 ｜ 更新：${new Date().toLocaleString('zh-TW')} ｜ ${rocToAd(r0['年度'])} Q${r0['季別']}`;
+  }catch(e){
+    document.getElementById('tblArea').innerHTML=`<div class="loading">❌ 載入失敗：${e.message}</div>`;
+  }finally{
+    document.getElementById('refreshBtn').textContent='↻ 更新';
+  }
+}
+
+/* ── KPI ── */
+function updateKPI(){
+  const v=rows.filter(c=>c.cr&&c.dr&&c.nav);
+  const avgCR=v.reduce((s,c)=>s+c.cr,0)/v.length;
+  const avgDR=v.reduce((s,c)=>s+c.dr,0)/v.length;
+  const avgNAV=v.reduce((s,c)=>s+c.nav,0)/v.length;
+  const grades=rows.map(c=>grade(score(c).total));
+  const topRe=rows.reduce((a,b)=>b.re>a.re?b:a,rows[0]);
+  document.getElementById('k-n').textContent=raw.length;
+  document.getElementById('k-cr').textContent=avgCR.toFixed(2)+'x';
+  document.getElementById('k-dr').textContent=pct(avgDR*100);
+  document.getElementById('k-nav').textContent='NT$'+avgNAV.toFixed(1);
+  document.getElementById('k-a').textContent=grades.filter(g=>g==='A').length;
+  document.getElementById('k-d').textContent=grades.filter(g=>g==='D').length;
+  document.getElementById('k-re').textContent=topRe?topRe.r['公司名稱']:'—';
+}
+
+/* ── 篩選排序 ── */
+function filtered(){
+  const q=document.getElementById('searchQ').value.trim().toLowerCase();
+  const gf=document.getElementById('selGrade').value;
+  const sf=document.getElementById('selSort').value;
+  let list=rows.filter(c=>{
+    if(q&&!((c.r['公司代號']||'').includes(q)||(c.r['公司名稱']||'').toLowerCase().includes(q))) return false;
+    if(gf&&grade(score(c).total)!==gf) return false;
+    return true;
+  });
+  if(sf==='score-d') list.sort((a,b)=>score(b).total-score(a).total);
+  else if(sf==='cr-d')  list.sort((a,b)=>(b.cr||0)-(a.cr||0));
+  else if(sf==='dr-a')  list.sort((a,b)=>(a.dr||0)-(b.dr||0));
+  else if(sf==='re-d')  list.sort((a,b)=>b.re-a.re);
+  else if(sf==='nav-d') list.sort((a,b)=>b.nav-a.nav);
+  else if(sf==='ta-d')  list.sort((a,b)=>b.ta-a.ta);
+  return list;
+}
+
+/* ── 渲染表格 ── */
+function render(){
+  const list=filtered();
+  document.getElementById('statsTxt').textContent=`${list.length} / ${raw.length} 家`;
+  if(!list.length){
+    document.getElementById('tblArea').innerHTML='<div class="loading">無符合條件的公司</div>';
+    return;
+  }
+  const scMap={}; list.forEach(c=>{ scMap[c.r['公司代號']]=score(c); });
+  const rows_html=list.map((c,i)=>{
+    const sc=scMap[c.r['公司代號']];
+    const g=grade(sc.total);
+    const gcls=`score score-${g}`;
+    const crS=c.cr!==null?c.cr.toFixed(2)+'x':'—';
+    const drS=c.dr!==null?pct(c.dr*100):'—';
+    const reS=c.re?fmt(c.re):'—';
+    const navS=c.nav?'NT$'+c.nav.toFixed(1):'—';
+    const crC=c.cr>=1.5?'p-g':c.cr>=1?'p-a':'p-r';
+    const drC=c.dr<=0.4?'p-g':c.dr<=0.7?'p-a':'p-r';
+    const isA=activeIdx===i?' active':'';
+    return `<tr data-i="${i}"${isA}>
+      <td class="co-code">${c.r['公司代號']}</td>
+      <td class="co-name" title="${c.r['公司名稱']}">${c.r['公司名稱']}</td>
+      <td><span class="${gcls}">${g}</span></td>
+      <td style="text-align:right;font-weight:700;color:${gradeColor[g]}">${sc.total}</td>
+      <td><span class="p ${crC}">${crS}</span></td>
+      <td><span class="p ${drC}">${drS}</span></td>
+      <td class="r-right" style="color:#7c3aed;font-weight:600">${reS}</td>
+      <td class="r-right" style="font-weight:600">${navS}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tblArea').innerHTML=`
+  <table>
+    <thead><tr>
+      <th>代號</th><th>公司</th>
+      <th title="財務體質綜合評級">評級</th>
+      <th title="100分制綜合評分">評分</th>
+      <th title="流動資產/流動負債">流動比率</th>
+      <th title="負債總額/資產總額">負債比率</th>
+      <th title="保留盈餘（累積獲利）">保留盈餘</th>
+      <th title="每股參考淨值">每股淨值</th>
+    </tr></thead>
+    <tbody>${rows_html}</tbody>
+  </table>`;
+
+  document.querySelectorAll('tbody tr').forEach(tr=>{
+    tr.addEventListener('click',()=>{
+      document.querySelectorAll('tbody tr').forEach(t=>t.classList.remove('active'));
+      tr.classList.add('active');
+      activeIdx=parseInt(tr.dataset.i);
+      showDetail(filtered()[activeIdx]);
+    });
+  });
+}
+
+/* ── 詳細分析面板 ── */
+function showDetail(c){
+  const sc=score(c);
+  const g=grade(sc.total);
+  const gcol=gradeColor[g], gbg=gradeBg[g];
+  const verdict=analystVerdict(c,sc);
+  const r=c.r;
+
+  /* 結構百分比 */
+  const p=n=>c.ta?(n/c.ta*100).toFixed(1):0;
+  const caP=p(c.ca), ncaP=p(c.nca), clP=p(c.cl), nclP=p(c.ncl), eqP=p(c.eq);
+
+  /* 評分細項 */
+  const scoreRows=sc.notes.map(n=>`
+    <div class="m-row">
+      <span class="m-label">${n.cat}</span>
+      <div class="m-bar-wrap"><div class="m-bar" style="width:${n.pt/n.max*100}%;background:${n.pt/n.max>=.72?'#059669':n.pt/n.max>=.48?'#d97706':'#dc2626'}"></div></div>
+      <span class="m-val">${n.pt}/${n.max}</span>
+    </div>`).join('');
+
+  /* 流動比率顏色 */
+  const cc=(v,t1,t2,good,warn,bad)=>v>=t1?good:v>=t2?warn:bad;
+  const crCol=cc(c.cr,1.5,1,'#059669','#d97706','#dc2626');
+  const drCol=cc(1-c.dr,.6,.3,'#059669','#d97706','#dc2626');
+  const deCol=cc(c.de?1/c.de:0,1,.5,'#059669','#d97706','#dc2626');
+  const navCol=cc(c.nav,20,10,'#059669','#d97706','#dc2626');
+
+  function mRow(label, val, valStr, barW, barCol, noteStr, noteCls){
+    return `<div class="m-row">
+      <span class="m-label">${label}</span>
+      <div class="m-bar-wrap"><div class="m-bar" style="width:${Math.min(barW,100)}%;background:${barCol}"></div></div>
+      <span class="m-val">${valStr}</span>
+      <span class="m-note ${noteCls}">${noteStr}</span>
+    </div>`;
+  }
+
+  /* 權益結構分解 */
+  function eqRow(label, val, col){
+    const w=c.eq?Math.abs(val)/c.eq*100:0;
+    const sign=val<0?' (-)':'';
+    return `<div class="eq-row">
+      <div class="eq-dot" style="background:${col}"></div>
+      <span class="eq-label">${label}${sign}</span>
+      <div class="eq-bar-outer"><div class="eq-bar-inner" style="width:${Math.min(w,100)}%;background:${col}${val<0?';opacity:.5':''}"></div></div>
+      <span class="eq-pct">${w.toFixed(1)}%</span>
+    </div>`;
+  }
+
+  document.getElementById('detPanel').innerHTML=`
+  <div class="det-inner">
+
+    <!-- Analyst Header -->
+    <div class="analyst-header">
+      <div class="ah-code">${r['公司代號']}</div>
+      <h2>${r['公司名稱']}</h2>
+      <div class="ah-period">合併資產負債表 ｜ ${rocToAd(r['年度'])} 第${r['季別']}季</div>
+      <div class="ah-score-row">
+        <div class="overall-score" style="background:${gbg};border:2px solid ${gcol}">
+          <div class="grade" style="color:${gcol}">${g}</div>
+          <div class="pts" style="color:${gcol}">${sc.total}分</div>
+        </div>
+        <div class="ah-verdict">${verdict}</div>
+      </div>
+    </div>
+
+    <!-- 評分細項 -->
+    <div class="det-section">
+      <h3>📋 評分細項（共100分）</h3>
+      ${scoreRows}
+    </div>
+
+    <!-- 資本結構視覺化 -->
+    <div class="det-section">
+      <h3>🏗️ 資本結構視覺化</h3>
+      <div class="structure-chart">
+        <div class="sc-label">資產側</div>
+        <div class="sc-bar">
+          <div class="sc-seg" style="width:${caP}%;background:#3b82f6" title="流動資產">${caP>8?caP+'%':''}</div>
+          <div class="sc-seg" style="width:${ncaP}%;background:#1e40af" title="非流動資產">${ncaP>8?ncaP+'%':''}</div>
+        </div>
+      </div>
+      <div class="structure-chart" style="margin-top:6px">
+        <div class="sc-label">負債＋權益側</div>
+        <div class="sc-bar">
+          <div class="sc-seg" style="width:${clP}%;background:#f97316" title="流動負債">${clP>8?clP+'%':''}</div>
+          <div class="sc-seg" style="width:${nclP}%;background:#c2410c" title="非流動負債">${nclP>8?nclP+'%':''}</div>
+          <div class="sc-seg" style="width:${eqP}%;background:#059669" title="權益">${eqP>8?eqP+'%':''}</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;font-size:11px;color:#64748b;">
+        <span>🔵 流動資產 ${caP}%</span>
+        <span>🟦 非流動資產 ${ncaP}%</span>
+        <span>🟠 流動負債 ${clP}%</span>
+        <span>🟥 非流動負債 ${nclP}%</span>
+        <span>🟢 權益 ${eqP}%</span>
+      </div>
+    </div>
+
+    <!-- 核心財務比率 -->
+    <div class="det-section">
+      <h3>📐 核心財務比率分析</h3>
+      ${mRow('流動比率',c.cr,c.cr?c.cr.toFixed(2)+'x':'—',c.cr?c.cr/3*100:0,crCol,c.cr>=1.5?'✓':c.cr>=1?'△':'✗',c.cr>=1.5?'good':c.cr>=1?'warn':'bad')}
+      ${mRow('負債比率',c.dr,c.dr?pct(c.dr*100):'—',c.dr?c.dr*100:0,drCol,c.dr<=0.4?'✓':c.dr<=0.7?'△':'✗',c.dr<=0.4?'good':c.dr<=0.7?'warn':'bad')}
+      ${mRow('負債/權益比(D/E)',c.de,c.de?c.de.toFixed(2)+'x':'—',c.de?Math.min(c.de/3*100,100):0,deCol,c.de<=1?'✓':c.de<=2?'△':'✗',c.de<=1?'good':c.de<=2?'warn':'bad')}
+      ${mRow('每股淨值',c.nav,c.nav?'NT$'+c.nav.toFixed(2):'—',Math.min(c.nav/50*100,100),navCol,c.nav>=20?'✓':c.nav>=10?'△':'✗',c.nav>=20?'good':c.nav>=10?'warn':'bad')}
+      ${mRow('保留盈餘/股本',c.rer,c.rer!==null?c.rer.toFixed(2)+'x':'—',Math.min((c.rer||0)/3*100,100),'#7c3aed',c.rer>=1?'✓':c.rer>=0.5?'△':'✗',c.rer>=1?'good':c.rer>=0.5?'warn':'bad')}
+      ${mRow('權益比率',c.eqr,c.eqr?pct(c.eqr*100):'—',c.eqr?c.eqr*100:0,'#059669',c.eqr>=0.6?'✓':c.eqr>=0.3?'△':'✗',c.eqr>=0.6?'good':c.eqr>=0.3?'warn':'bad')}
+    </div>
+
+    <!-- 股東權益品質分析 -->
+    <div class="det-section">
+      <h3>💎 股東權益品質分析</h3>
+      ${eqRow('股本（票面資本）', c.sc, '#3b82f6')}
+      ${eqRow('資本公積（溢價）', c.cps, '#6366f1')}
+      ${eqRow('保留盈餘（累積獲利）', c.re, '#059669')}
+      ${c.oe!==0?eqRow('其他權益（評價損益）', c.oe, c.oe>0?'#10b981':'#f59e0b'):''}
+      ${c.ts!==0?eqRow('庫藏股票（扣除）', -c.ts, '#ef4444'):''}
+      ${c.mi!==0?eqRow('非控制權益', c.mi, '#8b5cf6'):''}
+      <div class="eq-row" style="border-top:1.5px solid var(--border);margin-top:6px;padding-top:8px;font-weight:700">
+        <span style="flex:1;font-size:12px">權益總額</span>
+        <span style="font-size:12px;font-variant-numeric:tabular-nums">${fmtFull(r['權益總額'])}</span>
+      </div>
+    </div>
+
+    <!-- 風險快照 -->
+    <div class="det-section">
+      <h3>⚠️ 財務風險快照</h3>
+      <div class="risk-grid">
+        <div class="risk-item">
+          <div class="ri-label">資產總額</div>
+          <div class="ri-val">${fmt(c.ta)}</div>
+          <div class="ri-note" style="color:#64748b">千元（NT$）</div>
+        </div>
+        <div class="risk-item">
+          <div class="ri-label">負債總額</div>
+          <div class="ri-val" style="color:${c.dr>0.6?'#dc2626':'#374151'}">${fmt(c.tl)}</div>
+          <div class="ri-note" style="color:${c.dr>0.6?'#dc2626':'#64748b'}">${c.dr>0.7?'⚠ 高槓桿':c.dr>0.5?'需注意':'正常'}</div>
+        </div>
+        <div class="risk-item">
+          <div class="ri-label">流動缺口</div>
+          <div class="ri-val" style="color:${c.ca-c.cl>=0?'#059669':'#dc2626'}">${fmt(c.ca-c.cl)}</div>
+          <div class="ri-note" style="color:${c.ca-c.cl>=0?'#059669':'#dc2626'}">${c.ca-c.cl>=0?'淨流動盈餘':'淨流動缺口'}</div>
+        </div>
+        <div class="risk-item">
+          <div class="ri-label">每股淨值</div>
+          <div class="ri-val" style="color:${navCol}">NT$${fix(c.nav)}</div>
+          <div class="ri-note" style="color:${navCol}">${c.nav>=20?'高淨值':c.nav>=10?'合理':c.nav>0?'偏低':'負淨值'}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 分析師觀點 -->
+    <div class="det-section">
+      <h3>🧑‍💼 分析師觀點</h3>
+      <div class="commentary">${verdict}</div>
+      <div style="font-size:10px;color:#94a3b8;margin-top:8px;padding:0 2px">
+        ⚠️ 本分析僅供參考，不構成投資建議。資料來源：TWSE OpenAPI。評分模型根據流動能力、財務槓桿、盈餘品質、淨值水準四維度各25分加總。
+      </div>
+    </div>
+
+  </div>`;
+}
+
+/* ── 事件 ── */
+document.getElementById('refreshBtn').addEventListener('click', load);
+['searchQ','selGrade','selSort'].forEach(id=>{
+  document.getElementById(id).addEventListener(id==='searchQ'?'input':'change',()=>{ activeIdx=-1; render(); });
+});
+
+load();
+</script>
+<script src="nav-bar.js"></script>
+</body>
+</html>

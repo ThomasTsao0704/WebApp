@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>資產負債表分析 · TWSE</title>
+<style>
+:root{
+  --blue:#2563eb;--blue-l:#dbeafe;--blue-d:#1e40af;
+  --green:#059669;--green-l:#d1fae5;
+  --red:#dc2626;--red-l:#fee2e2;
+  --amber:#d97706;--amber-l:#fef3c7;
+  --gray:#6b7280;--border:#e5e7eb;--bg:#f1f5f9;
+  --card:#fff;--radius:10px;--shadow:0 2px 8px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,-apple-system,'Noto Sans TC',sans-serif;background:var(--bg);color:#1e293b;min-height:100vh;}
+
+/* ─ Header ─ */
+.hdr{background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);color:#fff;padding:18px 28px;}
+.hdr-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.hdr h1{font-size:1.15rem;font-weight:700;}
+.hdr .badge{background:#2563eb;border-radius:5px;font-size:11px;padding:2px 8px;font-weight:600;}
+.hdr .meta{font-size:12px;color:#94a3b8;margin-top:6px;}
+
+/* ─ Summary cards ─ */
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;padding:16px 28px 0;}
+.sum-card{background:var(--card);border-radius:var(--radius);padding:14px 18px;box-shadow:var(--shadow);}
+.sum-card .label{font-size:11px;color:var(--gray);margin-bottom:4px;}
+.sum-card .value{font-size:1.4rem;font-weight:700;}
+.sum-card .sub{font-size:11px;color:var(--gray);margin-top:2px;}
+
+/* ─ Toolbar ─ */
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#fff;border-bottom:1px solid var(--border);padding:10px 28px;position:sticky;top:0;z-index:20;box-shadow:0 2px 4px rgba(0,0,0,.06);}
+.toolbar input,.toolbar select{padding:7px 11px;border:1px solid var(--border);border-radius:6px;font-size:13px;outline:none;background:#fff;}
+.toolbar input:focus,.toolbar select:focus{border-color:var(--blue);}
+#searchQ{width:200px;}
+.toolbar .right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.stats{font-size:12px;color:var(--gray);}
+.btn{padding:7px 14px;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:500;transition:opacity .15s;}
+.btn:hover{opacity:.85;}
+.btn-blue{background:var(--blue);color:#fff;}
+.btn-ghost{background:#f1f5f9;color:#374151;border:1px solid var(--border);}
+
+/* ─ Main layout ─ */
+.main{display:grid;grid-template-columns:1fr 440px;gap:0;min-height:calc(100vh - 180px);}
+@media(max-width:1100px){.main{grid-template-columns:1fr;}}
+
+/* ─ Table panel ─ */
+.table-panel{overflow:auto;background:var(--card);border-right:1px solid var(--border);}
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{padding:10px 12px;text-align:left;background:#f8fafc;border-bottom:2px solid var(--border);color:#475569;font-weight:600;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:1;}
+thead th:hover{background:#e2e8f0;}
+thead th .sort-ico{color:#94a3b8;font-size:10px;margin-left:4px;}
+tbody tr{border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background .1s;}
+tbody tr:hover{background:#f8fafc;}
+tbody tr.selected{background:#eff6ff !important;}
+td{padding:9px 12px;white-space:nowrap;}
+td.code{font-family:monospace;font-weight:700;color:#1e40af;font-size:12px;}
+td.name{font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;}
+td.num{text-align:right;font-variant-numeric:tabular-nums;}
+td.ratio{text-align:right;}
+
+/* ratio pill */
+.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:12px;font-weight:600;}
+.pill-green{background:var(--green-l);color:#065f46;}
+.pill-amber{background:var(--amber-l);color:#92400e;}
+.pill-red{background:var(--red-l);color:#991b1b;}
+
+/* ─ Detail panel ─ */
+.detail-panel{background:var(--bg);padding:16px 20px;overflow-y:auto;height:calc(100vh - 136px);position:sticky;top:136px;}
+.detail-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:14px;gap:8px;}
+.detail-placeholder .ico{font-size:40px;}
+
+.detail-header{margin-bottom:14px;}
+.detail-header .co-code{font-family:monospace;font-size:11px;color:var(--blue);font-weight:700;}
+.detail-header h2{font-size:1.1rem;font-weight:700;margin:2px 0 4px;}
+.detail-header .period{font-size:12px;color:var(--gray);}
+
+/* ratio cards */
+.ratio-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.r-card{background:var(--card);border-radius:8px;padding:12px;box-shadow:var(--shadow);}
+.r-card .r-label{font-size:11px;color:var(--gray);margin-bottom:3px;}
+.r-card .r-value{font-size:1.3rem;font-weight:700;}
+.r-card .r-bar{height:4px;border-radius:2px;background:#e2e8f0;margin-top:6px;overflow:hidden;}
+.r-card .r-bar-fill{height:100%;border-radius:2px;transition:width .5s;}
+.r-card .r-note{font-size:10px;margin-top:3px;}
+
+/* BS structure chart */
+.bs-chart-wrap{background:var(--card);border-radius:8px;padding:14px;box-shadow:var(--shadow);margin-bottom:14px;}
+.bs-chart-wrap h3{font-size:12px;font-weight:600;color:#475569;margin-bottom:10px;}
+.bs-row{display:flex;gap:4px;height:36px;border-radius:6px;overflow:hidden;margin-bottom:6px;}
+.bs-seg{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff;transition:width .5s;min-width:0;overflow:hidden;white-space:nowrap;}
+.bs-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.bs-legend-item{display:flex;align-items:center;gap:4px;font-size:11px;color:#475569;}
+.bs-legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+/* item breakdown */
+.breakdown{background:var(--card);border-radius:8px;padding:14px;box-shadow:var(--shadow);}
+.breakdown h3{font-size:12px;font-weight:600;color:#475569;margin-bottom:8px;}
+.b-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:12px;}
+.b-row:last-child{border-bottom:none;}
+.b-row.total{font-weight:700;font-size:13px;padding-top:8px;margin-top:4px;border-top:2px solid var(--border);}
+.b-row .b-label{color:#374151;}
+.b-row .b-val{font-variant-numeric:tabular-nums;font-family:monospace;font-size:12px;}
+.b-row .b-bar-wrap{width:80px;height:4px;background:#f1f5f9;border-radius:2px;margin:0 8px;}
+.b-bar{height:100%;border-radius:2px;}
+.section-head{font-size:11px;font-weight:700;color:#64748b;padding:8px 0 3px;letter-spacing:.5px;text-transform:uppercase;}
+
+/* loading */
+.loading{display:flex;flex-direction:column;align-items:center;padding:60px 20px;color:var(--gray);}
+.spinner{width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-top">
+    <span style="font-size:22px">📊</span>
+    <h1>上市公司資產負債表分析</h1>
+    <span class="badge">t187ap07_L_ci</span>
+  </div>
+  <div class="meta" id="metaLine">來源：臺灣證券交易所 TWSE OpenAPI ｜ 載入中…</div>
+</div>
+
+<div class="summary" id="summaryCards">
+  <div class="sum-card"><div class="label">資料筆數</div><div class="value" id="sc-count">—</div><div class="sub">上市公司</div></div>
+  <div class="sum-card"><div class="label">平均流動比率</div><div class="value" id="sc-cr">—</div><div class="sub">Current Ratio</div></div>
+  <div class="sum-card"><div class="label">平均負債比率</div><div class="value" id="sc-dr">—</div><div class="sub">Debt Ratio</div></div>
+  <div class="sum-card"><div class="label">平均每股淨值</div><div class="value" id="sc-nav">—</div><div class="sub">Book Value / Share</div></div>
+  <div class="sum-card"><div class="label">負債比 &gt; 70%</div><div class="value" id="sc-high-debt" style="color:var(--red)">—</div><div class="sub">高槓桿公司數</div></div>
+</div>
+
+<div class="toolbar">
+  <input id="searchQ" type="text" placeholder="搜尋代號 / 公司名稱…"/>
+  <select id="sortSel">
+    <option value="">排序：預設</option>
+    <option value="cr-desc">流動比率 ↓</option>
+    <option value="cr-asc">流動比率 ↑</option>
+    <option value="dr-desc">負債比率 ↓</option>
+    <option value="dr-asc">負債比率 ↑</option>
+    <option value="nav-desc">每股淨值 ↓</option>
+    <option value="nav-asc">每股淨值 ↑</option>
+    <option value="assets-desc">資產規模 ↓</option>
+  </select>
+  <select id="filterDR">
+    <option value="">負債比率：全部</option>
+    <option value="low">低槓桿 (&lt;40%)</option>
+    <option value="mid">中槓桿 (40-70%)</option>
+    <option value="high">高槓桿 (&gt;70%)</option>
+  </select>
+  <div class="right">
+    <span class="stats" id="statsLine"></span>
+    <button class="btn btn-ghost" id="refreshBtn">↻ 重新載入</button>
+  </div>
+</div>
+
+<div class="main">
+  <!-- 左：表格 -->
+  <div class="table-panel">
+    <div class="tbl-wrap">
+      <div id="tableArea"><div class="loading"><div class="spinner"></div>載入資料中…</div></div>
+    </div>
+  </div>
+  <!-- 右：詳細分析 -->
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-placeholder">
+      <div class="ico">🔍</div>
+      <div>點選左側公司查看詳細分析</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const WORKER  = "https://cors-proxy.s01yg3642.workers.dev/";
+const API_URL = "https://openapi.twse.com.tw/v1/opendata/t187ap07_L_ci";
+
+let allData = [], computed = [], currentSort = '', currentFilter = '';
+let selectedIdx = -1;
+
+/* ── 數字解析 ── */
+const pn = s => {
+  if(!s || s==='' || s==='─' || s==='-') return 0;
+  return parseFloat(String(s).replace(/,/g,'')) || 0;
+};
+const fmt = (n, unit='千') => {
+  if(!n) return '—';
+  const abs = Math.abs(n);
+  if(abs >= 1e9) return (n/1e9).toFixed(2)+'B';
+  if(abs >= 1e6) return (n/1e6).toFixed(2)+'M';
+  if(abs >= 1e3) return (n/1e3).toFixed(0)+'K';
+  return n.toLocaleString('zh-TW');
+};
+const fmtFull = n => n ? pn(n).toLocaleString('zh-TW') : '—';
+const pct = n => n.toFixed(1)+'%';
+const rocToAd = s => { const y=parseInt(String(s||'').slice(0,3))+1911; return isNaN(y)?s:y+'年'; };
+
+/* ── 計算指標 ── */
+function computeRow(r){
+  const ca   = pn(r['流動資產']);
+  const nca  = pn(r['非流動資產']);
+  const ta   = pn(r['資產總額']);
+  const cl   = pn(r['流動負債']);
+  const ncl  = pn(r['非流動負債']);
+  const tl   = pn(r['負債總額']);
+  const eq   = pn(r['權益總額']);
+  const nav  = pn(r['每股參考淨值']);
+  const re   = pn(r['保留盈餘']);
+  const sc   = pn(r['股本']);
+  const cr   = cl  ? ca/cl  : null;
+  const dr   = ta  ? tl/ta  : null;
+  const de   = eq  ? tl/eq  : null;
+  const eqr  = ta  ? eq/ta  : null;
+  return {r, ca, nca, ta, cl, ncl, tl, eq, nav, re, sc, cr, dr, de, eqr};
+}
+
+/* ── Pill 顏色 ── */
+const crPill  = v=>v===null?'':v>=1.5?'pill-green':v>=1?'pill-amber':'pill-red';
+const drPill  = v=>v===null?'':v<=0.4?'pill-green':v<=0.7?'pill-amber':'pill-red';
+const dePill  = v=>v===null?'':v<=1?'pill-green':v<=2?'pill-amber':'pill-red';
+const navPill = v=>v>=20?'pill-green':v>=10?'pill-amber':'pill-red';
+
+function pillHtml(val, cls, str){
+  return `<span class="pill ${cls}">${str}</span>`;
+}
+
+/* ── 載入資料 ── */
+async function loadData(){
+  document.getElementById('tableArea').innerHTML = '<div class="loading"><div class="spinner"></div>載入資料中…</div>';
+  document.getElementById('refreshBtn').textContent='⟳ 載入中…';
+  try{
+    const res  = await fetch(WORKER+'?url='+encodeURIComponent(API_URL));
+    const data = await res.json();
+    allData    = Array.isArray(data)?data:[];
+    computed   = allData.map(computeRow);
+    updateSummary();
+    renderTable();
+    const period = allData[0] ? `${rocToAd(allData[0]['年度'])} 第${allData[0]['季別']}季` : '';
+    document.getElementById('metaLine').textContent =
+      `來源：臺灣證券交易所 TWSE OpenAPI ｜ 更新：${new Date().toLocaleString('zh-TW')} ｜ 期間：${period}`;
+  }catch(e){
+    document.getElementById('tableArea').innerHTML = `<div class="loading">❌ 載入失敗：${e.message}</div>`;
+  }finally{
+    document.getElementById('refreshBtn').textContent='↻ 重新載入';
+  }
+}
+
+/* ── 摘要卡片 ── */
+function updateSummary(){
+  const valid = computed.filter(c=>c.cr&&c.dr&&c.nav);
+  const avgCR  = valid.reduce((s,c)=>s+c.cr,0)/valid.length;
+  const avgDR  = valid.reduce((s,c)=>s+c.dr,0)/valid.length;
+  const avgNAV = valid.reduce((s,c)=>s+c.nav,0)/valid.length;
+  const highDR = computed.filter(c=>c.dr>0.7).length;
+  document.getElementById('sc-count').textContent  = allData.length;
+  document.getElementById('sc-cr').textContent     = avgCR.toFixed(2)+'x';
+  document.getElementById('sc-dr').textContent     = pct(avgDR*100);
+  document.getElementById('sc-nav').textContent    = 'NT$'+avgNAV.toFixed(1);
+  document.getElementById('sc-high-debt').textContent = highDR;
+}
+
+/* ── 篩選 + 排序 ── */
+function getFiltered(){
+  const q = document.getElementById('searchQ').value.trim().toLowerCase();
+  const f = currentFilter;
+  let list = computed.filter(c=>{
+    if(q && !((c.r['公司代號']||'').includes(q)||(c.r['公司名稱']||'').toLowerCase().includes(q))) return false;
+    if(f==='low'  && c.dr>=0.4) return false;
+    if(f==='mid'  && (c.dr<0.4||c.dr>0.7)) return false;
+    if(f==='high' && c.dr<=0.7) return false;
+    return true;
+  });
+  const s = currentSort;
+  if(s==='cr-desc') list.sort((a,b)=>(b.cr||0)-(a.cr||0));
+  else if(s==='cr-asc')    list.sort((a,b)=>(a.cr||0)-(b.cr||0));
+  else if(s==='dr-desc')   list.sort((a,b)=>(b.dr||0)-(a.dr||0));
+  else if(s==='dr-asc')    list.sort((a,b)=>(a.dr||0)-(b.dr||0));
+  else if(s==='nav-desc')  list.sort((a,b)=>(b.nav||0)-(a.nav||0));
+  else if(s==='nav-asc')   list.sort((a,b)=>(a.nav||0)-(b.nav||0));
+  else if(s==='assets-desc') list.sort((a,b)=>b.ta-a.ta);
+  return list;
+}
+
+/* ── 渲染表格 ── */
+function renderTable(){
+  const list = getFiltered();
+  document.getElementById('statsLine').textContent = `顯示 ${list.length} / ${allData.length} 家`;
+  if(!list.length){
+    document.getElementById('tableArea').innerHTML='<div class="loading">找不到符合條件的公司</div>';
+    return;
+  }
+  const rows = list.map((c,i)=>{
+    const crS = c.cr!==null ? pct(c.cr*100) : '—';
+    const drS = c.dr!==null ? pct(c.dr*100) : '—';
+    const deS = c.de!==null ? c.de.toFixed(2)+'x' : '—';
+    const navS= c.nav ? 'NT$'+c.nav.toFixed(2) : '—';
+    const sel  = selectedIdx===i ? ' selected' : '';
+    return `<tr class="${sel}" data-i="${i}">
+      <td class="code">${c.r['公司代號']}</td>
+      <td class="name" title="${c.r['公司名稱']}">${c.r['公司名稱']}</td>
+      <td class="num">${fmt(c.ta)}</td>
+      <td class="ratio">${c.cr!==null ? pillHtml(c.cr,crPill(c.cr),c.cr.toFixed(2)+'x') : '—'}</td>
+      <td class="ratio">${c.dr!==null ? pillHtml(c.dr,drPill(c.dr),drS) : '—'}</td>
+      <td class="ratio">${c.de!==null ? pillHtml(c.de,dePill(c.de),deS) : '—'}</td>
+      <td class="ratio">${c.nav ? pillHtml(c.nav,navPill(c.nav),navS) : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tableArea').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>代號</th><th>公司</th>
+        <th>資產總額</th>
+        <th title="流動比率 = 流動資產/流動負債">流動比率</th>
+        <th title="負債比率 = 負債總額/資產總額">負債比率</th>
+        <th title="D/E = 負債總額/權益總額">負債/權益</th>
+        <th>每股淨值</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+
+  document.querySelectorAll('tbody tr').forEach(tr=>{
+    tr.addEventListener('click',()=>{
+      document.querySelectorAll('tbody tr').forEach(t=>t.classList.remove('selected'));
+      tr.classList.add('selected');
+      selectedIdx = parseInt(tr.dataset.i);
+      showDetail(getFiltered()[selectedIdx]);
+    });
+  });
+}
+
+/* ── 詳細分析面板 ── */
+function showDetail(c){
+  const r = c.r;
+  const ta = c.ta, tl = c.tl, eq = c.eq, ca = c.ca, nca = c.nca, cl = c.cl, ncl = c.ncl;
+
+  /* 結構比例（百分比，用於視覺化） */
+  const caP  = ta ? (ca/ta*100).toFixed(1)  : 0;
+  const ncaP = ta ? (nca/ta*100).toFixed(1) : 0;
+  const clP  = ta ? (cl/ta*100).toFixed(1)  : 0;
+  const nclP = ta ? (ncl/ta*100).toFixed(1) : 0;
+  const eqP  = ta ? (eq/ta*100).toFixed(1)  : 0;
+
+  /* ratio bar fill width（clamp 0~100）*/
+  const rfCR  = Math.min(c.cr  ? c.cr/3*100  : 0, 100);
+  const rfDR  = c.dr ? c.dr*100 : 0;
+  const rfDE  = Math.min(c.de  ? c.de/3*100  : 0, 100);
+  const rfEQ  = c.eqr ? c.eqr*100 : 0;
+
+  /* ratio bar colors */
+  const bc = (cond1,cond2) => cond1?'#059669':cond2?'#d97706':'#dc2626';
+  const crColor  = bc(c.cr>=1.5, c.cr>=1);
+  const drColor  = bc(c.dr<=0.4, c.dr<=0.7);
+  const deColor  = bc(c.de<=1,   c.de<=2);
+  const navColor = bc(c.nav>=20, c.nav>=10);
+
+  const items = [
+    { label:'流動資產',  val:r['流動資產'],  color:'#3b82f6',  pct:caP,  base:ta},
+    { label:'非流動資產',val:r['非流動資產'],color:'#1d4ed8',  pct:ncaP, base:ta},
+    { label:'流動負債',  val:r['流動負債'],  color:'#f97316',  pct:clP,  base:ta},
+    { label:'非流動負債',val:r['非流動負債'],color:'#ea580c',  pct:nclP, base:ta},
+    { label:'股本',      val:r['股本'],      color:'#10b981',  pct:ta?(c.sc/ta*100).toFixed(1):0, base:ta},
+    { label:'保留盈餘',  val:r['保留盈餘'],  color:'#059669',  pct:ta?(c.re/ta*100).toFixed(1):0, base:ta},
+  ];
+
+  function bRow(label, val, color, pctVal, base){
+    const w = Math.abs(base ? pn(val)/base*100 : 0);
+    return `<div class="b-row">
+      <span class="b-label">${label}</span>
+      <div class="b-bar-wrap"><div class="b-bar" style="width:${Math.min(w,100)}%;background:${color}"></div></div>
+      <span class="b-val" style="color:${color}">${fmtFull(val)}</span>
+    </div>`;
+  }
+
+  document.getElementById('detailPanel').innerHTML = `
+  <div class="detail-header">
+    <div class="co-code">${r['公司代號']}</div>
+    <h2>${r['公司名稱']}</h2>
+    <div class="period">${rocToAd(r['年度'])} 第${r['季別']}季 ｜ 出表：${r['出表日期']}</div>
+  </div>
+
+  <!-- 6 大比率 -->
+  <div class="ratio-grid">
+    <div class="r-card">
+      <div class="r-label">流動比率 Current Ratio</div>
+      <div class="r-value" style="color:${crColor}">${c.cr?c.cr.toFixed(2)+'x':'—'}</div>
+      <div class="r-bar"><div class="r-bar-fill" style="width:${rfCR}%;background:${crColor}"></div></div>
+      <div class="r-note" style="color:${crColor}">建議 &gt; 1.5x${c.cr>=1.5?' ✓':c.cr>=1?' △':' ✗'}</div>
+    </div>
+    <div class="r-card">
+      <div class="r-label">負債比率 Debt Ratio</div>
+      <div class="r-value" style="color:${drColor}">${c.dr?pct(c.dr*100):'—'}</div>
+      <div class="r-bar"><div class="r-bar-fill" style="width:${rfDR}%;background:${drColor}"></div></div>
+      <div class="r-note" style="color:${drColor}">建議 &lt; 40%${c.dr<=0.4?' ✓':c.dr<=0.7?' △':' ✗'}</div>
+    </div>
+    <div class="r-card">
+      <div class="r-label">負債/權益比 D/E</div>
+      <div class="r-value" style="color:${deColor}">${c.de?c.de.toFixed(2)+'x':'—'}</div>
+      <div class="r-bar"><div class="r-bar-fill" style="width:${rfDE}%;background:${deColor}"></div></div>
+      <div class="r-note" style="color:${deColor}">建議 &lt; 1x${c.de<=1?' ✓':c.de<=2?' △':' ✗'}</div>
+    </div>
+    <div class="r-card">
+      <div class="r-label">權益比率 Equity Ratio</div>
+      <div class="r-value" style="color:${deColor}">${c.eqr?pct(c.eqr*100):'—'}</div>
+      <div class="r-bar"><div class="r-bar-fill" style="width:${rfEQ}%;background:${deColor}"></div></div>
+      <div class="r-note">= 1 − 負債比率</div>
+    </div>
+    <div class="r-card">
+      <div class="r-label">每股淨值 Book Value</div>
+      <div class="r-value" style="color:${navColor}">NT$${c.nav?c.nav.toFixed(2):'—'}</div>
+      <div class="r-bar"><div class="r-bar-fill" style="width:${Math.min(c.nav/50*100,100)}%;background:${navColor}"></div></div>
+      <div class="r-note" style="color:${navColor}">建議 &gt; NT$10${c.nav>=20?' ✓':c.nav>=10?' △':' ✗'}</div>
+    </div>
+    <div class="r-card">
+      <div class="r-label">資產總額</div>
+      <div class="r-value" style="font-size:1rem">${fmt(ta)}</div>
+      <div class="r-bar"><div class="r-bar-fill" style="width:60%;background:#6366f1"></div></div>
+      <div class="r-note">千元 NT$</div>
+    </div>
+  </div>
+
+  <!-- 資產負債結構圖 -->
+  <div class="bs-chart-wrap">
+    <h3>資產負債結構（佔資產總額%）</h3>
+    <div style="font-size:11px;color:#94a3b8;margin-bottom:6px;">資產側</div>
+    <div class="bs-row">
+      <div class="bs-seg" style="width:${caP}%;background:#3b82f6" title="流動資產 ${caP}%">${caP>6?caP+'%':''}</div>
+      <div class="bs-seg" style="width:${ncaP}%;background:#1d4ed8" title="非流動資產 ${ncaP}%">${ncaP>6?ncaP+'%':''}</div>
+    </div>
+    <div style="font-size:11px;color:#94a3b8;margin-bottom:6px;">負債＋權益側</div>
+    <div class="bs-row">
+      <div class="bs-seg" style="width:${clP}%;background:#f97316" title="流動負債 ${clP}%">${clP>6?clP+'%':''}</div>
+      <div class="bs-seg" style="width:${nclP}%;background:#ea580c" title="非流動負債 ${nclP}%">${nclP>6?nclP+'%':''}</div>
+      <div class="bs-seg" style="width:${eqP}%;background:#10b981" title="權益 ${eqP}%">${eqP>6?eqP+'%':''}</div>
+    </div>
+    <div class="bs-legend">
+      <div class="bs-legend-item"><div class="bs-legend-dot" style="background:#3b82f6"></div>流動資產 ${caP}%</div>
+      <div class="bs-legend-item"><div class="bs-legend-dot" style="background:#1d4ed8"></div>非流動資產 ${ncaP}%</div>
+      <div class="bs-legend-item"><div class="bs-legend-dot" style="background:#f97316"></div>流動負債 ${clP}%</div>
+      <div class="bs-legend-item"><div class="bs-legend-dot" style="background:#ea580c"></div>非流動負債 ${nclP}%</div>
+      <div class="bs-legend-item"><div class="bs-legend-dot" style="background:#10b981"></div>權益 ${eqP}%</div>
+    </div>
+  </div>
+
+  <!-- 明細 -->
+  <div class="breakdown">
+    <h3>資產負債明細（千元）</h3>
+    <div class="section-head">資產</div>
+    ${bRow('流動資產',    r['流動資產'],    '#3b82f6', caP,  ta)}
+    ${bRow('非流動資產',  r['非流動資產'],  '#1d4ed8', ncaP, ta)}
+    <div class="b-row total"><span class="b-label">資產總額</span><span class="b-val">${fmtFull(r['資產總額'])}</span></div>
+    <div class="section-head">負債</div>
+    ${bRow('流動負債',    r['流動負債'],    '#f97316', clP,  ta)}
+    ${bRow('非流動負債',  r['非流動負債'],  '#ea580c', nclP, ta)}
+    <div class="b-row total"><span class="b-label">負債總額</span><span class="b-val">${fmtFull(r['負債總額'])}</span></div>
+    <div class="section-head">權益</div>
+    ${bRow('股本',          r['股本'],          '#10b981', ta?(c.sc/ta*100).toFixed(1):0, ta)}
+    ${bRow('資本公積',      r['資本公積'],      '#34d399', 0, ta)}
+    ${bRow('保留盈餘',      r['保留盈餘'],      '#6ee7b7', 0, ta)}
+    ${bRow('其他權益',      r['其他權益'],      '#a7f3d0', 0, ta)}
+    ${r['庫藏股票'] && pn(r['庫藏股票'])?bRow('庫藏股票 (−)', r['庫藏股票'], '#f87171', 0, ta):''}
+    ${bRow('非控制權益',    r['非控制權益'],    '#6ee7b7', 0, ta)}
+    <div class="b-row total"><span class="b-label">權益總額</span><span class="b-val">${fmtFull(r['權益總額'])}</span></div>
+  </div>`;
+}
+
+/* ── 事件 ── */
+document.getElementById('refreshBtn').addEventListener('click', loadData);
+document.getElementById('searchQ').addEventListener('input', ()=>{ selectedIdx=-1; renderTable(); });
+document.getElementById('sortSel').addEventListener('change', e=>{ currentSort=e.target.value; renderTable(); });
+document.getElementById('filterDR').addEventListener('change', e=>{ currentFilter=e.target.value; renderTable(); });
+
+loadData();
+</script>
+<script src="nav-bar.js"></script>
+</body>
+</html>

@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>近日個股事件 · 多空訊號看板</title>
+<style>
+:root{
+  --ink:#0f172a;--ink2:#334155;--ink3:#64748b;--ink4:#94a3b8;
+  --bg:#f1f5f9;--surface:#fff;--border:#e2e8f0;
+  --g:  #059669;--g2:#d1fae5;--g3:#ecfdf5;
+  --r:  #dc2626;--r2:#fecaca;--r3:#fef2f2;
+  --b:  #2563eb;--b2:#bfdbfe;--b3:#eff6ff;
+  --am: #d97706;--am2:#fde68a;--am3:#fffbeb;
+  --pu: #7c3aed;--pu2:#ede9fe;
+  --cy: #0891b2;--cy2:#cffafe;
+  --gray2:#f8fafc;
+  --rad:8px;--sh:0 1px 4px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,-apple-system,'Noto Sans TC',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;}
+
+/* ── HEADER ── */
+.hdr{background:linear-gradient(135deg,#0f172a 0%,#1a3a5c 100%);color:#fff;padding:16px 28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.hdr-icon{font-size:28px;}
+.hdr-info h1{font-size:1.1rem;font-weight:700;}
+.hdr-info p{font-size:11px;color:#94a3b8;margin-top:2px;}
+.hdr-chips{display:flex;gap:6px;margin-left:auto;align-items:center;flex-wrap:wrap;}
+.chip{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+.chip-b{background:#1d4ed8;color:#bfdbfe;}
+.chip-g{background:#065f46;color:#6ee7b7;}
+.chip-r{background:#991b1b;color:#fca5a5;}
+.chip-am{background:#92400e;color:#fde68a;}
+.meta{background:#1e293b;font-size:11px;color:#64748b;padding:5px 28px;}
+
+/* ── SIGNAL LEGEND ── */
+.legend-bar{display:flex;gap:8px;padding:10px 28px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center;}
+.legend-bar span{font-size:11px;font-weight:600;color:var(--ink3);}
+.leg{display:flex;align-items:center;gap:5px;font-size:12px;}
+.leg-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+
+/* ── KPI ── */
+.kpi-row{display:flex;gap:10px;padding:14px 28px;overflow-x:auto;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);padding:12px 16px;min-width:150px;flex-shrink:0;box-shadow:var(--sh);}
+.kpi .kl{font-size:10px;color:var(--ink3);font-weight:500;margin-bottom:3px;}
+.kpi .kv{font-size:1.4rem;font-weight:800;letter-spacing:-.5px;line-height:1;}
+.kpi .ks{font-size:10px;color:var(--ink4);margin-top:3px;}
+.kc-g{color:var(--g);} .kc-r{color:var(--r);} .kc-b{color:var(--b);} .kc-am{color:var(--am);}
+
+/* ── TOOLBAR ── */
+.toolbar{background:var(--surface);border-bottom:1px solid var(--border);padding:8px 28px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;position:sticky;top:0;z-index:30;box-shadow:0 2px 6px rgba(0,0,0,.07);}
+.toolbar input,.toolbar select{padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;outline:none;background:#fff;color:var(--ink);}
+.toolbar input:focus,.toolbar select:focus{border-color:var(--b);}
+#qSearch{width:180px;}
+.btn{padding:5px 13px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:opacity .15s;}
+.btn:hover{opacity:.83;}
+.btn-blue{background:var(--b);color:#fff;}
+.tab-grp{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.tab{padding:5px 12px;background:#fff;border:none;font-size:12px;cursor:pointer;color:var(--ink3);font-weight:500;}
+.tab.on{background:var(--b);color:#fff;}
+.right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.stat-t{font-size:11px;color:var(--ink3);}
+
+/* ── LAYOUT ── */
+.main-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);}
+@media(max-width:900px){.main-grid{grid-template-columns:1fr;}}
+.col-wrap{background:var(--surface);display:flex;flex-direction:column;}
+.col-head{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;position:sticky;top:57px;z-index:10;background:var(--surface);}
+.col-head h2{font-size:12px;font-weight:700;flex:1;}
+.col-count{font-size:11px;color:var(--ink3);}
+.col-body{padding:10px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:calc(100vh - 310px);}
+
+/* ── CARD ── */
+.card{border:1px solid var(--border);border-radius:var(--rad);overflow:hidden;transition:box-shadow .15s;}
+.card:hover{box-shadow:0 4px 14px rgba(0,0,0,.1);}
+.card-top{display:flex;align-items:stretch;}
+.card-accent{width:4px;flex-shrink:0;}
+.card-body{flex:1;padding:10px 12px;}
+.card-row1{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.code-badge{font-family:monospace;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;background:var(--b3);color:var(--b);}
+.co-name{font-size:13px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.signal-badge{padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0;}
+
+.card-row2{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.reason-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;}
+.date-info{font-size:11px;color:var(--ink3);display:flex;align-items:center;gap:4px;flex:1;}
+.date-range{font-family:monospace;}
+.days-badge{display:inline-block;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:700;}
+.active-now{background:#fef3c7;color:#92400e;}
+.future{background:#eff6ff;color:#1d4ed8;}
+.ended{background:#f1f5f9;color:#94a3b8;}
+
+.card-signal{padding:6px 12px 8px;border-top:1px solid #f8fafc;font-size:11px;color:var(--ink2);line-height:1.5;background:#fafafa;}
+.card-signal strong{font-weight:700;}
+
+/* ── TIMELINE ── */
+.timeline-wrap{padding:0 28px 24px;}
+.tl-title{font-size:12px;font-weight:700;color:var(--ink3);margin:14px 0 8px;display:flex;align-items:center;gap:6px;}
+.tl-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f8fafc;font-size:12px;}
+.tl-date{font-family:monospace;font-size:11px;color:var(--ink3);width:80px;flex-shrink:0;}
+.tl-items{display:flex;flex-wrap:wrap;gap:4px;flex:1;}
+.tl-item{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;cursor:default;}
+
+/* ── SIGNAL colors ── */
+.sig-bull  {color:#065f46;background:var(--g3);border:1px solid var(--g2);}
+.sig-bear  {color:#991b1b;background:var(--r3);border:1px solid var(--r2);}
+.sig-div   {color:#92400e;background:var(--am3);border:1px solid var(--am2);}
+.sig-meet  {color:#1e40af;background:var(--b3);border:1px solid var(--b2);}
+.sig-other {color:#374151;background:#f8fafc;border:1px solid var(--border);}
+.acc-bull  {background:var(--g);}
+.acc-bear  {background:var(--r);}
+.acc-div   {background:var(--am);}
+.acc-meet  {background:var(--b);}
+.acc-other {background:#94a3b8;}
+
+/* ── loading ── */
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;color:var(--ink3);}
+.spin{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--b);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:8px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.empty{text-align:center;padding:40px;color:var(--ink4);font-size:13px;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-icon">🔭</div>
+  <div class="hdr-info">
+    <h1>近日個股事件 · 多空訊號看板</h1>
+    <p>停止買賣（BFI84U）× 停止過戶（TWTBAU1）事件整合分析</p>
+  </div>
+  <div class="hdr-chips">
+    <span class="chip chip-b">BFI84U</span>
+    <span class="chip chip-b">TWTBAU1</span>
+    <span class="chip chip-g" id="chipBull">📈 看多 —</span>
+    <span class="chip chip-r" id="chipBear">📉 看空 —</span>
+    <span class="chip chip-am" id="chipDiv">💰 配息 —</span>
+  </div>
+</div>
+<div class="meta" id="metaLine">載入中…</div>
+
+<!-- Signal Legend -->
+<div class="legend-bar">
+  <span>訊號說明：</span>
+  <div class="leg"><div class="leg-dot" style="background:var(--g)"></div>📈 看多 — ETF正向分割，需求旺盛</div>
+  <div class="leg"><div class="leg-dot" style="background:var(--r)"></div>📉 看空 — ETF反向分割，績效不佳或需求低落</div>
+  <div class="leg"><div class="leg-dot" style="background:var(--am)"></div>💰 配息 — 除息前停止過戶，除息後股價調整</div>
+  <div class="leg"><div class="leg-dot" style="background:var(--b)"></div>📋 股東會/法人會議 — 關注議案內容</div>
+  <div class="leg"><div class="leg-dot" style="background:#94a3b8"></div>ℹ️ 其他 — 合併、增減資等特殊事件</div>
+</div>
+
+<!-- KPI -->
+<div class="kpi-row">
+  <div class="kpi"><div class="kl">今日日期</div><div class="kv kc-b" id="k-today">—</div><div class="ks">系統時間</div></div>
+  <div class="kpi"><div class="kl">停止買賣筆數</div><div class="kv" id="k-n1">—</div><div class="ks">BFI84U</div></div>
+  <div class="kpi"><div class="kl">停止過戶筆數</div><div class="kv" id="k-n2">—</div><div class="ks">TWTBAU1</div></div>
+  <div class="kpi"><div class="kl">📈 看多訊號</div><div class="kv kc-g" id="k-bull">—</div><div class="ks">ETF正分割</div></div>
+  <div class="kpi"><div class="kl">📉 看空訊號</div><div class="kv kc-r" id="k-bear">—</div><div class="ks">ETF反分割</div></div>
+  <div class="kpi"><div class="kl">💰 配息事件</div><div class="kv kc-am" id="k-div">—</div><div class="ks">分配收益</div></div>
+  <div class="kpi"><div class="kl">📋 股東/法人會議</div><div class="kv" id="k-meet">—</div><div class="ks">股東會 / 受益人大會</div></div>
+  <div class="kpi"><div class="kl">最近恢復日</div><div class="kv kc-b" id="k-next">—</div><div class="ks">最早 EndDate</div></div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <input id="qSearch" type="text" placeholder="搜尋代號 / 名稱"/>
+  <select id="selReason">
+    <option value="">事件類型：全部</option>
+    <option value="bull">📈 看多（ETF分割）</option>
+    <option value="bear">📉 看空（ETF反分割）</option>
+    <option value="div">💰 配息（分配收益）</option>
+    <option value="meet">📋 股東/法人會議</option>
+    <option value="other">ℹ️ 其他</option>
+  </select>
+  <select id="selStatus">
+    <option value="">狀態：全部</option>
+    <option value="active">🔴 進行中</option>
+    <option value="future">🔵 即將開始</option>
+    <option value="ended">⚫ 已結束</option>
+  </select>
+  <div class="tab-grp">
+    <button class="tab on" id="tabAll"  onclick="setTab('all')">全部</button>
+    <button class="tab"    id="tabTrade" onclick="setTab('trade')">停止買賣</button>
+    <button class="tab"    id="tabXfer"  onclick="setTab('xfer')">停止過戶</button>
+  </div>
+  <div class="right">
+    <span class="stat-t" id="statTxt"></span>
+    <button class="btn btn-blue" id="refreshBtn">↻ 更新</button>
+  </div>
+</div>
+
+<!-- MAIN CARDS + TIMELINE -->
+<div id="pageBody">
+  <div class="loading"><div class="spin"></div>載入資料中…</div>
+</div>
+
+<script>
+const WORKER = "https://cors-proxy.s01yg3642.workers.dev/";
+const URL1   = "https://openapi.twse.com.tw/v1/exchangeReport/BFI84U";
+const URL2   = "https://openapi.twse.com.tw/v1/exchangeReport/TWTBAU1";
+
+let data1=[], data2=[], merged=[], curTab='all';
+
+/* ── ROC date → JS Date ── */
+function rocToDate(s){
+  const str=String(s||'').replace(/\D/g,'');
+  if(str.length===7){
+    return new Date(parseInt(str.slice(0,3))+1911, parseInt(str.slice(3,5))-1, parseInt(str.slice(5,7)));
+  }
+  return null;
+}
+function rocToStr(s){
+  const d=rocToDate(s); if(!d) return '—';
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+}
+function dateStr(d){
+  if(!d) return '';
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+}
+const today = new Date(); today.setHours(0,0,0,0);
+
+/* ── 多空分類 ── */
+function classify(reason){
+  const r=String(reason||'');
+  if(r.includes('正分割')||r.includes('ETF分割')&&!r.includes('反')) return 'bull';
+  if(r.includes('反分割')) return 'bear';
+  if(r.includes('收益')||r.includes('配息')||r.includes('配股')) return 'div';
+  if(r.includes('股東')||r.includes('受益人')||r.includes('法人')) return 'meet';
+  return 'other';
+}
+
+const signalInfo = {
+  bull:  { label:'📈 看多', cls:'sig-bull',  acc:'acc-bull',  badge:'sig-bull',
+           tip:'ETF 正向分割，代表需求旺盛、淨值持續成長，恢復交易後可能維持多方氣氛。' },
+  bear:  { label:'📉 看空', cls:'sig-bear',  acc:'acc-bear',  badge:'sig-bear',
+           tip:'ETF 反向分割（縮股），通常因淨值過低進行整理，短期仍屬空方氣氛，恢復後需觀察成交量。' },
+  div:   { label:'💰 配息', cls:'sig-div',   acc:'acc-div',   badge:'sig-div',
+           tip:'停止過戶期間為除息基準日準備。除息後股價將依配息金額調整（向下），屬中性偏空的價格事件，長期視配發頻率判斷。' },
+  meet:  { label:'📋 股東會', cls:'sig-meet', acc:'acc-meet', badge:'sig-meet',
+           tip:'股東常會或受益人大會期間。需關注議案內容（董監改選、資本調整等），會議前後可能出現異常波動。' },
+  other: { label:'ℹ️ 特殊事件', cls:'sig-other', acc:'acc-other', badge:'sig-other',
+           tip:'合併、增減資、下市等其他特殊公司事件，需個別查閱公告內容。' },
+};
+
+/* ── 狀態 ── */
+function getStatus(startDate, endDate){
+  const s=rocToDate(startDate), e=rocToDate(endDate);
+  if(!s) return 'other';
+  if(e && e < today) return 'ended';
+  if(s > today)      return 'future';
+  return 'active';
+}
+function statusBadge(status){
+  const m={active:'<span class="days-badge active-now">🔴 進行中</span>',future:'<span class="days-badge future">🔵 即將開始</span>',ended:'<span class="days-badge ended">⚫ 已結束</span>'};
+  return m[status]||'';
+}
+function daysLeft(endDate){
+  const e=rocToDate(endDate); if(!e) return '';
+  const d=Math.ceil((e-today)/(1000*60*60*24));
+  if(d<0) return `<span style="font-size:10px;color:var(--ink4)">結束 ${-d} 天</span>`;
+  if(d===0) return `<span style="font-size:10px;color:var(--am);font-weight:700">今日恢復</span>`;
+  return `<span style="font-size:10px;color:var(--b);font-weight:600">剩 ${d} 天</span>`;
+}
+
+/* ── LOAD ── */
+async function load(){
+  document.getElementById('refreshBtn').textContent='⟳ 載入中…';
+  document.getElementById('pageBody').innerHTML='<div class="loading"><div class="spin"></div>載入資料中…</div>';
+  try{
+    const [r1,r2]=await Promise.all([
+      fetch(WORKER+'?url='+encodeURIComponent(URL1)).then(r=>r.json()),
+      fetch(WORKER+'?url='+encodeURIComponent(URL2)).then(r=>r.json()),
+    ]);
+    data1=(Array.isArray(r1)?r1:[]).map(d=>({...d,_src:'trade'}));
+    data2=(Array.isArray(r2)?r2:[]).map(d=>({...d,_src:'xfer'}));
+    merged=[...data1,...data2].map(d=>({
+      ...d,
+      _cls:classify(d.Reason),
+      _status:getStatus(d.StartDate,d.EndDate),
+    }));
+    merged.sort((a,b)=>{
+      const order={active:0,future:1,ended:2}; const od=(order[a._status]||0)-(order[b._status]||0);
+      if(od!==0) return od;
+      return (rocToDate(a.EndDate)||new Date(0))-(rocToDate(b.EndDate)||new Date(0));
+    });
+    updateKPI();
+    render();
+    document.getElementById('metaLine').textContent=`來源：TWSE BFI84U × TWTBAU1 ｜ 更新：${new Date().toLocaleString('zh-TW')} ｜ 停止買賣 ${data1.length} 筆 · 停止過戶 ${data2.length} 筆`;
+  }catch(e){
+    document.getElementById('pageBody').innerHTML=`<div class="loading">❌ 載入失敗：${e.message}</div>`;
+  }finally{
+    document.getElementById('refreshBtn').textContent='↻ 更新';
+  }
+}
+
+/* ── KPI ── */
+function updateKPI(){
+  const bull=merged.filter(d=>d._cls==='bull').length;
+  const bear=merged.filter(d=>d._cls==='bear').length;
+  const div =merged.filter(d=>d._cls==='div').length;
+  const meet=merged.filter(d=>d._cls==='meet').length;
+  const active=merged.filter(d=>d._status==='active');
+  const nextEnd=active.map(d=>rocToDate(d.EndDate)).filter(Boolean).sort((a,b)=>a-b)[0];
+  document.getElementById('k-today').textContent=dateStr(today);
+  document.getElementById('k-n1').textContent=data1.length;
+  document.getElementById('k-n2').textContent=data2.length;
+  document.getElementById('k-bull').textContent=bull;
+  document.getElementById('k-bear').textContent=bear;
+  document.getElementById('k-div').textContent=div;
+  document.getElementById('k-meet').textContent=meet;
+  document.getElementById('k-next').textContent=nextEnd?dateStr(nextEnd):'—';
+  document.getElementById('chipBull').textContent=`📈 看多 ${bull}`;
+  document.getElementById('chipBear').textContent=`📉 看空 ${bear}`;
+  document.getElementById('chipDiv').textContent=`💰 配息 ${div}`;
+}
+
+/* ── filter ── */
+function getFiltered(){
+  const q=document.getElementById('qSearch').value.trim().toLowerCase();
+  const rsn=document.getElementById('selReason').value;
+  const sts=document.getElementById('selStatus').value;
+  return merged.filter(d=>{
+    if(curTab==='trade'&&d._src!=='trade') return false;
+    if(curTab==='xfer' &&d._src!=='xfer')  return false;
+    if(q&&!(d.Code||'').toLowerCase().includes(q)&&!(d.Name||'').toLowerCase().includes(q)) return false;
+    if(rsn&&d._cls!==rsn) return false;
+    if(sts&&d._status!==sts) return false;
+    return true;
+  });
+}
+
+/* ── CARD HTML ── */
+function cardHtml(d){
+  const info=signalInfo[d._cls]||signalInfo.other;
+  const srcLabel=d._src==='trade'?'停止買賣':'停止過戶';
+  const srcColor=d._src==='trade'?'var(--r)':'var(--am)';
+  return `<div class="card">
+    <div class="card-top">
+      <div class="card-accent ${info.acc}"></div>
+      <div class="card-body">
+        <div class="card-row1">
+          <span class="code-badge">${d.Code}</span>
+          <span class="co-name" title="${d.Name}">${d.Name}</span>
+          <span class="signal-badge ${info.badge}">${info.label}</span>
+        </div>
+        <div class="card-row2">
+          <span class="reason-tag ${info.cls}">${d.Reason||'—'}</span>
+          <span style="font-size:10px;padding:2px 6px;border-radius:10px;background:#f1f5f9;color:${srcColor};font-weight:600">${srcLabel}</span>
+          <div class="date-info">
+            <span class="date-range">${rocToStr(d.StartDate)} → ${d.EndDate?rocToStr(d.EndDate):'未定'}</span>
+            ${statusBadge(d._status)}
+            ${daysLeft(d.EndDate)}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-signal">💡 <strong>分析師解讀：</strong>${info.tip}</div>
+  </div>`;
+}
+
+/* ── TIMELINE ── */
+function buildTimeline(list){
+  const map={};
+  list.forEach(d=>{
+    const e=d.EndDate; if(!e) return;
+    (map[e]=map[e]||[]).push(d);
+  });
+  const keys=Object.keys(map).sort();
+  if(!keys.length) return '';
+  const rows=keys.slice(0,15).map(k=>{
+    const items=map[k].map(d=>{
+      const info=signalInfo[d._cls]||signalInfo.other;
+      return `<span class="tl-item ${info.cls}" title="${d.Name}（${d.Reason}）">${d.Code}</span>`;
+    }).join('');
+    const dt=rocToDate(k);
+    const isPast=dt&&dt<today;
+    const isToday=dt&&dateStr(dt)===dateStr(today);
+    const dateColor=isToday?'var(--am)':isPast?'var(--ink4)':'var(--ink2)';
+    const mark=isToday?' 🔔':'';
+    return `<div class="tl-row">
+      <span class="tl-date" style="color:${dateColor};${isToday?'font-weight:700':''}">${rocToStr(k)}${mark}</span>
+      <div class="tl-items">${items}</div>
+      <span style="font-size:10px;color:var(--ink4)">${map[k].length} 檔</span>
+    </div>`;
+  }).join('');
+  return `<div class="timeline-wrap">
+    <div class="tl-title">📅 恢復日期時間軸（依 EndDate 排序，顯示最近 15 個日期）</div>
+    ${rows}
+  </div>`;
+}
+
+/* ── MAIN RENDER ── */
+function render(){
+  const list=getFiltered();
+  document.getElementById('statTxt').textContent=`${list.length} 筆`;
+
+  // split by src
+  const trade=list.filter(d=>d._src==='trade');
+  const xfer =list.filter(d=>d._src==='xfer');
+
+  const showTrade = curTab!=='xfer';
+  const showXfer  = curTab!=='trade';
+
+  let gridHtml='';
+  if(showTrade&&showXfer){
+    gridHtml=`<div class="main-grid">
+      <div class="col-wrap">
+        <div class="col-head" style="border-top:3px solid var(--r)">
+          <span>🚫</span><h2>停止買賣（BFI84U）</h2><span class="col-count">${trade.length} 筆</span>
+        </div>
+        <div class="col-body">${trade.length?trade.map(cardHtml).join(''):'<div class="empty">無資料</div>'}</div>
+      </div>
+      <div class="col-wrap">
+        <div class="col-head" style="border-top:3px solid var(--am)">
+          <span>🔒</span><h2>停止過戶（TWTBAU1）</h2><span class="col-count">${xfer.length} 筆</span>
+        </div>
+        <div class="col-body">${xfer.length?xfer.map(cardHtml).join(''):'<div class="empty">無資料</div>'}</div>
+      </div>
+    </div>`;
+  } else {
+    const showing = showTrade ? trade : xfer;
+    const title   = showTrade ? '🚫 停止買賣（BFI84U）' : '🔒 停止過戶（TWTBAU1）';
+    const border  = showTrade ? 'var(--r)' : 'var(--am)';
+    gridHtml=`<div class="col-wrap" style="background:var(--surface)">
+      <div class="col-head" style="border-top:3px solid ${border}">
+        <span>${title}</span><span class="col-count">${showing.length} 筆</span>
+      </div>
+      <div class="col-body" style="max-height:none;padding:12px 28px;">${showing.length?showing.map(cardHtml).join(''):'<div class="empty">無資料</div>'}</div>
+    </div>`;
+  }
+
+  document.getElementById('pageBody').innerHTML = gridHtml + buildTimeline(list);
+}
+
+/* ── events ── */
+function setTab(t){
+  curTab=t;
+  ['All','Trade','Xfer'].forEach(n=>document.getElementById('tab'+n).classList.remove('on'));
+  document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.add('on');
+  render();
+}
+document.getElementById('refreshBtn').addEventListener('click',load);
+document.getElementById('qSearch').addEventListener('input',render);
+document.getElementById('selReason').addEventListener('change',render);
+document.getElementById('selStatus').addEventListener('change',render);
+
+document.getElementById('k-today').textContent=dateStr(today);
+load();
+</script>
+<script src="nav-bar.js"></script>
+</body>
+</html>

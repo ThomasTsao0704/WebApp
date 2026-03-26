@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>上市公司重大訊息 · 即時看板</title>
+<style>
+:root {
+    --blue:   #0d6efd;
+    --green:  #198754;
+    --red:    #dc3545;
+    --orange: #fd7e14;
+    --gray:   #6c757d;
+    --border: #dee2e6;
+    --bg:     #f4f6f9;
+    --card:   #ffffff;
+    --radius: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: system-ui, -apple-system, 'Noto Sans TC', Arial, sans-serif;
+    background: var(--bg);
+    color: #212529;
+    min-height: 100vh;
+}
+
+/* ── Header ── */
+.header {
+    background: #1a1f2e;
+    color: #fff;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.header h1 { font-size: 1.1rem; font-weight: 700; white-space: nowrap; }
+.header .subtitle { font-size: 12px; color: #8b9ab0; flex: 1; }
+.header .live-dot {
+    width: 8px; height: 8px;
+    background: #2ecc71;
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: .4; transform: scale(.8); }
+}
+.header .countdown {
+    font-size: 12px;
+    color: #8b9ab0;
+    white-space: nowrap;
+}
+.header .countdown span { color: #facc15; font-weight: 600; }
+
+/* ── Toolbar ── */
+.toolbar {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 6px rgba(0,0,0,.06);
+}
+.toolbar input {
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+    transition: border-color .2s;
+}
+.toolbar input:focus { border-color: var(--blue); }
+#searchQ { width: 200px; }
+#codeQ   { width: 100px; }
+.toolbar .stats {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--gray);
+    white-space: nowrap;
+}
+.btn {
+    padding: 7px 14px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-weight: 500;
+    transition: opacity .15s;
+}
+.btn:hover { opacity: .85; }
+.btn-primary { background: var(--blue);  color: #fff; }
+.btn-outline { background: #fff; color: #555; border: 1px solid var(--border); }
+
+/* ── Layout ── */
+.main { padding: 16px 24px; max-width: 1280px; margin: 0 auto; }
+
+/* ── Loading / Empty ── */
+.state-msg {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--gray);
+    font-size: 14px;
+}
+.spinner {
+    width: 36px; height: 36px;
+    border: 3px solid #e9ecef;
+    border-top-color: var(--blue);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Cards grid ── */
+.cards { display: flex; flex-direction: column; gap: 10px; }
+
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: box-shadow .15s;
+}
+.card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.09); }
+.card.is-new { border-left: 3px solid var(--blue); }
+
+.card-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.card-code {
+    background: #e9ecef;
+    color: #343a40;
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+    margin-top: 2px;
+}
+
+.card-meta { flex: 1; min-width: 0; }
+.card-title {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.45;
+    margin-bottom: 4px;
+}
+.card-info {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    font-size: 12px;
+    color: var(--gray);
+}
+.card-info .company { font-weight: 600; color: #343a40; }
+.card-info .time    { color: var(--gray); }
+.card-info .clause  {
+    background: #fff3cd;
+    color: #664d03;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+.card-info .new-badge {
+    background: var(--blue);
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.card-toggle {
+    color: var(--gray);
+    font-size: 16px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    transition: transform .2s;
+}
+.card.open .card-toggle { transform: rotate(180deg); }
+
+.card-body {
+    display: none;
+    padding: 0 16px 14px 16px;
+    border-top: 1px solid #f0f0f0;
+}
+.card.open .card-body { display: block; }
+.card-body pre {
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #343a40;
+    margin-top: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 12px 14px;
+}
+.card-body .detail-row {
+    display: flex;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--gray);
+    margin-top: 8px;
+}
+.card-body .detail-row span { color: #212529; }
+
+/* ── 捲到頂 FAB ── */
+#toTop {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    width: 40px; height: 40px;
+    background: #1a1f2e;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,.25);
+    z-index: 100;
+}
+#toTop.show { display: flex; }
+</style>
+</head>
+<body>
+
+<div class="header">
+    <span class="live-dot"></span>
+    <h1>上市公司重大訊息</h1>
+    <div class="subtitle">來源：臺灣證券交易所 TWSE OpenAPI · t187ap04_L</div>
+    <div class="countdown" id="countdown">下次更新：<span id="countdownVal">—</span></div>
+    <button class="btn btn-primary" id="refreshBtn" style="font-size:12px;padding:5px 12px;">↻ 立即更新</button>
+</div>
+
+<div class="toolbar">
+    <input id="searchQ" type="text" placeholder="搜尋主旨 / 公司名稱…" />
+    <input id="codeQ"   type="text" placeholder="股票代碼" />
+    <button class="btn btn-outline" id="expandAll">全部展開</button>
+    <div class="stats" id="stats"></div>
+</div>
+
+<div class="main">
+    <div id="content">
+        <div class="state-msg"><div class="spinner"></div>載入中…</div>
+    </div>
+</div>
+
+<button id="toTop" title="回到頂端">↑</button>
+
+<script>
+const WORKER = "https://cors-proxy.s01yg3642.workers.dev/";
+const API_URL = "https://openapi.twse.com.tw/v1/opendata/t187ap04_L";
+const REFRESH_SEC = 300; // 5 分鐘自動更新
+
+let allData = [];
+let timerVal = REFRESH_SEC;
+let timerInterval = null;
+let allExpanded = false;
+let lastFetchTime = null;
+
+// ROC 民國年 → 西元
+function rocToAd(dateStr) {
+    if (!dateStr) return '';
+    const s = String(dateStr).replace(/\//g, '');
+    if (s.length === 7) {
+        const y = parseInt(s.slice(0, 3)) + 1911;
+        return `${y}/${s.slice(3, 5)}/${s.slice(5, 7)}`;
+    }
+    return dateStr;
+}
+
+function timeAgo(dateStr, timeStr) {
+    try {
+        const d = rocToAd(dateStr);
+        const t = (timeStr || '').replace(/:/g, '');
+        const h = t.slice(0, 2) || '00', m = t.slice(2, 4) || '00';
+        const dt = new Date(`${d.replace(/\//g, '-')}T${h}:${m}:00`);
+        if (isNaN(dt)) return '';
+        const diff = Math.floor((Date.now() - dt) / 60000);
+        if (diff < 1)   return '剛剛';
+        if (diff < 60)  return `${diff} 分鐘前`;
+        if (diff < 1440) return `${Math.floor(diff/60)} 小時前`;
+        return `${Math.floor(diff/1440)} 天前`;
+    } catch { return ''; }
+}
+
+function isNew(dateStr, timeStr) {
+    try {
+        const d = rocToAd(dateStr);
+        const t = (timeStr || '').replace(/:/g, '');
+        const h = t.slice(0, 2) || '00', m = t.slice(2, 4) || '00';
+        const dt = new Date(`${d.replace(/\//g, '-')}T${h}:${m}:00`);
+        return !isNaN(dt) && (Date.now() - dt) < 3600000; // 1小時內
+    } catch { return false; }
+}
+
+function escHtml(s) {
+    return String(s ?? '')
+        .replaceAll('&','&amp;').replaceAll('<','&lt;')
+        .replaceAll('>','&gt;').replaceAll('"','&quot;');
+}
+
+async function fetchData() {
+    document.getElementById('refreshBtn').textContent = '⟳ 更新中…';
+    try {
+        const res  = await fetch(WORKER + '?url=' + encodeURIComponent(API_URL));
+        const data = await res.json();
+        allData = Array.isArray(data) ? data : [];
+        lastFetchTime = new Date();
+        render();
+        resetTimer();
+    } catch(e) {
+        document.getElementById('content').innerHTML =
+            `<div class="state-msg">❌ 載入失敗：${escHtml(e.message)}<br><small>請確認網路或 CORS Proxy 是否正常</small></div>`;
+    } finally {
+        document.getElementById('refreshBtn').textContent = '↻ 立即更新';
+    }
+}
+
+function getFiltered() {
+    const sq = document.getElementById('searchQ').value.trim().toLowerCase();
+    const cq = document.getElementById('codeQ').value.trim();
+    return allData.filter(r => {
+        if (cq && !(r['公司代號'] || '').includes(cq)) return false;
+        if (sq) {
+            const hay = ((r['主旨']||'') + (r['公司名稱']||'') + (r['說明']||'')).toLowerCase();
+            if (!hay.includes(sq)) return false;
+        }
+        return true;
+    });
+}
+
+function render() {
+    const filtered = getFiltered();
+    const content  = document.getElementById('content');
+    const stats    = document.getElementById('stats');
+
+    stats.textContent = lastFetchTime
+        ? `共 ${filtered.length} / ${allData.length} 筆 · 更新於 ${lastFetchTime.toLocaleTimeString('zh-TW')}`
+        : '';
+
+    if (allData.length === 0) {
+        content.innerHTML = `<div class="state-msg">⚠️ 目前無資料<br><small>可能為非交易日，或 TWSE 尚未更新</small></div>`;
+        return;
+    }
+    if (filtered.length === 0) {
+        content.innerHTML = `<div class="state-msg">找不到符合條件的訊息</div>`;
+        return;
+    }
+
+    const html = filtered.map((r, i) => {
+        const code    = escHtml(r['公司代號'] || '—');
+        const name    = escHtml(r['公司名稱'] || '');
+        const subject = escHtml(r['主旨'] || '（無主旨）');
+        const clause  = escHtml(r['符合條款'] || '');
+        const desc    = escHtml(r['說明'] || '');
+        const stmtDate= r['發言日期'] || '';
+        const stmtTime= r['發言時間'] || '';
+        const factDate= r['事實發生日'] || '';
+        const ago     = timeAgo(stmtDate, stmtTime);
+        const newItem = isNew(stmtDate, stmtTime);
+        const adDate  = rocToAd(stmtDate);
+
+        return `<div class="card${newItem ? ' is-new' : ''}" data-idx="${i}">
+  <div class="card-head" onclick="toggleCard(${i})">
+    <div class="card-code">${code}</div>
+    <div class="card-meta">
+      <div class="card-title">${subject}</div>
+      <div class="card-info">
+        <span class="company">${name}</span>
+        <span class="time">${adDate} ${stmtTime}</span>
+        ${ago ? `<span class="time">${ago}</span>` : ''}
+        ${clause ? `<span class="clause">${clause}</span>` : ''}
+        ${newItem ? `<span class="new-badge">NEW</span>` : ''}
+      </div>
+    </div>
+    <span class="card-toggle">▾</span>
+  </div>
+  <div class="card-body">
+    ${factDate ? `<div class="detail-row">事實發生日：<span>${rocToAd(factDate)}</span></div>` : ''}
+    ${desc ? `<pre>${desc}</pre>` : '<pre>（無說明內容）</pre>'}
+  </div>
+</div>`;
+    }).join('');
+
+    content.innerHTML = `<div class="cards">${html}</div>`;
+}
+
+function toggleCard(idx) {
+    const card = document.querySelector(`.card[data-idx="${idx}"]`);
+    if (card) card.classList.toggle('open');
+}
+
+// 展開 / 收合全部
+document.getElementById('expandAll').addEventListener('click', () => {
+    allExpanded = !allExpanded;
+    document.querySelectorAll('.card').forEach(c => {
+        c.classList.toggle('open', allExpanded);
+    });
+    document.getElementById('expandAll').textContent = allExpanded ? '全部收合' : '全部展開';
+});
+
+// 搜尋
+let searchTimer;
+['searchQ','codeQ'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(render, 200);
+    });
+});
+
+// 手動刷新
+document.getElementById('refreshBtn').addEventListener('click', fetchData);
+
+// 倒數計時器
+function resetTimer() {
+    clearInterval(timerInterval);
+    timerVal = REFRESH_SEC;
+    timerInterval = setInterval(() => {
+        timerVal--;
+        const m = Math.floor(timerVal / 60);
+        const s = String(timerVal % 60).padStart(2, '0');
+        document.getElementById('countdownVal').textContent = `${m}:${s}`;
+        if (timerVal <= 0) fetchData();
+    }, 1000);
+}
+
+// 回到頂端
+const toTop = document.getElementById('toTop');
+window.addEventListener('scroll', () => {
+    toTop.classList.toggle('show', window.scrollY > 300);
+});
+toTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+// 初始載入
+fetchData();
+</script>
+<script src="nav-bar.js"></script>
+</body>
+</html>

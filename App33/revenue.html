@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>上市公司月營收 · 成長衰退分析</title>
+<style>
+:root{
+  --ink:#0f172a;--ink2:#334155;--ink3:#64748b;--ink4:#94a3b8;
+  --bg:#f1f5f9;--surface:#fff;--border:#e2e8f0;
+  --g1:#059669;--g2:#10b981;--g3:#d1fae5;--g4:#ecfdf5;
+  --r1:#dc2626;--r2:#ef4444;--r3:#fecaca;--r4:#fef2f2;
+  --b1:#2563eb;--b2:#3b82f6;--b3:#bfdbfe;--b4:#eff6ff;
+  --amber:#d97706;--amber-l:#fffbeb;
+  --radius:8px;--sh:0 1px 4px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,-apple-system,'Noto Sans TC',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;}
+
+/* ── HEADER ── */
+.hdr{background:linear-gradient(135deg,#0f172a 0%,#1a3a5c 100%);color:#fff;padding:16px 28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.hdr-icon{font-size:28px;}
+.hdr-titles h1{font-size:1.1rem;font-weight:700;}
+.hdr-titles p{font-size:11px;color:#94a3b8;margin-top:2px;}
+.hdr-chips{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;align-items:center;}
+.chip{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.chip-blue{background:#1d4ed8;color:#bfdbfe;}
+.chip-green{background:#065f46;color:#6ee7b7;}
+.chip-red{background:#991b1b;color:#fca5a5;}
+.hdr-meta{background:#1e293b;font-size:11px;color:#64748b;padding:5px 28px;border-bottom:1px solid #334155;}
+
+/* ── KPI ROW ── */
+.kpi-row{display:flex;gap:10px;padding:14px 28px;overflow-x:auto;flex-wrap:nowrap;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;min-width:160px;flex-shrink:0;box-shadow:var(--sh);}
+.kpi .kl{font-size:10px;color:var(--ink3);font-weight:500;margin-bottom:3px;}
+.kpi .kv{font-size:1.45rem;font-weight:800;letter-spacing:-.5px;line-height:1;}
+.kpi .ks{font-size:10px;color:var(--ink4);margin-top:3px;}
+.green{color:var(--g1);} .red{color:var(--r1);} .blue{color:var(--b1);}
+
+/* ── TOOLBAR ── */
+.toolbar{background:var(--surface);border-bottom:1px solid var(--border);padding:9px 28px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:30;box-shadow:0 2px 6px rgba(0,0,0,.07);}
+.toolbar input,.toolbar select{padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;outline:none;background:#fff;color:var(--ink);}
+.toolbar input:focus,.toolbar select:focus{border-color:var(--b1);}
+#qSearch{width:180px;}
+.btn{padding:5px 13px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:opacity .15s;}
+.btn:hover{opacity:.83;}
+.btn-blue{background:var(--b1);color:#fff;}
+.btn-ghost{background:var(--bg);color:var(--ink2);border:1px solid var(--border);}
+.tab-group{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.tab-btn{padding:5px 12px;background:#fff;border:none;font-size:12px;cursor:pointer;font-weight:500;color:var(--ink3);transition:background .15s;}
+.tab-btn.active-g{background:var(--g1);color:#fff;}
+.tab-btn.active-r{background:var(--r1);color:#fff;}
+.tab-btn.active-b{background:var(--b1);color:#fff;}
+.right-tools{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.stat-txt{font-size:11px;color:var(--ink3);}
+
+/* ── RANKINGS + TABLE LAYOUT ── */
+.body-wrap{display:grid;grid-template-columns:300px 300px 1fr;gap:0;min-height:calc(100vh - 210px);}
+@media(max-width:1200px){.body-wrap{grid-template-columns:1fr;}}
+
+/* ── RANK PANEL ── */
+.rank-panel{background:var(--surface);border-right:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column;}
+.rank-header{padding:10px 14px 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.rank-header h2{font-size:12px;font-weight:700;flex:1;}
+.rank-list{overflow-y:auto;flex:1;}
+.rank-item{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid #f8fafc;cursor:pointer;transition:background .1s;}
+.rank-item:hover{background:var(--bg);}
+.rank-no{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;}
+.rank-no-g{background:var(--g3);color:#065f46;}
+.rank-no-r{background:var(--r3);color:#991b1b;}
+.rank-no-top{background:var(--g1);color:#fff;}
+.rank-no-bot{background:var(--r1);color:#fff;}
+.rank-info{flex:1;min-width:0;}
+.rank-name{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rank-code{font-size:10px;color:var(--ink3);font-family:monospace;}
+.rank-bar-wrap{width:70px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
+.rank-pct{font-size:12px;font-weight:700;}
+.rank-bar{height:4px;border-radius:2px;min-width:4px;}
+.rank-industry{font-size:10px;color:var(--ink4);}
+
+/* ── MAIN TABLE ── */
+.tbl-panel{overflow:auto;background:var(--surface);border-left:1px solid var(--border);}
+.tbl-sticky{overflow:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{padding:8px 10px;background:#f8fafc;border-bottom:2px solid var(--border);color:var(--ink3);font-weight:600;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:2;}
+thead th:hover{background:#f1f5f9;color:var(--ink);}
+thead th.asc::after{content:" ▲";font-size:9px;}
+thead th.desc::after{content:" ▼";font-size:9px;}
+tbody tr{border-bottom:1px solid #f8fafc;transition:background .1s;cursor:pointer;}
+tbody tr:hover{background:#f8fafc;}
+td{padding:7px 10px;white-space:nowrap;}
+td.code{font-family:monospace;font-weight:700;color:var(--b1);font-size:11px;}
+td.name{font-weight:600;max-width:88px;overflow:hidden;text-overflow:ellipsis;}
+td.ind{color:var(--ink3);max-width:72px;overflow:hidden;text-overflow:ellipsis;}
+td.num{text-align:right;font-variant-numeric:tabular-nums;}
+
+/* % cell with inline bar */
+.pct-cell{display:flex;align-items:center;justify-content:flex-end;gap:5px;}
+.pct-bar-wrap{width:40px;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;flex-shrink:0;}
+.pct-bar{height:100%;border-radius:3px;}
+.pct-txt{font-weight:700;min-width:52px;text-align:right;}
+.pct-txt.up{color:var(--g1);}
+.pct-txt.dn{color:var(--r1);}
+.pct-txt.flat{color:var(--ink3);}
+
+/* growth badge */
+.gbadge{display:inline-block;padding:2px 7px;border-radius:12px;font-size:10px;font-weight:700;}
+.gbadge-up{background:var(--g4);color:#065f46;}
+.gbadge-dn{background:var(--r4);color:#991b1b;}
+.gbadge-flat{background:#f1f5f9;color:var(--ink3);}
+
+/* rank badge inline */
+.tbadge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:10px;font-weight:800;margin-right:3px;flex-shrink:0;}
+.tbadge-g{background:var(--g3);color:#065f46;}
+.tbadge-r{background:var(--r3);color:#991b1b;}
+
+/* loading */
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--ink3);height:100%;}
+.spin{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--b1);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:8px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-icon">📊</div>
+  <div class="hdr-titles">
+    <h1>上市公司月營收 · 成長衰退分析</h1>
+    <p>即時排名 · YoY / MoM / 累計增減 · 產業分類</p>
+  </div>
+  <div class="hdr-chips">
+    <span class="chip chip-blue">TWSE t187ap05_L</span>
+    <span class="chip chip-green" id="chipGrow">成長 —</span>
+    <span class="chip chip-red"   id="chipDec">衰退 —</span>
+  </div>
+</div>
+<div class="hdr-meta" id="metaLine">載入中…</div>
+
+<!-- KPI -->
+<div class="kpi-row">
+  <div class="kpi"><div class="kl">資料期間</div><div class="kv blue" id="k-period">—</div><div class="ks">月份</div></div>
+  <div class="kpi"><div class="kl">公司總數</div><div class="kv" id="k-n">—</div><div class="ks">上市公司</div></div>
+  <div class="kpi"><div class="kl">YoY 成長均值</div><div class="kv" id="k-yoy-avg">—</div><div class="ks">去年同月增減均值</div></div>
+  <div class="kpi"><div class="kl">YoY 最強成長</div><div class="kv green" id="k-yoy-top">—</div><div class="ks" id="k-yoy-top-name">—</div></div>
+  <div class="kpi"><div class="kl">YoY 最大衰退</div><div class="kv red"   id="k-yoy-bot">—</div><div class="ks" id="k-yoy-bot-name">—</div></div>
+  <div class="kpi"><div class="kl">累計最強成長</div><div class="kv green" id="k-cum-top">—</div><div class="ks" id="k-cum-top-name">—</div></div>
+  <div class="kpi"><div class="kl">成長公司數</div><div class="kv green" id="k-grow-n">—</div><div class="ks">YoY > 0</div></div>
+  <div class="kpi"><div class="kl">衰退公司數</div><div class="kv red"   id="k-dec-n">—</div><div class="ks">YoY < 0</div></div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <input id="qSearch" type="text" placeholder="搜尋代號 / 公司 / 產業"/>
+  <select id="selInd"><option value="">產業別：全部</option></select>
+  <select id="selMetric">
+    <option value="yoy">排序：YoY 去年同月</option>
+    <option value="mom">排序：MoM 上月比較</option>
+    <option value="cum">排序：累計增減</option>
+    <option value="rev">排序：當月營收</option>
+  </select>
+  <div class="tab-group">
+    <button class="tab-btn active-b" id="tabAll"  onclick="setFilter('all')">全部</button>
+    <button class="tab-btn"          id="tabGrow" onclick="setFilter('grow')">✅ 成長</button>
+    <button class="tab-btn"          id="tabDec"  onclick="setFilter('dec')">🔻 衰退</button>
+  </div>
+  <div class="right-tools">
+    <span class="stat-txt" id="statTxt"></span>
+    <button class="btn btn-blue" id="refreshBtn">↻ 更新</button>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="body-wrap">
+  <!-- 成長榜 -->
+  <div class="rank-panel">
+    <div class="rank-header" style="border-top:3px solid var(--g1)">
+      <span style="font-size:16px">🚀</span>
+      <h2 style="color:var(--g1)">成長排行榜 TOP 30</h2>
+      <span style="font-size:10px;color:var(--ink3)" id="rankMetricLbl">YoY</span>
+    </div>
+    <div class="rank-list" id="growList"><div class="loading"><div class="spin"></div></div></div>
+  </div>
+
+  <!-- 衰退榜 -->
+  <div class="rank-panel">
+    <div class="rank-header" style="border-top:3px solid var(--r1)">
+      <span style="font-size:16px">📉</span>
+      <h2 style="color:var(--r1)">衰退排行榜 TOP 30</h2>
+      <span style="font-size:10px;color:var(--ink3)" id="rankMetricLbl2">YoY</span>
+    </div>
+    <div class="rank-list" id="decList"><div class="loading"><div class="spin"></div></div></div>
+  </div>
+
+  <!-- 完整表格 -->
+  <div class="tbl-panel">
+    <div id="tblArea"><div class="loading"><div class="spin"></div>載入中…</div></div>
+  </div>
+</div>
+
+<script>
+const WORKER = "https://cors-proxy.s01yg3642.workers.dev/";
+const API    = "https://openapi.twse.com.tw/v1/opendata/t187ap05_L";
+
+let raw=[], rows=[], sortKey='yoy', sortDir=-1, filterMode='all';
+
+/* ── helpers ── */
+const pn  = s => parseFloat(String(s??'').replace(/[,%]/g,''))||0;
+const fmt = n => {
+  const a=Math.abs(n);
+  if(a>=1e9) return (n/1e9).toFixed(2)+'B';
+  if(a>=1e6) return (n/1e6).toFixed(2)+'M';
+  if(a>=1e3) return (n/1e3).toFixed(0)+'K';
+  return n.toLocaleString();
+};
+const rocYM = s => {
+  const str=String(s||'');
+  if(str.length===5){ const y=parseInt(str.slice(0,3))+1911; return `${y}年${str.slice(3)}月`; }
+  return s;
+};
+const pctFmt = n => (n>0?'+':'')+n.toFixed(2)+'%';
+
+/* ── compute row ── */
+function compute(r){
+  return {
+    r,
+    code : r['公司代號']||'',
+    name : r['公司名稱']||'',
+    ind  : r['產業別']||'',
+    rev  : pn(r['營業收入-當月營收']),
+    pRev : pn(r['營業收入-上月營收']),
+    yRev : pn(r['營業收入-去年當月營收']),
+    mom  : pn(r['營業收入-上月比較增減(%)']),
+    yoy  : pn(r['營業收入-去年同月增減(%)']),
+    cumRev : pn(r['累計營業收入-當月累計營收']),
+    cumPRev: pn(r['累計營業收入-去年累計營收']),
+    cum  : pn(r['累計營業收入-前期比較增減(%)']),
+  };
+}
+
+/* ── load ── */
+async function load(){
+  document.getElementById('refreshBtn').textContent='⟳ 載入中…';
+  ['growList','decList','tblArea'].forEach(id=>{
+    document.getElementById(id).innerHTML='<div class="loading"><div class="spin"></div></div>';
+  });
+  try{
+    const res  = await fetch(WORKER+'?url='+encodeURIComponent(API));
+    const data = await res.json();
+    raw  = Array.isArray(data)?data:[];
+    rows = raw.map(compute);
+
+    // industry list
+    const inds=[...new Set(rows.map(c=>c.ind).filter(Boolean))].sort();
+    const sel=document.getElementById('selInd');
+    sel.innerHTML='<option value="">產業別：全部</option>';
+    inds.forEach(i=>{const o=document.createElement('option');o.value=o.textContent=i;sel.appendChild(o);});
+
+    updateKPI();
+    renderRanks();
+    renderTable();
+
+    const period = rocYM(raw[0]?.['資料年月']);
+    document.getElementById('metaLine').textContent =
+      `來源：TWSE OpenAPI t187ap05_L ｜ 期間：${period} ｜ 更新：${new Date().toLocaleString('zh-TW')}`;
+  }catch(e){
+    document.getElementById('tblArea').innerHTML=`<div class="loading">❌ ${e.message}</div>`;
+  }finally{
+    document.getElementById('refreshBtn').textContent='↻ 更新';
+  }
+}
+
+/* ── KPI ── */
+function updateKPI(){
+  const period = rocYM(raw[0]?.['資料年月']);
+  const valid  = rows.filter(c=>c.yoy!==0||c.rev>0);
+  const yoyArr = valid.map(c=>c.yoy).filter(v=>v!==0);
+  const avg    = yoyArr.length ? yoyArr.reduce((s,v)=>s+v,0)/yoyArr.length : 0;
+  const sorted = [...rows].sort((a,b)=>b.yoy-a.yoy);
+  const cumTop = [...rows].sort((a,b)=>b.cum-a.cum)[0];
+  const grow   = rows.filter(c=>c.yoy>0).length;
+  const dec    = rows.filter(c=>c.yoy<0).length;
+
+  document.getElementById('k-period').textContent   = period;
+  document.getElementById('k-n').textContent         = rows.length;
+  document.getElementById('k-yoy-avg').textContent   = pctFmt(avg);
+  document.getElementById('k-yoy-avg').className     = 'kv '+(avg>=0?'green':'red');
+  document.getElementById('k-yoy-top').textContent   = sorted[0]?pctFmt(sorted[0].yoy):'—';
+  document.getElementById('k-yoy-top-name').textContent = sorted[0]?`${sorted[0].code} ${sorted[0].name}`:'';
+  document.getElementById('k-yoy-bot').textContent   = sorted.at(-1)?pctFmt(sorted.at(-1).yoy):'—';
+  document.getElementById('k-yoy-bot-name').textContent = sorted.at(-1)?`${sorted.at(-1).code} ${sorted.at(-1).name}`:'';
+  document.getElementById('k-cum-top').textContent   = cumTop?pctFmt(cumTop.cum):'—';
+  document.getElementById('k-cum-top-name').textContent = cumTop?`${cumTop.code} ${cumTop.name}`:'';
+  document.getElementById('k-grow-n').textContent    = grow;
+  document.getElementById('k-dec-n').textContent     = dec;
+  document.getElementById('chipGrow').textContent    = `成長 ${grow}`;
+  document.getElementById('chipDec').textContent     = `衰退 ${dec}`;
+}
+
+/* ── 排行榜 ── */
+function getMetricKey(){
+  const m=document.getElementById('selMetric').value;
+  return m==='mom'?'mom':m==='cum'?'cum':'yoy';
+}
+function getMetricLabel(){ return {yoy:'YoY',mom:'MoM',cum:'累計'}[getMetricKey()]; }
+
+function renderRanks(){
+  const key=getMetricKey();
+  const lbl=getMetricLabel();
+  document.getElementById('rankMetricLbl').textContent=lbl;
+  document.getElementById('rankMetricLbl2').textContent=lbl;
+
+  const sorted=[...rows].filter(c=>c[key]!==0).sort((a,b)=>b[key]-a[key]);
+  const top30=sorted.slice(0,30);
+  const bot30=sorted.slice(-30).reverse();
+
+  const maxAbs=Math.max(...sorted.map(c=>Math.abs(c[key])),1);
+
+  function rankHtml(list, isGrow){
+    return list.map((c,i)=>{
+      const v=c[key];
+      const rank=i+1;
+      const noCls = rank<=3?(isGrow?'rank-no rank-no-top':'rank-no rank-no-bot'):(isGrow?'rank-no rank-no-g':'rank-no rank-no-r');
+      const col   = isGrow ? 'var(--g1)' : 'var(--r1)';
+      const bw    = Math.abs(v)/maxAbs*100;
+      return `<div class="rank-item" data-code="${c.code}">
+        <div class="${noCls}">${rank}</div>
+        <div class="rank-info">
+          <div class="rank-name">${c.name}</div>
+          <div class="rank-code">${c.code} <span class="rank-industry">· ${c.ind}</span></div>
+        </div>
+        <div class="rank-bar-wrap">
+          <div class="rank-pct" style="color:${col}">${pctFmt(v)}</div>
+          <div class="rank-bar" style="width:${bw}%;background:${col}"></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('growList').innerHTML = top30.length
+    ? rankHtml(top30, true)
+    : '<div class="loading" style="padding:30px">無成長公司</div>';
+  document.getElementById('decList').innerHTML  = bot30.length
+    ? rankHtml(bot30, false)
+    : '<div class="loading" style="padding:30px">無衰退公司</div>';
+
+  // 榜單點擊 scroll 到表格
+  document.querySelectorAll('.rank-item').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const code=el.dataset.code;
+      document.getElementById('qSearch').value=code;
+      renderTable();
+      document.getElementById('tblArea').scrollIntoView({behavior:'smooth'});
+    });
+  });
+}
+
+/* ── 篩選 ── */
+function setFilter(mode){
+  filterMode=mode;
+  ['tabAll','tabGrow','tabDec'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.className='tab-btn';
+  });
+  const map={all:'active-b',grow:'active-g',dec:'active-r'};
+  document.getElementById('tab'+mode.charAt(0).toUpperCase()+mode.slice(1)).classList.add(map[mode]);
+  renderTable();
+}
+
+/* ── 완整表格 ── */
+function buildRankMap(key){
+  const sorted=[...rows].sort((a,b)=>b[key]-a[key]);
+  const map={};
+  sorted.forEach((c,i)=>{ map[c.code]={rank:i+1,total:sorted.length}; });
+  return map;
+}
+
+function renderTable(){
+  const q   = document.getElementById('qSearch').value.trim().toLowerCase();
+  const ind = document.getElementById('selInd').value;
+  const metric = document.getElementById('selMetric').value;
+  const key = getMetricKey();
+
+  let list=[...rows].filter(c=>{
+    if(q && !c.code.includes(q) && !c.name.toLowerCase().includes(q) && !c.ind.toLowerCase().includes(q)) return false;
+    if(ind && c.ind!==ind) return false;
+    if(filterMode==='grow' && c.yoy<=0) return false;
+    if(filterMode==='dec'  && c.yoy>=0) return false;
+    return true;
+  });
+  list.sort((a,b)=>(b[key]-a[key])*sortDir);
+
+  document.getElementById('statTxt').textContent=`${list.length} / ${rows.length} 家`;
+
+  // 建立排名 map（全體）
+  const rankMapYoy=buildRankMap('yoy');
+  const maxRev    =Math.max(...rows.map(c=>c.rev),1);
+  const maxYoy    =Math.max(...rows.map(c=>Math.abs(c.yoy)),1);
+  const maxMom    =Math.max(...rows.map(c=>Math.abs(c.mom)),1);
+  const maxCum    =Math.max(...rows.map(c=>Math.abs(c.cum)),1);
+
+  function pctCell(v, maxV){
+    const cls = v>0?'up':v<0?'dn':'flat';
+    const col = v>0?'var(--g1)':v<0?'var(--r1)':'var(--ink3)';
+    const bw  = Math.min(Math.abs(v)/maxV*100,100);
+    const barCol = v>0?'var(--g1)':'var(--r1)';
+    return `<div class="pct-cell">
+      <div class="pct-bar-wrap"><div class="pct-bar" style="width:${bw}%;background:${barCol}"></div></div>
+      <span class="pct-txt ${cls}">${pctFmt(v)}</span>
+    </div>`;
+  }
+
+  const trs=list.map(c=>{
+    const rm=rankMapYoy[c.code];
+    const rnk=rm?.rank||0;
+    const tot=rm?.total||1;
+    let badge='';
+    if(rnk<=10) badge=`<span class="tbadge tbadge-g">${rnk}</span>`;
+    else if(rnk>tot-10) badge=`<span class="tbadge tbadge-r">${tot-rnk+1}</span>`;
+
+    const growCls=c.yoy>0?'gbadge gbadge-up':c.yoy<0?'gbadge gbadge-dn':'gbadge gbadge-flat';
+    const growTxt=c.yoy>0?'成長':c.yoy<0?'衰退':'持平';
+
+    return `<tr>
+      <td class="code">${badge}${c.code}</td>
+      <td class="name"  title="${c.name}">${c.name}</td>
+      <td class="ind"   title="${c.ind}">${c.ind}</td>
+      <td class="num"   style="font-weight:600">${fmt(c.rev)}</td>
+      <td>${pctCell(c.yoy, maxYoy)}</td>
+      <td>${pctCell(c.mom, maxMom)}</td>
+      <td>${pctCell(c.cum, maxCum)}</td>
+      <td><span class="${growCls}">${growTxt}</span></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tblArea').innerHTML=`
+  <table>
+    <thead>
+      <tr>
+        <th data-k="code">代號</th>
+        <th data-k="name">公司</th>
+        <th data-k="ind">產業</th>
+        <th data-k="rev" style="text-align:right">當月營收</th>
+        <th data-k="yoy">YoY 去年同月</th>
+        <th data-k="mom">MoM 上月比較</th>
+        <th data-k="cum">累計增減</th>
+        <th>成長/衰退</th>
+      </tr>
+    </thead>
+    <tbody>${trs||'<tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8">無符合條件的公司</td></tr>'}</tbody>
+  </table>`;
+
+  // 排序點擊
+  document.querySelectorAll('thead th[data-k]').forEach(th=>{
+    const k=th.dataset.k;
+    if(k===sortKey) th.classList.add(sortDir>0?'asc':'desc');
+    th.addEventListener('click',()=>{
+      if(sortKey===k) sortDir*=-1; else{ sortKey=k; sortDir=-1; }
+      renderTable();
+    });
+  });
+}
+
+/* ── 事件 ── */
+document.getElementById('refreshBtn').addEventListener('click', load);
+document.getElementById('qSearch').addEventListener('input', renderTable);
+document.getElementById('selInd').addEventListener('change', renderTable);
+document.getElementById('selMetric').addEventListener('change', ()=>{ renderRanks(); renderTable(); });
+
+load();
+</script>
+<script src="nav-bar.js"></script>
+</body>
+</html>

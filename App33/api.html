@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>API 資料檢視器</title>
+    <style>
+        :root {
+            --blue: #0d6efd;
+            --green: #198754;
+            --gray: #6c757d;
+            --border: #dee2e6;
+            --bg-dark: #1e1e2e;
+            --fg-dark: #cdd6f4;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans TC', Arial, sans-serif;
+            padding: 20px 24px;
+            background: #f8f9fa;
+            color: #212529;
+            margin: 0;
+        }
+
+        h1 { font-size: 1.25rem; margin: 0 0 4px; }
+        .subtitle { font-size: 12px; color: var(--gray); margin-bottom: 16px; }
+        .subtitle code { background: #e9ecef; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+
+        /* ── 控制列 ── */
+        .controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+        }
+
+        .controls input[type=text] {
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 13px;
+            width: 180px;
+        }
+
+        .controls select {
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 13px;
+            flex: 1;
+            min-width: 220px;
+            max-width: 520px;
+        }
+
+        /* ── 工具列 ── */
+        .toolbar {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .toolbar .view-group,
+        .toolbar .action-group {
+            display: flex;
+            gap: 4px;
+        }
+
+        .toolbar .sep {
+            width: 1px;
+            height: 24px;
+            background: var(--border);
+            margin: 0 4px;
+        }
+
+        button {
+            padding: 5px 12px;
+            border: 1px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+            transition: background .15s, color .15s;
+        }
+
+        button:hover { background: #e9ecef; }
+
+        button.active {
+            background: var(--blue);
+            color: #fff;
+            border-color: var(--blue);
+        }
+
+        button.btn-green {
+            background: var(--green);
+            color: #fff;
+            border-color: var(--green);
+        }
+        button.btn-green:hover { background: #157347; }
+
+        button.btn-fetch {
+            background: var(--blue);
+            color: #fff;
+            border-color: var(--blue);
+            font-weight: 600;
+        }
+        button.btn-fetch:hover { background: #0b5ed7; }
+
+        /* ── 篩選列 ── */
+        .filter-bar {
+            display: none;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .filter-bar input {
+            padding: 5px 10px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 12px;
+            width: 220px;
+        }
+        .filter-bar .stats { font-size: 12px; color: var(--gray); }
+
+        /* ── URL 列 ── */
+        .url-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 12px;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        .url-bar .url-label {
+            color: var(--gray);
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        .url-bar .url-text {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 12px;
+            color: #0a58ca;
+            word-break: break-all;
+            flex: 1;
+        }
+        .url-bar .url-open {
+            font-size: 11px;
+            padding: 3px 8px;
+            white-space: nowrap;
+        }
+
+        /* ── 狀態列 ── */
+        .status-bar {
+            font-size: 11px;
+            color: var(--gray);
+            margin-bottom: 4px;
+            min-height: 16px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .status-bar .tag {
+            background: #e9ecef;
+            border-radius: 3px;
+            padding: 1px 6px;
+        }
+        .status-bar .tag.json  { background: #cfe2ff; color: #084298; }
+        .status-bar .tag.csv   { background: #d1e7dd; color: #0f5132; }
+        .status-bar .tag.text  { background: #fff3cd; color: #664d03; }
+        .status-bar .tag.error { background: #f8d7da; color: #842029; }
+
+        /* ── 輸出區 ── */
+        .output-wrap {
+            background: var(--bg-dark);
+            color: var(--fg-dark);
+            border-radius: 8px;
+            padding: 12px;
+            max-height: 68vh;
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .output-wrap.table-mode {
+            background: #fff;
+            color: #212529;
+            border: 1px solid var(--border);
+            padding: 0;
+        }
+
+        .json-display {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre;
+            margin: 0;
+        }
+
+        /* JSON 語法高亮 */
+        .json-display .jk { color: #89b4fa; }   /* key */
+        .json-display .js { color: #a6e3a1; }   /* string value */
+        .json-display .jn { color: #fab387; }   /* number */
+        .json-display .jb { color: #cba6f7; }   /* bool/null */
+
+        /* CSV 純文字 */
+        .csv-display {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: pre;
+            margin: 0;
+        }
+
+        /* ── 表格 ── */
+        .table-scroller {
+            overflow: auto;
+            max-height: 68vh;
+        }
+
+        .table-scroller table {
+            width: max(100%, 800px);
+            border-collapse: collapse;
+            font-size: 13px;
+            table-layout: auto;
+        }
+
+        .table-scroller th,
+        .table-scroller td {
+            padding: 7px 11px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            white-space: nowrap;
+            max-width: 320px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .table-scroller th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .table-scroller tr:hover td { background: #f5f5f5; }
+        .table-scroller .num-cell { text-align: right; font-variant-numeric: tabular-nums; }
+        .table-scroller .url-cell {
+            font-family: monospace; font-size: 11px; color: #0a58ca;
+            white-space: normal; word-break: break-all; max-width: 480px;
+        }
+        .table-scroller .code-cell { font-family: monospace; color: #666; font-size: 11px; }
+    </style>
+</head>
+
+<body>
+    <h1>API 資料檢視器</h1>
+    <p class="subtitle">
+        Worker：<code>https://cors-proxy.s01yg3642.workers.dev/</code>
+        ｜ 共 <strong id="totalCount">-</strong> 個端點
+    </p>
+
+    <div class="controls">
+        <input id="q" type="text" placeholder="關鍵字篩選（名稱 / 網址）" />
+        <select id="sel"></select>
+        <button class="btn-fetch" id="go">▶ Fetch</button>
+    </div>
+
+    <div class="url-bar" id="urlBar">
+        <span class="url-label">URL</span>
+        <span class="url-text" id="urlText">—</span>
+        <button class="url-open" id="urlOpen" title="在新分頁開啟">↗ 開啟</button>
+    </div>
+
+    <div class="toolbar">
+        <div class="view-group">
+            <button id="jsonView" class="active">{ } JSON</button>
+            <button id="tableView">⊞ 表格</button>
+            <button id="csvView">⇌ CSV</button>
+        </div>
+        <div class="sep"></div>
+        <div class="action-group">
+            <button id="copyBtn">⎘ 複製</button>
+            <button id="dlJson" class="btn-green">↓ JSON</button>
+            <button id="dlCsv"  class="btn-green">↓ CSV</button>
+        </div>
+    </div>
+
+    <div class="filter-bar" id="filterBar">
+        <input id="tableFilter" type="text" placeholder="篩選表格內容..." />
+        <span class="stats" id="tableStats"></span>
+    </div>
+
+    <div class="status-bar" id="statusBar"></div>
+
+    <div class="output-wrap" id="outputWrap">
+        <pre class="json-display" id="out">// 選擇端點後按 Fetch…</pre>
+    </div>
+
+    <script type="module">
+        const WORKER  = "https://cors-proxy.s01yg3642.workers.dev/";
+        const listUrl = "/api/api-list.json";
+
+        const proxy = u => WORKER + "?url=" + encodeURIComponent(u);
+
+        /* ── DOM refs ── */
+        const $  = id => document.getElementById(id);
+        const out        = $('out');
+        const outputWrap = $('outputWrap');
+        const sel        = $('sel');
+        const q          = $('q');
+        const filterBar  = $('filterBar');
+        const tableFilter= $('tableFilter');
+        const tableStats = $('tableStats');
+        const statusBar  = $('statusBar');
+        const totalCount = $('totalCount');
+        const urlText    = $('urlText');
+        const urlOpen    = $('urlOpen');
+
+        /* ── state ── */
+        let items       = [];
+        let currentData = null;   // parsed (array/object) or raw string
+        let rawText     = "";     // always the raw response text
+        let currentView = 'json';
+        let dataType    = 'unknown'; // 'json' | 'csv' | 'text'
+        const urlStatusMap = {};  // url → 'ok' | 'empty' | 'error'
+
+        /* ──────────────────────────────────────────
+           LOAD LIST
+        ────────────────────────────────────────── */
+        async function load() {
+            const res  = await fetch(listUrl);
+            const data = await res.json();
+            items = data.items || [];
+            totalCount.textContent = items.length;
+            fillSelect(items);
+            if (items.length) {
+                updateUrlBar(items[0].url);
+                await run(items[0].url);
+            }
+        }
+
+        function fillSelect(list) {
+            sel.innerHTML = "";
+
+            // 先嘗試依 category 分組
+            const cats = {};
+            for (const it of list) {
+                const c = it.category || "（未分類）";
+                (cats[c] = cats[c] || []).push(it);
+            }
+            const catKeys = Object.keys(cats);
+            const useGroup = catKeys.length > 1;
+
+            for (const [cat, its] of Object.entries(cats)) {
+                const container = useGroup
+                    ? (() => { const g = document.createElement('optgroup'); g.label = cat; return g; })()
+                    : sel;
+
+                for (const it of its) {
+                    const o = document.createElement('option');
+                    o.value = it.url;
+                    o.textContent = (useGroup ? "" : (it.category ? `[${it.category}] ` : "")) + it.name;
+                    applyOptionStatus(o, urlStatusMap[it.url]);
+                    container.appendChild(o);
+                }
+                if (useGroup) sel.appendChild(container);
+            }
+        }
+
+        /* 關鍵字篩選 select */
+        q.addEventListener('input', () => {
+            const s = q.value.trim().toLowerCase();
+            fillSelect(s
+                ? items.filter(it =>
+                    (it.name || "").toLowerCase().includes(s) ||
+                    (it.url  || "").toLowerCase().includes(s))
+                : items
+            );
+        });
+
+        /* ──────────────────────────────────────────
+           FETCH
+        ────────────────────────────────────────── */
+        async function run(url) {
+            setStatus("loading", `Fetching… ${url}`);
+            out.textContent = "// Fetching...\n" + url;
+            outputWrap.className = 'output-wrap';
+            out.className = 'json-display';
+            filterBar.style.display = 'none';
+
+            try {
+                const res = await fetch(proxy(url));
+                const ct  = (res.headers.get('content-type') || "").toLowerCase();
+                rawText   = await res.text();
+
+                if (ct.includes("application/json")) {
+                    try {
+                        currentData = JSON.parse(rawText);
+                        dataType = 'json';
+                    } catch {
+                        currentData = rawText;
+                        dataType = 'text';
+                    }
+                } else if (ct.includes("text/csv") || ct.includes("application/csv")) {
+                    dataType = 'csv';
+                    currentData = parseCsv(rawText);
+                } else {
+                    // 嘗試自動偵測
+                    dataType = autoDetect(rawText);
+                    if (dataType === 'json') {
+                        try { currentData = JSON.parse(rawText); } catch { currentData = rawText; dataType = 'text'; }
+                    } else if (dataType === 'csv') {
+                        currentData = parseCsv(rawText);
+                    } else {
+                        currentData = rawText;
+                    }
+                }
+
+                const isEmpty = Array.isArray(currentData) && currentData.length === 0;
+                const rows = isAoO(currentData) ? currentData.length : (typeof currentData === 'string' ? null : 1);
+                const emptyHint = isEmpty ? " ⚠️ 空陣列（非交易日或需參數）" : "";
+                setStatus(dataType, `${dataType.toUpperCase()}${rows != null ? ` · ${rows} 筆` : ""}${emptyHint} · ${(rawText.length / 1024).toFixed(1)} KB`);
+                markOption(url, isEmpty ? 'empty' : 'ok');
+                updateDisplay();
+
+            } catch (e) {
+                currentData = "Error: " + e.message;
+                rawText = currentData;
+                dataType = 'text';
+                setStatus('error', e.message);
+                markOption(url, 'error');
+                updateDisplay();
+            }
+        }
+
+        /* ── option 狀態標記 ── */
+        function markOption(url, status) {
+            urlStatusMap[url] = status;
+            // 套用到目前 select 中對應的 option
+            for (const o of sel.options) {
+                if (o.value === url) { applyOptionStatus(o, status); break; }
+            }
+        }
+
+        function applyOptionStatus(option, status) {
+            if (status === 'error') {
+                option.style.color = '#dc3545';
+                option.style.fontWeight = '600';
+            } else if (status === 'empty') {
+                option.style.color = '#fd7e14';
+                option.style.fontWeight = '500';
+            } else if (status === 'ok') {
+                option.style.color = '';
+                option.style.fontWeight = '';
+            }
+        }
+
+        /* ──────────────────────────────────────────
+           AUTO DETECT
+        ────────────────────────────────────────── */
+        function autoDetect(text) {
+            const t = text.trimStart();
+            if (t.startsWith('{') || t.startsWith('[')) return 'json';
+            // 簡單判斷：前幾行都有逗號，且欄位數一致
+            const lines = t.split('\n').slice(0, 5).filter(Boolean);
+            if (lines.length >= 2) {
+                const counts = lines.map(l => l.split(',').length);
+                if (counts[0] > 1 && counts.every(c => c === counts[0])) return 'csv';
+            }
+            return 'text';
+        }
+
+        /* ──────────────────────────────────────────
+           CSV PARSER（支援引號欄位）
+        ────────────────────────────────────────── */
+        function parseCsv(text) {
+            const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+            const nonEmpty = lines.filter(l => l.trim());
+            if (nonEmpty.length < 2) return text;
+
+            const parseRow = line => {
+                const cols = [];
+                let cur = '', inQ = false;
+                for (let i = 0; i < line.length; i++) {
+                    const ch = line[i];
+                    if (ch === '"') {
+                        if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+                        else inQ = !inQ;
+                    } else if (ch === ',' && !inQ) {
+                        cols.push(cur); cur = '';
+                    } else {
+                        cur += ch;
+                    }
+                }
+                cols.push(cur);
+                return cols;
+            };
+
+            const headers = parseRow(nonEmpty[0]);
+            return nonEmpty.slice(1).map(line => {
+                const vals = parseRow(line);
+                const obj = {};
+                headers.forEach((h, i) => { obj[h.trim()] = (vals[i] ?? '').trim(); });
+                return obj;
+            });
+        }
+
+        /* ──────────────────────────────────────────
+           JSON → CSV 轉換
+        ────────────────────────────────────────── */
+        function toCsvText(data) {
+            if (typeof data === 'string') return data;
+            if (!isAoO(data)) return JSON.stringify(data, null, 2);
+            const headers = Object.keys(data[0]);
+            const esc = v => {
+                const s = String(v ?? '');
+                return (s.includes(',') || s.includes('"') || s.includes('\n'))
+                    ? `"${s.replaceAll('"', '""')}"` : s;
+            };
+            return [
+                headers.join(','),
+                ...data.map(row => headers.map(h => esc(row[h])).join(','))
+            ].join('\n');
+        }
+
+        /* ──────────────────────────────────────────
+           DISPLAY
+        ────────────────────────────────────────── */
+        function isAoO(d) {
+            return Array.isArray(d) && d.length > 0 && d[0] !== null && typeof d[0] === 'object';
+        }
+
+        function updateDisplay() {
+            if (currentData === null) return;
+
+            // 空陣列：各模式統一顯示提示
+            if (Array.isArray(currentData) && currentData.length === 0) {
+                outputWrap.className = 'output-wrap';
+                out.className = 'json-display';
+                out.textContent = '// 回傳空陣列 []\n//\n// 可能原因：\n//  1. 今天是非交易日（假日、收盤後）\n//  2. 此 API 需要帶入查詢參數（股票代碼、日期等）\n//  3. TWSE 伺服器暫時無資料\n//\n// 請改天再試，或確認 API 文件是否需要額外參數。';
+                filterBar.style.display = 'none';
+                return;
+            }
+
+            // 表格模式
+            if (currentView === 'table' && isAoO(currentData)) {
+                outputWrap.className = 'output-wrap table-mode';
+                out.className = '';
+                out.innerHTML = buildTable(currentData);
+                filterBar.style.display = 'flex';
+                updateStats(currentData.length, currentData.length);
+                return;
+            }
+
+            // CSV 文字模式
+            if (currentView === 'csv') {
+                outputWrap.className = 'output-wrap';
+                out.className = 'csv-display';
+                out.textContent = toCsvText(currentData);
+                filterBar.style.display = 'none';
+                return;
+            }
+
+            // JSON / fallback 模式
+            outputWrap.className = 'output-wrap';
+            out.className = 'json-display';
+            filterBar.style.display = 'none';
+            if (typeof currentData === 'string') {
+                out.textContent = currentData;
+            } else {
+                out.innerHTML = syntaxHighlight(JSON.stringify(currentData, null, 2));
+            }
+        }
+
+        /* ──────────────────────────────────────────
+           TABLE BUILDER
+        ────────────────────────────────────────── */
+        function buildTable(data) {
+            if (!isAoO(data)) return `<pre class="json-display">${escHtml(JSON.stringify(data, null, 2))}</pre>`;
+            const headers = Object.keys(data[0]);
+            const rows = data.map(row => {
+                const cells = headers.map(h => {
+                    const v   = row[h] ?? '';
+                    const str = String(v);
+                    const hl  = h.toLowerCase();
+                    let cls = '';
+                    if (hl.includes('url') || hl.includes('link')) cls = 'url-cell';
+                    else if (hl === 'id' || hl.endsWith('_id') || hl.endsWith('id')) cls = 'code-cell';
+                    else if (!isNaN(v) && str !== '') cls = 'num-cell';
+                    return `<td class="${cls}" title="${escHtml(str)}">${escHtml(str)}</td>`;
+                }).join('');
+                return `<tr>${cells}</tr>`;
+            }).join('');
+
+            return `<div class="table-scroller"><table>
+                <thead><tr>${headers.map(h => `<th>${escHtml(h)}</th>`).join('')}</tr></thead>
+                <tbody>${rows}</tbody>
+            </table></div>`;
+        }
+
+        function filterTable() {
+            if (!isAoO(currentData)) return;
+            const kw = tableFilter.value.toLowerCase();
+            const filtered = kw
+                ? currentData.filter(row => Object.values(row).some(v => String(v).toLowerCase().includes(kw)))
+                : currentData;
+            outputWrap.innerHTML = '';
+            const wrap = document.createElement('div');
+            wrap.id = 'out';
+            wrap.innerHTML = buildTable(filtered);
+            outputWrap.appendChild(wrap);
+            updateStats(filtered.length, currentData.length);
+        }
+
+        function updateStats(shown, total) {
+            tableStats.textContent = shown === total
+                ? `共 ${total} 筆・${Object.keys(currentData[0]).length} 欄`
+                : `顯示 ${shown} / ${total} 筆`;
+        }
+
+        /* ──────────────────────────────────────────
+           JSON 語法高亮
+        ────────────────────────────────────────── */
+        function syntaxHighlight(json) {
+            return escHtml(json).replace(
+                /("(\\u[\dA-Fa-f]{4}|\\[^u]|[^"\\])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
+                m => {
+                    let cls = 'jn';
+                    if (/^"/.test(m)) cls = /:$/.test(m) ? 'jk' : 'js';
+                    else if (/true|false|null/.test(m)) cls = 'jb';
+                    return `<span class="${cls}">${m}</span>`;
+                }
+            );
+        }
+
+        /* ──────────────────────────────────────────
+           STATUS BAR
+        ────────────────────────────────────────── */
+        function setStatus(type, msg) {
+            statusBar.innerHTML = `<span class="tag ${type}">${escHtml(msg)}</span>`;
+        }
+
+        /* ──────────────────────────────────────────
+           DOWNLOAD
+        ────────────────────────────────────────── */
+        function download(text, filename, mime) {
+            const a   = document.createElement('a');
+            a.href    = URL.createObjectURL(new Blob([text], { type: mime }));
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        function getFilename(ext) {
+            const name = sel.options[sel.selectedIndex]?.textContent || 'data';
+            return name.replace(/[\[\]\/\\:*?"<>|]/g, '_').slice(0, 60) + '.' + ext;
+        }
+
+        $('dlJson').addEventListener('click', () => {
+            const text = typeof currentData === 'string'
+                ? currentData
+                : JSON.stringify(currentData, null, 2);
+            download(text, getFilename('json'), 'application/json;charset=utf-8');
+        });
+
+        $('dlCsv').addEventListener('click', () => {
+            download(toCsvText(currentData), getFilename('csv'), 'text/csv;charset=utf-8-sig');
+        });
+
+        /* ──────────────────────────────────────────
+           COPY
+        ────────────────────────────────────────── */
+        $('copyBtn').addEventListener('click', async () => {
+            const text = currentView === 'csv'
+                ? toCsvText(currentData)
+                : (typeof currentData === 'string' ? currentData : JSON.stringify(currentData, null, 2));
+            await navigator.clipboard.writeText(text);
+            const btn = $('copyBtn');
+            btn.textContent = '✓ 已複製';
+            setTimeout(() => { btn.textContent = '⎘ 複製'; }, 1500);
+        });
+
+        /* ──────────────────────────────────────────
+           VIEW TOGGLE
+        ────────────────────────────────────────── */
+        function setView(v) {
+            currentView = v;
+            ['jsonView','tableView','csvView'].forEach(id => {
+                $(id).classList.toggle('active', id === v + 'View');
+            });
+            updateDisplay();
+        }
+
+        $('jsonView') .addEventListener('click', () => setView('json'));
+        $('tableView').addEventListener('click', () => setView('table'));
+        $('csvView')  .addEventListener('click', () => setView('csv'));
+
+        /* ──────────────────────────────────────────
+           TABLE FILTER
+        ────────────────────────────────────────── */
+        tableFilter.addEventListener('input', filterTable);
+
+        /* ──────────────────────────────────────────
+           FETCH BUTTON + 選單自動觸發
+        ────────────────────────────────────────── */
+        $('go').addEventListener('click', () => run(sel.value));
+
+        // 切換選單後自動 fetch（這是主要問題所在）
+        sel.addEventListener('change', () => {
+            updateUrlBar(sel.value);
+            run(sel.value);
+        });
+
+        urlOpen.addEventListener('click', () => {
+            const u = sel.value;
+            if (u) window.open(u, '_blank', 'noopener');
+        });
+
+        /* ──────────────────────────────────────────
+           UTILS
+        ────────────────────────────────────────── */
+        function updateUrlBar(url) {
+            urlText.textContent = url || '—';
+        }
+
+        function escHtml(str) {
+            return String(str)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        /* ── INIT ── */
+        load();
+    </script>
+</body>
+</html>
