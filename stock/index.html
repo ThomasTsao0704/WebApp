@@ -1,0 +1,1546 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>台股資料儀表板</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#ffffff;
+    --panel:#f6f7f9;
+    --line:#e7e9ee;
+    --line-soft:#eef0f4;
+    --ink:#161a22;
+    --muted:#8b93a1;
+    --up:#e23b3b;        /* 台股慣例：紅漲 */
+    --down:#12a150;      /* 綠跌 */
+    --flat:#6b7280;
+    --accent:#1f3a5f;    /* 深墨藍 UI 強調色 */
+    --accent-soft:#e8edf4;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --display:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --sans:system-ui,-apple-system,"Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bg);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;padding:22px;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+
+  /* ---- topbar ---- */
+  .topbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  .topbar label{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
+  .topbar input{font-family:var(--mono);font-size:12px;color:var(--ink);min-width:280px;
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px;outline:none}
+  .topbar input:focus{border-color:var(--accent)}
+
+  /* ---- header ---- */
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+  .title{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .title h1{font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:-.01em;margin:0}
+  .title .sym{font-family:var(--mono);font-weight:600;font-size:15px;color:var(--muted);
+    background:var(--panel);border:1px solid var(--line);padding:2px 8px;border-radius:6px}
+  .title .mkt{font-size:12px;color:var(--muted);letter-spacing:.08em}
+  .last{display:flex;align-items:baseline;gap:10px}
+  .last .px{font-family:var(--mono);font-weight:600;font-size:26px;font-variant-numeric:tabular-nums}
+  .last .badge{font-family:var(--mono);font-weight:500;font-size:13px;padding:3px 8px;border-radius:6px;font-variant-numeric:tabular-nums}
+
+  /* ---- tabs ---- */
+  .tabnav{display:flex;gap:3px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:4px;margin-bottom:16px}
+  .tabnav button{border:none;background:transparent;padding:7px 12px;border-radius:7px;font-size:12.5px;
+    font-weight:500;color:var(--muted);font-family:var(--sans);cursor:pointer}
+  .tabnav button:hover{color:var(--ink)}
+  .tabnav button.on{background:var(--bg);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .panel{display:none}
+  .panel.on{display:block}
+
+  /* ---- controls ---- */
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .src{display:flex;flex:1 1 300px;min-width:240px;gap:8px}
+  .src input{flex:1;font-family:var(--mono);font-size:12px;color:var(--ink);
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;outline:none}
+  .src input:focus{border-color:var(--accent)}
+  button{font-family:var(--sans);font-size:13px;cursor:pointer;border:1px solid var(--line);
+    background:var(--bg);color:var(--ink);border-radius:8px;padding:8px 12px;transition:.12s}
+  button:hover{border-color:var(--accent)}
+  .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:500}
+  .btn-primary:hover{filter:brightness(1.08)}
+  .btn-danger{color:var(--up);border-color:var(--up)}
+  .ranges{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:3px}
+  .ranges button{border:none;background:transparent;padding:6px 12px;border-radius:6px;color:var(--muted);font-weight:500;font-family:var(--mono)}
+  .ranges button.on{background:var(--bg);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+
+  /* ---- legend (hover readout) ---- */
+  .legend{display:flex;flex-wrap:wrap;gap:14px 18px;padding:10px 2px 12px;min-height:44px;
+    font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
+  .legend .item{display:flex;gap:5px;align-items:baseline}
+  .legend .k{color:var(--muted);font-family:var(--sans);font-size:11.5px}
+  .legend .v{font-weight:500}
+  .legend .chip{padding:1px 7px;border-radius:5px;font-size:11px;background:var(--panel);border:1px solid var(--line);color:var(--muted)}
+
+  /* ---- charts ---- */
+  .chartbox{position:relative;margin-top:8px}
+  #main{display:block;width:100%;cursor:crosshair}
+  .brush-label{font-family:var(--mono);font-size:11px;color:var(--muted);margin:6px 2px 2px;display:flex;justify-content:space-between}
+  #brush{display:block;width:100%;cursor:grab}
+  #brush.dragging{cursor:grabbing}
+  #ind-trend-canvas{cursor:crosshair}
+  #ind-rank-canvas{cursor:pointer}
+
+  .status{margin-top:14px;font-size:13px;color:var(--muted);line-height:1.6}
+  .status.err{color:var(--up)}
+  .paste{margin-top:10px;display:none}
+  .paste textarea{width:100%;height:120px;font-family:var(--mono);font-size:11px;border:1px solid var(--line);
+    border-radius:8px;padding:10px;resize:vertical;outline:none}
+  .paste textarea:focus{border-color:var(--accent)}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+  a{color:var(--accent)}
+
+  /* ---- toolbar (per-tab query controls) ---- */
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .toolbar label{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
+  .toolbar input,.toolbar select{font-family:var(--mono);font-size:12px;border:1px solid var(--line);
+    border-radius:7px;padding:6px 8px;background:var(--panel);color:var(--ink);outline:none}
+  .toolbar input:focus,.toolbar select:focus{border-color:var(--accent)}
+
+  /* ---- data tables ---- */
+  .tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px;max-height:560px}
+  table.dtable{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:12px;white-space:nowrap}
+  table.dtable th{position:sticky;top:0;background:var(--panel);text-align:right;padding:7px 10px;
+    border-bottom:1px solid var(--line);color:var(--muted);font-weight:600;z-index:1}
+  table.dtable td{padding:6px 10px;text-align:right;border-bottom:1px solid var(--line-soft)}
+  table.dtable th:first-child,table.dtable td:first-child{text-align:left}
+  table.dtable th:nth-child(2),table.dtable td:nth-child(2){text-align:left}
+  tr.clickable{cursor:pointer}
+  tr.clickable:hover td{background:var(--accent-soft)}
+  .empty{padding:24px;text-align:center;color:var(--muted);font-size:13px}
+  .linkbtn{border:none;background:none;color:var(--accent);cursor:pointer;font-size:12px;padding:2px 4px}
+  .linkbtn.del{color:var(--up)}
+
+  .pager{display:flex;gap:10px;align-items:center;margin-top:10px;font-size:12px;color:var(--muted)}
+
+  /* ---- cards ---- */
+  .cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .card{flex:1 1 200px;border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--panel)}
+  .card h3{margin:0 0 8px;font-size:13px;color:var(--muted);font-weight:600}
+  .card .big{font-family:var(--mono);font-size:20px;font-weight:600}
+  .card .row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:5px;gap:10px}
+  .card .row b{color:var(--ink);font-weight:500;font-family:var(--mono)}
+
+  /* ---- forms ---- */
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:10px}
+  .form-grid .full{grid-column:1/-1}
+  .form-grid label{font-size:11px;color:var(--muted);display:block;margin-bottom:3px}
+  .form-grid input,.form-grid select,.form-grid textarea{width:100%;font-family:var(--sans);font-size:12.5px;
+    border:1px solid var(--line);border-radius:7px;padding:7px 8px;background:var(--bg);outline:none;box-sizing:border-box}
+  .form-grid input:focus,.form-grid select:focus,.form-grid textarea:focus{border-color:var(--accent)}
+  .form-grid textarea{height:70px;resize:vertical;font-family:var(--mono)}
+  .actions{display:flex;gap:8px;margin-bottom:18px}
+  h2.sec{font-family:var(--display);font-size:16px;margin:0 0 10px}
+
+  @media (max-width:560px){
+    body{padding:14px}
+    .title h1{font-size:21px}
+    .last .px{font-size:21px}
+  }
+</style>
+
+<div class="wrap">
+  <div class="topbar">
+    <label>API 基底網址 <input id="base" spellcheck="false" value="https://ai.artigianoapp.net"></label>
+  </div>
+
+  <header>
+    <div class="title">
+      <h1 id="name">載入中…</h1>
+      <span class="sym" id="sym">—</span>
+      <span class="mkt" id="mkt"></span>
+    </div>
+    <div class="last">
+      <span class="px" id="lastpx">—</span>
+      <span class="badge" id="lastbadge"></span>
+    </div>
+  </header>
+
+  <nav class="tabnav">
+    <button class="on" data-tab="kline">個股K線</button>
+    <button data-tab="daily">全市場行情</button>
+    <button data-tab="gainers">漲幅排行</button>
+    <button data-tab="strong">強勢股</button>
+    <button data-tab="indicators">主力指標</button>
+    <button data-tab="dispose">處置股</button>
+    <button data-tab="h52">52週新高</button>
+    <button data-tab="dbtable">資料庫瀏覽</button>
+    <button data-tab="premarket">盤前計劃</button>
+    <button data-tab="journal">交易日誌</button>
+    <button data-tab="fetchctl">抓取控制</button>
+    <button data-tab="health">系統狀態</button>
+  </nav>
+
+  <!-- ================= 個股K線 ================= -->
+  <div class="panel on" data-panel="kline">
+    <div class="controls">
+      <div class="src">
+        <input id="symbol" spellcheck="false" value="0050" placeholder="輸入股票代號，例如 2330">
+        <button class="btn-primary" id="load">載入</button>
+      </div>
+      <div class="ranges" id="ranges">
+        <button data-days="22">1月</button>
+        <button data-days="66">3月</button>
+        <button data-days="132">6月</button>
+        <button data-days="252">1年</button>
+        <button data-days="0" class="on">全部</button>
+      </div>
+    </div>
+
+    <div class="legend" id="legend">
+      <span class="k" style="font-family:var(--sans)">將滑鼠移到圖上，即可查看每一天的完整數據。</span>
+    </div>
+
+    <div class="chartbox">
+      <canvas id="main"></canvas>
+    </div>
+
+    <div class="brush-label">
+      <span>區間選取（拖曳兩側把手，或拖動中間平移）</span>
+      <span id="brushrange"></span>
+    </div>
+    <canvas id="brush"></canvas>
+
+    <div class="status" id="status">正在向 API 抓取資料…</div>
+    <div class="paste" id="pastebox">
+      <div class="hint">若因瀏覽器 CORS 政策無法直接抓取，請在原始網址開啟 API，複製整段 JSON 貼到下方，按「使用貼上的資料」。</div>
+      <textarea id="pastearea" placeholder='貼上 API 回傳的 JSON，例如 [ {"symbol":"0050", ...}, ... ]'></textarea>
+      <button id="usepaste" style="margin-top:8px">使用貼上的資料</button>
+    </div>
+  </div>
+
+  <!-- ================= 全市場行情 /api/v2/daily ================= -->
+  <div class="panel" data-panel="daily">
+    <div class="toolbar">
+      <label>日期 <input type="date" id="daily-date"></label>
+      <button class="btn-primary" id="daily-refresh">查詢</button>
+    </div>
+    <div class="status" id="daily-status"></div>
+    <div class="tablewrap" id="daily-table"></div>
+  </div>
+
+  <!-- ================= 漲幅排行 /api/v2/gainers ================= -->
+  <div class="panel" data-panel="gainers">
+    <div class="toolbar">
+      <label>日期 <input type="date" id="gainers-date"></label>
+      <button class="btn-primary" id="gainers-refresh">查詢</button>
+    </div>
+    <div class="status" id="gainers-status"></div>
+    <div class="tablewrap" id="gainers-table"></div>
+  </div>
+
+  <!-- ================= 強勢股 /api/v2/strong ================= -->
+  <div class="panel" data-panel="strong">
+    <div class="toolbar">
+      <label>日期 <input type="date" id="strong-date"></label>
+      <button class="btn-primary" id="strong-refresh">查詢</button>
+      <label>快速選擇 <select id="strong-dates"><option value="">（載入日期清單…）</option></select></label>
+    </div>
+    <div class="status" id="strong-status"></div>
+    <div class="tablewrap" id="strong-table"></div>
+  </div>
+
+  <!-- ================= 主力指標 daily_indicators ================= -->
+  <div class="panel" data-panel="indicators">
+    <div class="ranges" id="ind-mode">
+      <button class="on" data-mode="trend">個股趨勢</button>
+      <button data-mode="rank">單日排行</button>
+    </div>
+
+    <div id="ind-trend-panel">
+      <div class="controls">
+        <div class="src">
+          <input id="ind-symbol" spellcheck="false" placeholder="輸入股票代號，例如 2330">
+          <button class="btn-primary" id="ind-trend-load">載入</button>
+        </div>
+      </div>
+      <div class="legend" id="ind-trend-legend">
+        <span class="k" style="font-family:var(--sans)">將滑鼠移到圖上，即可查看每一天的主力指標數據。</span>
+      </div>
+      <div class="chartbox"><canvas id="ind-trend-canvas"></canvas></div>
+      <div class="status" id="ind-trend-status"></div>
+    </div>
+
+    <div id="ind-rank-panel" style="display:none">
+      <div class="toolbar">
+        <label>日期 <input type="date" id="ind-rank-date"></label>
+        <label>顯示檔數
+          <select id="ind-rank-topn">
+            <option value="15">15</option>
+            <option value="30" selected>30</option>
+            <option value="50">50</option>
+            <option value="80">80</option>
+          </select>
+        </label>
+        <button class="btn-primary" id="ind-rank-load">查詢</button>
+      </div>
+      <div class="status" id="ind-rank-status"></div>
+      <div class="chartbox"><canvas id="ind-rank-canvas"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ================= 處置股 /api/stock-info/dispose ================= -->
+  <div class="panel" data-panel="dispose">
+    <div class="toolbar">
+      <label>基準日期（顯示迄日晚於此日） <input type="date" id="dispose-date"></label>
+      <button class="btn-primary" id="dispose-refresh">查詢</button>
+    </div>
+    <div class="status" id="dispose-status"></div>
+    <div class="tablewrap" id="dispose-table"></div>
+  </div>
+
+  <!-- ================= 52週新高 /api/stock-info/52h ================= -->
+  <div class="panel" data-panel="h52">
+    <div class="toolbar">
+      <label>日期 <input type="date" id="h52-date"></label>
+      <button class="btn-primary" id="h52-refresh">查詢</button>
+    </div>
+    <div class="status" id="h52-status"></div>
+    <div class="tablewrap" id="h52-table"></div>
+  </div>
+
+  <!-- ================= 資料庫瀏覽 /api/table/:name ================= -->
+  <div class="panel" data-panel="dbtable">
+    <div class="toolbar">
+      <label>資料表
+        <select id="db-name">
+          <option value="market-data">原始行情 market_data</option>
+          <option value="daily-indicators">主力指標 daily_indicators</option>
+          <option value="strong-stocks">強勢股 strong_stocks</option>
+          <option value="stock-info">個股資訊 stock_info</option>
+          <option value="premarket-plans">盤前計劃 premarket_plans</option>
+          <option value="journal-entries">交易日誌 journal_entries</option>
+        </select>
+      </label>
+      <label>日期（可留空） <input type="date" id="db-date"></label>
+      <label>每頁筆數 <input type="number" id="db-limit" value="50" min="1" max="500" style="width:80px"></label>
+      <button class="btn-primary" id="db-refresh">查詢</button>
+    </div>
+    <div class="status" id="db-status-msg"></div>
+    <div class="tablewrap" id="db-table"></div>
+    <div class="pager">
+      <button id="db-prev">← 上一頁</button>
+      <span id="db-pageinfo">—</span>
+      <button id="db-next">下一頁 →</button>
+    </div>
+  </div>
+
+  <!-- ================= 盤前計劃 /api/premarket ================= -->
+  <div class="panel" data-panel="premarket">
+    <h2 class="sec">新增 / 編輯計畫</h2>
+    <div class="form-grid">
+      <div><label>日期</label><input type="date" id="pm-date"></div>
+      <div><label>心情</label><input id="pm-mood"></div>
+      <div><label>市場趨勢</label><input id="pm-trend"></div>
+      <div><label>交易許可</label><input id="pm-permission"></div>
+      <div class="full"><label>市場備註</label><textarea id="pm-notes"></textarea></div>
+      <div class="full"><label>今日提醒</label><textarea id="pm-reminder"></textarea></div>
+      <div class="full"><label>觀察名單（逗號分隔股票代號）</label><input id="pm-watchlist" placeholder="2330, 2454, 0050"></div>
+    </div>
+    <div class="actions">
+      <button id="pm-load-btn">依日期載入</button>
+      <button class="btn-primary" id="pm-save">儲存</button>
+      <button class="btn-danger" id="pm-delete">刪除此日期</button>
+      <button id="pm-clear">清空表單</button>
+    </div>
+    <div class="status" id="pm-status"></div>
+    <h2 class="sec">歷史計畫</h2>
+    <div class="tablewrap" id="pm-table"></div>
+  </div>
+
+  <!-- ================= 交易日誌 /api/journal ================= -->
+  <div class="panel" data-panel="journal">
+    <h2 class="sec"><span id="jn-form-title">新增日誌</span></h2>
+    <div class="form-grid">
+      <div><label>交易日期</label><input type="date" id="jn-date"></div>
+      <div><label>代號</label><input id="jn-symbol"></div>
+      <div><label>方向</label><input id="jn-direction" placeholder="多 / 空"></div>
+      <div><label>策略</label><input id="jn-strategy"></div>
+      <div><label>心情</label><input id="jn-mood"></div>
+      <div><label>趨勢</label><input id="jn-trend"></div>
+      <div><label>進場價</label><input id="jn-entry" type="number" step="any"></div>
+      <div><label>停損價</label><input id="jn-stop" type="number" step="any"></div>
+      <div><label>出場價</label><input id="jn-exit" type="number" step="any"></div>
+      <div class="full"><label>標題</label><input id="jn-title"></div>
+      <div class="full"><label>內容</label><textarea id="jn-content"></textarea></div>
+      <div class="full"><label>備註</label><textarea id="jn-notes"></textarea></div>
+      <div class="full"><label>觀察名單（逗號分隔）</label><input id="jn-watchlist"></div>
+    </div>
+    <div class="actions">
+      <button class="btn-primary" id="jn-save">儲存</button>
+      <button id="jn-new">新增（清空表單）</button>
+    </div>
+    <div class="status" id="jn-status"></div>
+    <h2 class="sec">日誌列表</h2>
+    <div class="tablewrap" id="jn-table"></div>
+  </div>
+
+  <!-- ================= 抓取控制 ================= -->
+  <div class="panel" data-panel="fetchctl">
+    <h2 class="sec">重新抓取指定區間 /api/fetch-range</h2>
+    <div class="toolbar">
+      <label>開始 <input type="date" id="fr-start"></label>
+      <label>結束 <input type="date" id="fr-end"></label>
+      <button class="btn-primary" id="fr-run">開始抓取</button>
+      <button id="fr-status">查詢進度</button>
+    </div>
+    <div class="status" id="fr-status-msg"></div>
+
+    <h2 class="sec">同步處置股 / 52週新高 /api/stock-info/sync</h2>
+    <div class="toolbar">
+      <button class="btn-primary" id="si-sync">立即同步</button>
+    </div>
+    <div class="status" id="si-status-msg"></div>
+  </div>
+
+  <!-- ================= 系統狀態 ================= -->
+  <div class="panel" data-panel="health">
+    <div class="toolbar">
+      <button class="btn-primary" id="health-refresh">重新整理</button>
+    </div>
+    <div class="status" id="health-status"></div>
+    <div class="cards" id="health-cards"></div>
+    <h2 class="sec">近期資料量（市場行情，最近 10 天）</h2>
+    <div class="tablewrap" id="health-recent"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const $ = s => document.querySelector(s);
+  const UP="#e23b3b", DOWN="#12a150", FLAT="#6b7280";
+  const AVG_LINES = [
+    {key:"avg",    label:"均價",    color:"#93c5fd", mode:"tick", width:1.6},
+    {key:"avg01",  label:"均價01",  color:"#fca5a5", mode:"tick", width:1.6},
+    {key:"avg12",  label:"均價12",  color:"#c4b5fd", mode:"tick", width:1.6},
+    {key:"avg23",  label:"均價23",  color:"#86efac", mode:"tick", width:1.6},
+    {key:"avg012", label:"均價012", color:"#991b1b", mode:"line", width:1.4},
+    {key:"avg123", label:"均價123", color:"#166534", mode:"line", width:1.4},
+  ];
+
+  // ---------- generic helpers ----------
+  const num = v => { if(v==null) return null; const n = parseFloat(String(v).replace(/,/g,"")); return isNaN(n)?null:n; };
+  const parseDate = s => { s=String(s); return new Date(+s.slice(0,4), +s.slice(4,6)-1, +s.slice(6,8)); };
+  const fmtDate = d => `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`;
+  const fmtMD   = d => `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`;
+  const comma = n => n==null?"—":Number(n).toLocaleString("en-US");
+  function bigMoney(n){
+    if(n==null) return "—";
+    n=Number(n);
+    if(Math.abs(n)>=1e8) return (n/1e8).toFixed(2)+" 億";
+    if(Math.abs(n)>=1e4) return (n/1e4).toFixed(1)+" 萬";
+    return comma(n);
+  }
+  const lots = n => n==null?"—":comma(Math.round(n/1000))+" 張";
+  const fmtNum = (n,d=2) => n==null?"—":Number(n).toFixed(d);
+  const fmtSigned = (n,d=2) => { if(n==null) return "—"; const x=Number(n); return (x>=0?"+":"")+x.toFixed(d); };
+  const fmtPctNum = n => { if(n==null) return "—"; const x=Number(n); return (x>=0?"+":"")+x.toFixed(2)+"%"; };
+  const upColor = n => n==null?null:(Number(n)>=0?UP:DOWN);
+  const esc = s => String(s??"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const todayStr = () => new Date().toISOString().slice(0,10);
+
+  function baseUrl(){
+    let b = $("#base").value.trim();
+    if(b.endsWith("/")) b = b.slice(0,-1);
+    return b;
+  }
+  async function apiFetch(path){
+    const res = await fetch(baseUrl()+path, {headers:{accept:"application/json"}});
+    const text = await res.text();
+    let json; try{ json = text?JSON.parse(text):null; }catch(e){ throw new Error("回傳非 JSON："+text.slice(0,120)); }
+    if(!res.ok) throw new Error((json&&json.error) || ("HTTP "+res.status));
+    return json;
+  }
+  async function apiSend(path, method, body){
+    const res = await fetch(baseUrl()+path, {
+      method, headers:{accept:"application/json","content-type":"application/json"},
+      body: body!==undefined ? JSON.stringify(body) : undefined
+    });
+    const text = await res.text();
+    let json; try{ json = text?JSON.parse(text):null; }catch(e){ throw new Error("回傳非 JSON："+text.slice(0,120)); }
+    if(!res.ok) throw new Error((json&&json.error) || ("HTTP "+res.status));
+    return json;
+  }
+
+  // ---------- generic table renderer ----------
+  function renderTable(elId, rows, cols, opts){
+    opts = opts || {};
+    const el = document.getElementById(elId);
+    if(!rows || !rows.length){ el.innerHTML = '<div class="empty">沒有資料</div>'; return; }
+    let html = '<table class="dtable"><thead><tr>' + cols.map(c=>`<th>${esc(c.label)}</th>`).join('') + '</tr></thead><tbody>';
+    rows.forEach(r=>{
+      html += `<tr${opts.onRowClick?' class="clickable"':''}>` + cols.map(c=>{
+        const raw = r[c.key];
+        const v = c.fmt ? c.fmt(raw, r) : (raw==null?"—":esc(raw));
+        const color = c.color ? c.color(r) : null;
+        return `<td${color?` style="color:${color}"`:''}>${v}</td>`;
+      }).join('') + '</tr>';
+    });
+    html += '</tbody></table>';
+    el.innerHTML = html;
+    if(opts.onRowClick){
+      el.querySelectorAll('tbody tr').forEach((tr,i)=> tr.addEventListener('click', ()=>opts.onRowClick(rows[i])));
+    }
+  }
+  function autoCols(rows, opts){
+    opts = opts || {};
+    if(!rows.length) return [];
+    return Object.keys(rows[0]).map(k=>({label:k, key:k, fmt:(v)=>v==null?"—":esc(String(v))}));
+  }
+
+  // ---------- state ----------
+  let DATA=[];            // ascending by date, normalized (kline tab)
+  let vs=0, ve=0;         // visible start / end index (inclusive)
+  let hover=-1;           // hovered index (into DATA)
+  let activeDays=0;       // active preset (0 = all)
+
+  // ---------- normalize API payload (kline tab) ----------
+  function normalize(raw){
+    let arr = raw;
+    if(!Array.isArray(arr)){
+      if(arr && typeof arr==="object"){
+        const key = Object.keys(arr).find(k=>Array.isArray(arr[k]));
+        if(key) arr = arr[key];
+        else if(arr.date && arr.close) arr=[arr];
+        else throw new Error("回傳格式無法辨識：找不到資料陣列。");
+      } else throw new Error("回傳格式無法辨識。");
+    }
+    const out = arr.map(r=>({
+      d: parseDate(r.date), dateStr:String(r.date),
+      o:num(r.open), h:num(r.high), l:num(r.low), c:num(r.close),
+      chgV:num(r.change_val ?? r.change), chgP:String(r.change_pct ?? "").trim(),
+      vol:num(r.volume), turnover:num(r.turnover), avg:num(r.avg),
+      avg01:num(r.avg01), avg12:num(r.avg12), avg23:num(r.avg23),
+      avg012:num(r.avg012), avg123:num(r.avg123),
+      trades:num(r.trades), dayVol:num(r.day_trading_volume),
+      netFlow:num(r.net_flow), netV:num(r.net_v),
+      flowStrength:num(r.flow_strength), tradingPct:num(r.trading_pct),
+      signal:String(r.signal ?? "").trim(),
+      name:r.name, symbol:r.symbol, market:r.market
+    })).filter(x=>x.o!=null&&x.c!=null&&!isNaN(x.d));
+    out.sort((a,b)=>a.d-b.d);
+    if(!out.length) throw new Error("沒有可用的資料點。");
+    return out;
+  }
+
+  // ---------- range control ----------
+  function applyPreset(days){
+    activeDays=days;
+    if(!days){ vs=0; ve=DATA.length-1; }
+    else { ve=DATA.length-1; vs=Math.max(0, DATA.length-days); }
+    syncButtons(); render();
+  }
+  function syncButtons(){
+    document.querySelectorAll("#ranges button").forEach(b=>{
+      b.classList.toggle("on", (+b.dataset.days)===activeDays);
+    });
+  }
+
+  // ---------- canvas setup with DPR ----------
+  function setup(cv, cssH){
+    const dpr = window.devicePixelRatio||1;
+    const cw = cv.clientWidth || cv.parentElement.clientWidth;
+    cv.style.height = cssH+"px";
+    cv.width  = Math.round(cw*dpr);
+    cv.height = Math.round(cssH*dpr);
+    const ctx = cv.getContext("2d");
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    return {ctx, w:cw, h:cssH};
+  }
+
+  // ---------- main chart ----------
+  const M = {l:8, r:64, t:10, b:22};
+  let plot=null; // geometry for hit-testing
+
+  function render(){
+    if(!DATA.length) return;
+    drawMain();
+    drawBrush();
+    updateLegend(hover>=0?hover:ve);
+  }
+
+  function drawMain(){
+    const cv=$("#main");
+    const totalH = Math.max(560, Math.min(820, window.innerHeight*0.85));
+    const {ctx,w,h}=setup(cv, totalH);
+    ctx.clearRect(0,0,w,h);
+
+    const slice = DATA.slice(vs, ve+1);
+    const n = slice.length;
+    const plotL=M.l, plotR=w-M.r, plotW=plotR-plotL;
+    const bandsH = h-M.t-M.b-32; // four 8px gaps between the five stacked bands
+    const priceH   = Math.round(bandsH*0.44);
+    const subH     = Math.round(bandsH*0.14); // net-vol / net-flow / flow-strength / trading-pct share the rest equally
+    const priceTop=M.t, priceBot=priceTop+priceH;
+    const nvTop=priceBot+8, nvBot=nvTop+subH;         // 淨成交量
+    const nfTop=nvBot+8, nfBot=nfTop+subH;            // 主力淨流
+    const fsTop=nfBot+8, fsBot=fsTop+subH;            // 強度%
+    const tpTop=fsBot+8, tpBot=h-M.b;                 // 控盤比
+
+    let pmin=Infinity, pmax=-Infinity, nvMax=1, nfMax=1, fsMax=1, tpMax=1;
+    slice.forEach(k=>{
+      pmin=Math.min(pmin,k.l); pmax=Math.max(pmax,k.h);
+      AVG_LINES.forEach(({key})=>{ if(k[key]!=null){ pmin=Math.min(pmin,k[key]); pmax=Math.max(pmax,k[key]); } });
+      nvMax=Math.max(nvMax, Math.abs(Number(k.netV)||0));
+      nfMax=Math.max(nfMax, Math.abs(Number(k.netFlow)||0));
+      fsMax=Math.max(fsMax, Math.abs(Number(k.flowStrength)||0));
+      tpMax=Math.max(tpMax, Math.abs(Number(k.tradingPct)||0));
+    });
+    const pad=(pmax-pmin)*0.06||1; pmin-=pad; pmax+=pad;
+    const y   = p => priceTop + (pmax-p)/(pmax-pmin)*(priceBot-priceTop);
+    const ynv = v => nvBot - (Math.abs(v)/(nvMax||1))*(nvBot-nvTop);
+    const nfMidY = nfTop+(nfBot-nfTop)/2, nfHalfH=(nfBot-nfTop)/2-4;
+    const ynf = v => nfMidY - (v/(nfMax||1))*nfHalfH;
+    const yfs = v => fsBot - (Math.abs(v)/(fsMax||1))*(fsBot-fsTop);
+    const ytp = v => tpBot - (Math.abs(v)/(tpMax||1))*(tpBot-tpTop);
+    const slot = plotW/n;
+    const cx = i => plotL + slot*(i+0.5);
+    const bw = Math.max(1, Math.min(slot*0.62, 14));
+
+    plot={plotL,plotR,plotW,slot,n,priceTop,priceBot,y,pmin,pmax};
+
+    // price grid + axis
+    ctx.font='11px "JetBrains Mono",monospace'; ctx.textBaseline="middle";
+    const ticks=5;
+    for(let i=0;i<=ticks;i++){
+      const p=pmin+(pmax-pmin)*i/ticks, yy=y(p);
+      ctx.strokeStyle="#eef0f4"; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(plotL,yy); ctx.lineTo(plotR,yy); ctx.stroke();
+      ctx.fillStyle="#8b93a1"; ctx.textAlign="left";
+      ctx.fillText(p.toFixed(2), plotR+6, yy);
+    }
+
+    // sub-band top-left labels
+    ctx.font='10.5px "JetBrains Mono",monospace'; ctx.textAlign="left"; ctx.fillStyle="#8b93a1";
+    ctx.fillText("淨成交量(張)", plotL, nvTop-3);
+    ctx.fillText("主力淨流(張)", plotL, nfTop-3);
+    ctx.fillText("強度%", plotL, fsTop-3);
+    ctx.fillText("控盤比", plotL, tpTop-3);
+    ctx.font='11px "JetBrains Mono",monospace';
+
+    // net_flow band: zero baseline + top/bottom ticks
+    [nfMax, 0, -nfMax].forEach(v=>{
+      const yy=ynf(v);
+      ctx.strokeStyle = v===0 ? "#dfe2e8" : "#eef0f4"; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(plotL,yy); ctx.lineTo(plotR,yy); ctx.stroke();
+      ctx.fillStyle="#8b93a1"; ctx.textAlign="left";
+      ctx.fillText(comma(Math.round(v)), plotR+6, yy);
+    });
+    ctx.strokeStyle="#eef0f4"; ctx.lineWidth=1;
+    [nvBot, fsBot, tpBot].forEach(yy=>{
+      ctx.beginPath(); ctx.moveTo(plotL,yy); ctx.lineTo(plotR,yy); ctx.stroke();
+    });
+
+    ctx.textAlign="center"; ctx.fillStyle="#8b93a1";
+    const step=Math.max(1,Math.ceil(n/8));
+    let lastYear=null;
+    for(let i=0;i<n;i++){
+      if(i%step!==0 && i!==n-1) continue;
+      const d=slice[i].d, x=cx(i);
+      let lbl=fmtMD(d);
+      if(d.getFullYear()!==lastYear){ lbl=d.getFullYear()+"/"+lbl; lastYear=d.getFullYear(); }
+      ctx.fillText(lbl, Math.max(plotL+14,Math.min(plotR-14,x)), h-8);
+    }
+
+    // 淨成交量 bars (net_v, tinted by day direction like the old volume bars)
+    for(let i=0;i<n;i++){
+      const k=slice[i], up=k.c>=k.o;
+      ctx.fillStyle=up?"rgba(226,59,59,.35)":"rgba(18,161,80,.35)";
+      const bx=cx(i)-bw/2, top=ynv(k.netV||0);
+      ctx.fillRect(bx, top, bw, nvBot-top);
+    }
+
+    // 主力淨流 bars (net_flow, zero-centered, red=淨買 綠=淨賣)
+    for(let i=0;i<n;i++){
+      const k=slice[i], v=Number(k.netFlow)||0, up=v>=0;
+      ctx.fillStyle=up?UP:DOWN;
+      const x=cx(i), y0=ynf(0), y1=ynf(v);
+      ctx.fillRect(x-bw/2, Math.min(y0,y1), bw, Math.max(1,Math.abs(y1-y0)));
+    }
+
+    // 強度% bars (flow_strength)
+    ctx.fillStyle="rgba(8,145,178,.55)";
+    for(let i=0;i<n;i++){
+      const k=slice[i]; if(k.flowStrength==null) continue;
+      const x=cx(i), top=yfs(k.flowStrength);
+      ctx.fillRect(x-bw/2, top, bw, fsBot-top);
+    }
+
+    // 控盤比 bars (trading_pct)
+    ctx.fillStyle="rgba(124,58,237,.55)";
+    for(let i=0;i<n;i++){
+      const k=slice[i]; if(k.tradingPct==null) continue;
+      const x=cx(i), top=ytp(k.tradingPct);
+      ctx.fillRect(x-bw/2, top, bw, tpBot-top);
+    }
+
+    // candles
+    for(let i=0;i<n;i++){
+      const k=slice[i], up=k.c>=k.o, col=up?UP:DOWN, x=cx(i);
+      ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(x, y(k.h)); ctx.lineTo(x, y(k.l)); ctx.stroke();
+      const yo=y(k.o), yc=y(k.c), top=Math.min(yo,yc), bh=Math.max(1,Math.abs(yo-yc));
+      ctx.fillRect(x-bw/2, top, bw, bh);
+    }
+
+    // avg/avg01/avg12/avg23 = 單點水平線；avg012/avg123 = 折線
+    AVG_LINES.forEach(({key,color,width,mode})=>{
+      ctx.strokeStyle=color; ctx.lineWidth=width;
+      if(mode==="line"){
+        ctx.beginPath();
+        let started=false;
+        for(let i=0;i<n;i++){
+          const k=slice[i]; if(k[key]==null) continue;
+          const x=cx(i), yy=y(k[key]);
+          if(!started){ ctx.moveTo(x,yy); started=true; } else ctx.lineTo(x,yy);
+        }
+        ctx.stroke();
+      } else {
+        for(let i=0;i<n;i++){
+          const k=slice[i]; if(k[key]==null) continue;
+          const x=cx(i), yy=y(k[key]);
+          ctx.beginPath(); ctx.moveTo(x-bw/2,yy); ctx.lineTo(x+bw/2,yy); ctx.stroke();
+        }
+      }
+    });
+
+    if(hover>=vs && hover<=ve){
+      const i=hover-vs, x=cx(i), k=slice[i];
+      ctx.save();
+      ctx.strokeStyle="#9aa2b1"; ctx.setLineDash([4,4]); ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(x,priceTop); ctx.lineTo(x,tpBot); ctx.stroke();
+      const yy=y(k.c);
+      ctx.beginPath(); ctx.moveTo(plotL,yy); ctx.lineTo(plotR,yy); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle="#161a22"; ctx.fillRect(plotR, yy-9, M.r, 18);
+      ctx.fillStyle="#fff"; ctx.textAlign="left"; ctx.textBaseline="middle";
+      ctx.font='600 11px "JetBrains Mono",monospace';
+      ctx.fillText(k.c.toFixed(2), plotR+6, yy);
+      ctx.fillStyle=k.c>=k.o?UP:DOWN;
+      ctx.beginPath(); ctx.arc(x,yy,3,0,7); ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  let bgeo=null;
+  function drawBrush(){
+    const cv=$("#brush");
+    const {ctx,w,h}=setup(cv,64);
+    ctx.clearRect(0,0,w,h);
+    const L=8,R=w-64,W=R-L,T=8,B=h-8;
+    const n=DATA.length;
+    let mn=Infinity,mx=-Infinity;
+    DATA.forEach(k=>{mn=Math.min(mn,k.c);mx=Math.max(mx,k.c);});
+    const xi=i=>L+(i/(n-1))*W;
+    const yc=c=>B-(c-mn)/((mx-mn)||1)*(B-T);
+    ctx.strokeStyle="#c7ccd6"; ctx.lineWidth=1.2; ctx.beginPath();
+    DATA.forEach((k,i)=>{const X=xi(i),Y=yc(k.c); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);});
+    ctx.stroke();
+    const x0=xi(vs), x1=xi(ve);
+    ctx.fillStyle="rgba(31,58,95,.10)"; ctx.fillRect(x0,T,x1-x0,B-T);
+    ctx.strokeStyle="#1f3a5f"; ctx.lineWidth=1.5;
+    ctx.strokeRect(x0,T,x1-x0,B-T);
+    ctx.fillStyle="#1f3a5f";
+    [x0,x1].forEach(X=>{ctx.fillRect(X-2,T,4,B-T);});
+    bgeo={L,R,W,T,B,n,xi,
+      idxAt:px=>Math.round(((Math.max(L,Math.min(R,px))-L)/W)*(n-1)),
+      x0,x1};
+    $("#brushrange").textContent = `${DATA[vs].dateStr.replace(/(\d{4})(\d\d)(\d\d)/,"$1/$2/$3")} – ${DATA[ve].dateStr.replace(/(\d{4})(\d\d)(\d\d)/,"$1/$2/$3")}（${ve-vs+1} 天）`;
+  }
+
+  function legendRow(k){
+    if(!k) return;
+    const up = k.c>=k.o;
+    const chgUp = (k.chgV??0)>=0;
+    const col = up?UP:DOWN, ccol = chgUp?UP:DOWN;
+    const item=(name,val,color)=>`<span class="item"><span class="k">${esc(name)}</span><span class="v" ${color?`style="color:${color}"`:""}>${val}</span></span>`;
+    $("#legend").innerHTML =
+      item("日期", esc(fmtDate(k.d))) +
+      item("開", esc(k.o?.toFixed(2)), col) +
+      item("高", esc(k.h?.toFixed(2)), col) +
+      item("低", esc(k.l?.toFixed(2)), col) +
+      item("收", esc(k.c?.toFixed(2)), col) +
+      item("漲跌", esc((chgUp?"+":"")+(k.chgV??"—")+" ("+(k.chgP||"—")+")"), ccol) +
+      AVG_LINES.map(({key,label,color})=>item(label, esc(k[key]!=null?k[key].toFixed(2):"—"), color)).join("") +
+      item("成交量", esc(lots(k.vol))) +
+      item("成交額", esc(bigMoney(k.turnover))) +
+      item("筆數", esc(comma(k.trades))) +
+      item("當沖量", esc(lots(k.dayVol))) +
+      item("淨流入(張)", esc(k.netFlow!=null?((k.netFlow>=0?"+":"")+comma(k.netFlow)):"—"), k.netFlow!=null?((k.netFlow>=0)?UP:DOWN):null) +
+      item("淨量(張)", esc(comma(k.netV))) +
+      item("強度%", esc(k.flowStrength!=null?k.flowStrength.toFixed(2)+"%":"—")) +
+      item("控盤比", esc(k.tradingPct!=null?k.tradingPct.toFixed(2):"—")) +
+      (k.signal?`<span class="item"><span class="k">訊號</span><span class="chip">${esc(k.signal)}</span></span>`:"");
+  }
+  function updateLegend(i){ if(DATA[i]) legendRow(DATA[i]); }
+
+  function updateHeader(){
+    const k=DATA[DATA.length-1];
+    $("#name").textContent=k.name||"—";
+    $("#sym").textContent=k.symbol||"";
+    $("#mkt").textContent=k.market||"";
+    $("#lastpx").textContent=k.c?.toFixed(2);
+    const up=(k.chgV??0)>=0;
+    const b=$("#lastbadge");
+    b.textContent=(up?"▲ +":"▼ ")+(k.chgV??"")+"  "+(k.chgP||"");
+    b.style.color=up?UP:DOWN;
+    b.style.background=up?"rgba(226,59,59,.10)":"rgba(18,161,80,.10)";
+    document.title=`${k.name||""} ${k.symbol||""}｜台股資料儀表板`;
+  }
+
+  $("#main").addEventListener("mousemove", e=>{
+    if(!plot) return;
+    const r=e.currentTarget.getBoundingClientRect();
+    const mx=e.clientX-r.left;
+    let i=Math.floor((mx-plot.plotL)/plot.slot);
+    i=Math.max(0,Math.min(plot.n-1,i));
+    hover=vs+i; drawMain(); updateLegend(hover);
+  });
+  $("#main").addEventListener("mouseleave", ()=>{ hover=-1; drawMain(); updateLegend(ve); });
+
+  let drag=null;
+  let moveAnchor=0, startVs=0, startVe=0;
+  $("#brush").addEventListener("mousedown", e=>{
+    if(!bgeo) return;
+    const r=e.currentTarget.getBoundingClientRect(), px=e.clientX-r.left;
+    const near=(a,b)=>Math.abs(a-b)<7;
+    if(near(px,bgeo.x0)) drag="left";
+    else if(near(px,bgeo.x1)) drag="right";
+    else if(px>bgeo.x0 && px<bgeo.x1){ drag="move"; moveAnchor=bgeo.idxAt(px); startVs=vs; startVe=ve; }
+    else {
+      const idx=bgeo.idxAt(px);
+      if(Math.abs(idx-vs)<Math.abs(idx-ve)){vs=Math.min(idx,ve-1);} else {ve=Math.max(idx,vs+1);}
+      activeDays=-1; syncButtons(); render();
+    }
+    $("#brush").classList.add("dragging");
+    e.preventDefault();
+  });
+  window.addEventListener("mousemove", e=>{
+    if(!drag||!bgeo) return;
+    const r=$("#brush").getBoundingClientRect(), px=e.clientX-r.left;
+    const idx=bgeo.idxAt(px);
+    if(drag==="left")  vs=Math.max(0,Math.min(idx,ve-1));
+    if(drag==="right") ve=Math.min(DATA.length-1,Math.max(idx,vs+1));
+    if(drag==="move"){
+      const w=startVe-startVs, delta=idx-moveAnchor;
+      let ns=startVs+delta; ns=Math.max(0,Math.min(ns,DATA.length-1-w));
+      vs=ns; ve=ns+w;
+    }
+    activeDays=-1; syncButtons(); render();
+  });
+  window.addEventListener("mouseup", ()=>{ drag=null; $("#brush").classList.remove("dragging"); });
+
+  $("#brush").addEventListener("touchmove", e=>{
+    if(!bgeo) return;
+    const r=$("#brush").getBoundingClientRect(), px=e.touches[0].clientX-r.left;
+    const idx=bgeo.idxAt(px);
+    const w=ve-vs; let ns=Math.max(0,Math.min(idx-Math.floor(w/2),DATA.length-1-w));
+    vs=ns; ve=ns+w; activeDays=-1; syncButtons(); render(); e.preventDefault();
+  },{passive:false});
+
+  document.querySelectorAll("#ranges button").forEach(b=>{
+    b.addEventListener("click",()=>applyPreset(+b.dataset.days));
+  });
+
+  let rt; window.addEventListener("resize",()=>{
+    clearTimeout(rt);
+    rt=setTimeout(()=>{
+      render();
+      if(INDT.length) drawIndTrend();
+      if(indRankRows.length) drawIndRank();
+    },120);
+  });
+
+  function boot(raw){
+    try{
+      DATA=normalize(raw);
+      vs=0; ve=DATA.length-1; hover=-1; activeDays=0; syncButtons();
+      updateHeader(); render();
+      $("#status").textContent=`已載入 ${DATA.length} 筆資料（${DATA[0].dateStr} – ${DATA[DATA.length-1].dateStr}）。`;
+      $("#status").classList.remove("err");
+      $("#pastebox").style.display="none";
+    }catch(err){ fail("資料解析失敗："+err.message); }
+  }
+  function fail(msg){
+    $("#status").textContent=msg;
+    $("#status").classList.add("err");
+    $("#pastebox").style.display="block";
+    $("#name").textContent="無法載入";
+  }
+  async function loadKline(){
+    const symbol=$("#symbol").value.trim();
+    if(!symbol){ fail("請輸入股票代號。"); return; }
+    $("#status").textContent="正在向 API 抓取資料…";
+    $("#status").classList.remove("err");
+    try{
+      const json = await apiFetch(`/api/v2/stock/${encodeURIComponent(symbol)}`);
+      boot(json);
+    }catch(err){
+      fail("無法直接抓取（"+err.message+"）。可能是瀏覽器 CORS 限制——請改用下方「貼上 JSON」方式。");
+    }
+  }
+  $("#load").addEventListener("click",loadKline);
+  $("#symbol").addEventListener("keydown",e=>{if(e.key==="Enter")loadKline();});
+  $("#usepaste").addEventListener("click",()=>{
+    try{ boot(JSON.parse($("#pastearea").value)); }
+    catch(err){ fail("貼上的內容不是有效 JSON："+err.message); }
+  });
+
+  function goToSymbol(sym){
+    if(!sym) return;
+    $("#symbol").value = sym;
+    showTab("kline");
+    loadKline();
+  }
+
+  // ==================================================================
+  //  主力指標 daily_indicators — 個股趨勢 + 單日排行
+  // ==================================================================
+  let INDT=[];           // ascending {d,dateStr,netFlow,netV,avg,close,chgV,signal}
+  let indHover=-1;
+  const IM={l:8,r:70,t:10,b:22};
+  let indPlot=null;
+
+  function normalizeIndTrend(raw){
+    let arr = raw;
+    if(!Array.isArray(arr)) throw new Error("回傳格式無法辨識。");
+    const out = arr.map(r=>({
+      d: parseDate(r.date), dateStr:String(r.date),
+      netFlow:num(r.net_flow), netV:num(r.net_v), avg:num(r.avg),
+      close:num(r.close), chgV:num(r.change_val ?? r.change),
+      signal:String(r.signal ?? "").trim(),
+    })).filter(x=>!isNaN(x.d));
+    out.sort((a,b)=>a.d-b.d);
+    if(!out.length) throw new Error("沒有可用的資料點。");
+    return out;
+  }
+
+  function drawIndTrend(){
+    const cv=$("#ind-trend-canvas");
+    if(!INDT.length) return;
+    const totalH = Math.max(300, Math.min(460, window.innerHeight*0.5));
+    const {ctx,w,h}=setup(cv, totalH);
+    ctx.clearRect(0,0,w,h);
+    const plotL=IM.l, plotR=w-IM.r, plotT=IM.t, plotB=h-IM.b;
+    const n=INDT.length;
+    let nfMax=1, avMin=Infinity, avMax=-Infinity;
+    INDT.forEach(k=>{ nfMax=Math.max(nfMax, Math.abs(k.netFlow||0)); if(k.avg!=null){avMin=Math.min(avMin,k.avg); avMax=Math.max(avMax,k.avg);} });
+    if(avMin===Infinity){avMin=0; avMax=1;}
+    const avPad=(avMax-avMin)*0.08||1; avMin-=avPad; avMax+=avPad;
+    const midY = plotT+(plotB-plotT)/2;
+    const halfH = (plotB-plotT)/2-4;
+    const yNf = v => midY-(v/nfMax)*halfH;
+    const yAv = v => plotB-(v-avMin)/((avMax-avMin)||1)*(plotB-plotT);
+    const slot=(plotR-plotL)/n;
+    const cx = i => plotL+slot*(i+0.5);
+    const bw = Math.max(1, Math.min(slot*0.62, 14));
+
+    indPlot={plotL,plotR,slot,n};
+
+    ctx.font='11px "JetBrains Mono",monospace'; ctx.textBaseline="middle";
+    [nfMax, nfMax/2, 0, -nfMax/2, -nfMax].forEach(v=>{
+      const yy=yNf(v);
+      ctx.strokeStyle = v===0 ? "#c7ccd6" : "#eef0f4"; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(plotL,yy); ctx.lineTo(plotR,yy); ctx.stroke();
+      ctx.fillStyle="#8b93a1"; ctx.textAlign="left";
+      ctx.fillText(comma(Math.round(v)), plotR+6, yy);
+    });
+
+    ctx.textAlign="center"; ctx.fillStyle="#8b93a1";
+    const step=Math.max(1,Math.ceil(n/8));
+    let lastYear=null;
+    for(let i=0;i<n;i++){
+      if(i%step!==0 && i!==n-1) continue;
+      const d=INDT[i].d, x=cx(i);
+      let lbl=fmtMD(d);
+      if(d.getFullYear()!==lastYear){ lbl=d.getFullYear()+"/"+lbl; lastYear=d.getFullYear(); }
+      ctx.fillText(lbl, Math.max(plotL+14,Math.min(plotR-14,x)), h-8);
+    }
+
+    for(let i=0;i<n;i++){
+      const k=INDT[i], v=k.netFlow||0, up=v>=0;
+      ctx.fillStyle = up?UP:DOWN;
+      const x=cx(i), y0=yNf(0), y1=yNf(v);
+      ctx.fillRect(x-bw/2, Math.min(y0,y1), bw, Math.max(1,Math.abs(y1-y0)));
+    }
+
+    ctx.strokeStyle="#1f3a5f"; ctx.lineWidth=1.4; ctx.beginPath();
+    let started=false;
+    INDT.forEach((k,i)=>{
+      if(k.avg==null) return;
+      const x=cx(i), y=yAv(k.avg);
+      if(!started){ ctx.moveTo(x,y); started=true; } else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+
+    if(indHover>=0 && indHover<n){
+      const x=cx(indHover);
+      ctx.save();
+      ctx.strokeStyle="#9aa2b1"; ctx.setLineDash([4,4]); ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(x,plotT); ctx.lineTo(x,plotB); ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function indLegendRow(k){
+    if(!k) return;
+    const nfUp=(k.netFlow??0)>=0, chgUp=(k.chgV??0)>=0;
+    const item=(name,val,color)=>`<span class="item"><span class="k">${esc(name)}</span><span class="v" ${color?`style="color:${color}"`:""}>${val}</span></span>`;
+    $("#ind-trend-legend").innerHTML =
+      item("日期", esc(fmtDate(k.d))) +
+      item("淨流(張)", esc(comma(k.netFlow)), nfUp?UP:DOWN) +
+      item("淨量(張)", esc(comma(k.netV))) +
+      item("均價", esc(k.avg!=null?k.avg.toFixed(2):"—")) +
+      item("收盤", esc(k.close!=null?k.close.toFixed(2):"—"), chgUp?UP:DOWN) +
+      (k.signal?`<span class="item"><span class="k">訊號</span><span class="chip">${esc(k.signal)}</span></span>`:"");
+  }
+  function updateIndLegend(i){ if(INDT[i]) indLegendRow(INDT[i]); }
+
+  $("#ind-trend-canvas").addEventListener("mousemove", e=>{
+    if(!indPlot) return;
+    const r=e.currentTarget.getBoundingClientRect();
+    const mx=e.clientX-r.left;
+    let i=Math.floor((mx-indPlot.plotL)/indPlot.slot);
+    i=Math.max(0,Math.min(indPlot.n-1,i));
+    indHover=i; drawIndTrend(); updateIndLegend(i);
+  });
+  $("#ind-trend-canvas").addEventListener("mouseleave", ()=>{ indHover=-1; drawIndTrend(); updateIndLegend(INDT.length-1); });
+
+  async function loadIndTrend(){
+    const symbol=$("#ind-symbol").value.trim();
+    if(!symbol){ $("#ind-trend-status").textContent="請輸入股票代號。"; $("#ind-trend-status").classList.add("err"); return; }
+    $("#ind-trend-status").textContent="正在向 API 抓取資料…"; $("#ind-trend-status").classList.remove("err");
+    try{
+      const json = await apiFetch(`/api/v2/stock/${encodeURIComponent(symbol)}`);
+      INDT = normalizeIndTrend(json);
+      indHover=-1;
+      drawIndTrend(); updateIndLegend(INDT.length-1);
+      $("#ind-trend-status").textContent = `已載入 ${symbol} 共 ${INDT.length} 筆主力指標資料（${INDT[0].dateStr} – ${INDT[INDT.length-1].dateStr}）。`;
+    }catch(err){
+      $("#ind-trend-status").textContent="載入失敗："+err.message; $("#ind-trend-status").classList.add("err");
+    }
+  }
+  $("#ind-trend-load").addEventListener("click", loadIndTrend);
+  $("#ind-symbol").addEventListener("keydown", e=>{ if(e.key==="Enter") loadIndTrend(); });
+
+  // ---- 單日排行 ----
+  let indRankRows=[];
+  let indRankHover=-1;
+  let indRankPlot=null;
+
+  function drawIndRank(){
+    const cv=$("#ind-rank-canvas");
+    const rows=indRankRows;
+    const rowH=24;
+    const totalH=Math.max(120, rows.length*rowH+30);
+    const {ctx,w,h}=setup(cv, totalH);
+    ctx.clearRect(0,0,w,h);
+    if(!rows.length) return;
+    const plotL=92, plotR=w-70;
+    let maxAbs=1;
+    rows.forEach(r=>{ maxAbs=Math.max(maxAbs, Math.abs(num(r.net_flow)||0)); });
+    const x0 = plotL+(plotR-plotL)/2;
+    const halfW = (plotR-plotL)/2-4;
+    const scale = halfW/maxAbs;
+
+    ctx.strokeStyle="#c7ccd6"; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x0,10); ctx.lineTo(x0,h-10); ctx.stroke();
+
+    ctx.font='12px "JetBrains Mono",monospace'; ctx.textBaseline="middle";
+    rows.forEach((r,i)=>{
+      const v=num(r.net_flow)||0, up=v>=0;
+      const y=15+i*rowH;
+      const bw=Math.abs(v)*scale;
+      ctx.fillStyle = up?UP:DOWN;
+      ctx.fillRect(up?x0:x0-bw, y-8, bw, 16);
+      ctx.fillStyle="#161a22"; ctx.textAlign="right";
+      ctx.fillText(String(r.symbol), plotL-8, y);
+      ctx.fillStyle = up?UP:DOWN; ctx.textAlign = up?"left":"right";
+      ctx.fillText(comma(v)+" 張", up?(x0+bw+6):(x0-bw-6), y);
+      if(indRankHover===i){
+        ctx.strokeStyle="#1f3a5f"; ctx.lineWidth=1.5;
+        ctx.strokeRect(plotL-2, y-10, plotR-plotL+4, 20);
+      }
+    });
+    indRankPlot={rowH, top:15, n:rows.length};
+  }
+
+  async function loadIndRank(){
+    const date=$("#ind-rank-date").value;
+    const topn=Number($("#ind-rank-topn").value)||30;
+    $("#ind-rank-status").textContent="查詢中…"; $("#ind-rank-status").classList.remove("err");
+    try{
+      const json = await apiFetch(`/api/table/daily-indicators?date=${date}&limit=${topn}&page=1`);
+      indRankRows = json.rows||[];
+      indRankHover=-1;
+      drawIndRank();
+      $("#ind-rank-status").textContent = `${date} 主力淨流向強度前 ${indRankRows.length} 檔（依｜淨流｜排序，紅=淨買 綠=淨賣，單位：張）。點列可切換至個股K線。`;
+    }catch(err){ $("#ind-rank-status").textContent="查詢失敗："+err.message; $("#ind-rank-status").classList.add("err"); }
+  }
+  $("#ind-rank-load").addEventListener("click", loadIndRank);
+  $("#ind-rank-canvas").addEventListener("mousemove", e=>{
+    if(!indRankPlot) return;
+    const r=e.currentTarget.getBoundingClientRect();
+    const my=e.clientY-r.top;
+    let i=Math.floor((my-indRankPlot.top+12)/indRankPlot.rowH);
+    i=Math.max(0,Math.min(indRankPlot.n-1,i));
+    if(i!==indRankHover){ indRankHover=i; drawIndRank(); }
+  });
+  $("#ind-rank-canvas").addEventListener("mouseleave", ()=>{ indRankHover=-1; drawIndRank(); });
+  $("#ind-rank-canvas").addEventListener("click", e=>{
+    if(!indRankPlot) return;
+    const r=e.currentTarget.getBoundingClientRect();
+    const my=e.clientY-r.top;
+    let i=Math.floor((my-indRankPlot.top+12)/indRankPlot.rowH);
+    if(i>=0 && i<indRankRows.length) goToSymbol(indRankRows[i].symbol);
+  });
+
+  document.querySelectorAll("#ind-mode button").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      document.querySelectorAll("#ind-mode button").forEach(x=>x.classList.toggle("on", x===b));
+      const mode=b.dataset.mode;
+      $("#ind-trend-panel").style.display = mode==="trend" ? "" : "none";
+      $("#ind-rank-panel").style.display = mode==="rank" ? "" : "none";
+    });
+  });
+
+  function loadIndicatorsTab(){
+    if(!$("#ind-symbol").value.trim() && $("#symbol").value.trim()){
+      $("#ind-symbol").value = $("#symbol").value.trim();
+    }
+    loadIndTrend();
+    loadIndRank();
+  }
+
+  // ==================================================================
+  //  全市場行情 /api/v2/daily
+  // ==================================================================
+  const dailyCols = [
+    {label:"代號", key:"symbol"},
+    {label:"名稱", key:"name"},
+    {label:"市場", key:"market"},
+    {label:"收盤", key:"close", fmt:v=>fmtNum(v)},
+    {label:"漲跌", key:"change", color:r=>upColor(r.change_val)},
+    {label:"漲跌%", key:"change_pct", color:r=>upColor(r.change_val)},
+    {label:"成交量", key:"volume", fmt:v=>esc(lots(v))},
+    {label:"成交額", key:"turnover", fmt:v=>esc(bigMoney(v))},
+    {label:"均價", key:"avg", fmt:v=>fmtNum(v)},
+    {label:"淨流入", key:"net_flow"},
+    {label:"訊號", key:"signal"},
+  ];
+  async function loadDaily(){
+    const date=$("#daily-date").value;
+    $("#daily-status").textContent="查詢中…"; $("#daily-status").classList.remove("err");
+    try{
+      const rows = await apiFetch(`/api/v2/daily?date=${date}`);
+      renderTable("daily-table", rows, dailyCols, {onRowClick:r=>goToSymbol(r.symbol)});
+      $("#daily-status").textContent=`共 ${rows.length} 檔（${date}）。點列可切換至個股K線。`;
+    }catch(err){ $("#daily-status").textContent="查詢失敗："+err.message; $("#daily-status").classList.add("err"); }
+  }
+  $("#daily-refresh").addEventListener("click",loadDaily);
+
+  // ==================================================================
+  //  漲幅排行 /api/v2/gainers
+  // ==================================================================
+  const gainersCols = [
+    {label:"代號", key:"symbol"},
+    {label:"名稱", key:"name"},
+    {label:"市場", key:"market"},
+    {label:"收盤", key:"close", fmt:v=>fmtNum(v)},
+    {label:"漲跌", key:"change", color:r=>upColor(r.change_val)},
+    {label:"漲跌%", key:"change_pct", color:r=>upColor(r.change_val)},
+    {label:"成交量", key:"volume", fmt:v=>esc(lots(v))},
+  ];
+  async function loadGainers(){
+    const date=$("#gainers-date").value;
+    $("#gainers-status").textContent="查詢中…"; $("#gainers-status").classList.remove("err");
+    try{
+      const rows = await apiFetch(`/api/v2/gainers?date=${date}`);
+      renderTable("gainers-table", rows, gainersCols, {onRowClick:r=>goToSymbol(r.symbol)});
+      $("#gainers-status").textContent=`共 ${rows.length} 檔（${date}）。點列可切換至個股K線。`;
+    }catch(err){ $("#gainers-status").textContent="查詢失敗："+err.message; $("#gainers-status").classList.add("err"); }
+  }
+  $("#gainers-refresh").addEventListener("click",loadGainers);
+
+  // ==================================================================
+  //  強勢股 /api/v2/strong + /api/v2/strong/dates
+  // ==================================================================
+  const strongCols = [
+    {label:"代號", key:"code"},
+    {label:"名稱", key:"name"},
+    {label:"市場", key:"market"},
+    {label:"日期", key:"date"},
+    {label:"收盤", key:"close", fmt:v=>fmtNum(v)},
+    {label:"漲跌", key:"chg", fmt:v=>esc(fmtSigned(v)), color:r=>upColor(r.chg)},
+    {label:"漲跌%", key:"change_pct", fmt:v=>esc(fmtPctNum(v)), color:r=>upColor(r.change_pct)},
+    {label:"成交量", key:"volume", fmt:v=>esc(lots(v))},
+    {label:"成交額", key:"turnover", fmt:v=>esc(bigMoney(v))},
+    {label:"均價", key:"avg", fmt:v=>fmtNum(v)},
+    {label:"淨流入", key:"net_flow"},
+    {label:"訊號", key:"signal"},
+  ];
+  async function loadStrongDates(){
+    try{
+      const rows = await apiFetch(`/api/v2/strong/dates`);
+      const sel=$("#strong-dates");
+      sel.innerHTML = '<option value="">（選擇日期快速查詢）</option>' +
+        rows.map(r=>`<option value="${esc(r.date)}">${esc(r.date)}（${esc(r.count)} 檔）</option>`).join("");
+    }catch(err){ /* 靜默失敗，不影響主功能 */ }
+  }
+  async function loadStrong(){
+    const date=$("#strong-date").value;
+    $("#strong-status").textContent="查詢中…"; $("#strong-status").classList.remove("err");
+    try{
+      const rows = await apiFetch(`/api/v2/strong?date=${date}`);
+      renderTable("strong-table", rows, strongCols, {onRowClick:r=>goToSymbol(r.code)});
+      $("#strong-status").textContent=`共 ${rows.length} 檔（${date||"今日"}）。點列可切換至個股K線。`;
+    }catch(err){ $("#strong-status").textContent="查詢失敗："+err.message; $("#strong-status").classList.add("err"); }
+  }
+  $("#strong-refresh").addEventListener("click",loadStrong);
+  $("#strong-dates").addEventListener("change",e=>{
+    if(e.target.value){ $("#strong-date").value=e.target.value; loadStrong(); }
+  });
+
+  // ==================================================================
+  //  處置股 /api/stock-info/dispose
+  // ==================================================================
+  const disposeCols = [
+    {label:"代號", key:"code"},
+    {label:"名稱", key:"name"},
+    {label:"市場", key:"market"},
+    {label:"處置迄日", key:"dispose_end_date"},
+    {label:"收盤", key:"close", fmt:v=>fmtNum(v)},
+    {label:"漲跌%", key:"change_pct", fmt:v=>esc(fmtPctNum(v)), color:r=>upColor(r.change_pct)},
+    {label:"成交量", key:"volume", fmt:v=>esc(lots(v))},
+  ];
+  async function loadDispose(){
+    const date=$("#dispose-date").value;
+    $("#dispose-status").textContent="查詢中…"; $("#dispose-status").classList.remove("err");
+    try{
+      const rows = await apiFetch(`/api/stock-info/dispose?date=${date}`);
+      renderTable("dispose-table", rows, disposeCols, {onRowClick:r=>goToSymbol(r.code)});
+      $("#dispose-status").textContent=`共 ${rows.length} 檔仍在處置中。點列可切換至個股K線。`;
+    }catch(err){ $("#dispose-status").textContent="查詢失敗："+err.message; $("#dispose-status").classList.add("err"); }
+  }
+  $("#dispose-refresh").addEventListener("click",loadDispose);
+
+  // ==================================================================
+  //  52週新高 /api/stock-info/52h
+  // ==================================================================
+  const h52Cols = [
+    {label:"代號", key:"code"},
+    {label:"名稱", key:"name"},
+    {label:"市場", key:"market"},
+    {label:"52週新高日期", key:"52h_date"},
+    {label:"52週新高價", key:"52h_price", fmt:v=>fmtNum(v)},
+    {label:"現價", key:"close", fmt:v=>fmtNum(v)},
+    {label:"漲跌%", key:"change_pct", fmt:v=>esc(fmtPctNum(v)), color:r=>upColor(r.change_pct)},
+    {label:"成交量", key:"volume", fmt:v=>esc(lots(v))},
+  ];
+  async function loadH52(){
+    const date=$("#h52-date").value;
+    $("#h52-status").textContent="查詢中…"; $("#h52-status").classList.remove("err");
+    try{
+      const rows = await apiFetch(`/api/stock-info/52h?date=${date}`);
+      renderTable("h52-table", rows, h52Cols, {onRowClick:r=>goToSymbol(r.code)});
+      $("#h52-status").textContent=`共 ${rows.length} 檔創 52 週新高。點列可切換至個股K線。`;
+    }catch(err){ $("#h52-status").textContent="查詢失敗："+err.message; $("#h52-status").classList.add("err"); }
+  }
+  $("#h52-refresh").addEventListener("click",loadH52);
+
+  // ==================================================================
+  //  資料庫瀏覽 /api/table/:name
+  // ==================================================================
+  let dbPage=1;
+  let dbTotal=0;
+  async function loadDbTable(){
+    const table=$("#db-name").value;
+    const date=$("#db-date").value;
+    const limit=Math.max(1,Math.min(500,Number($("#db-limit").value)||50));
+    $("#db-status-msg").textContent="查詢中…"; $("#db-status-msg").classList.remove("err");
+    try{
+      const qs = new URLSearchParams({limit, page:dbPage});
+      if(date) qs.set("date", date);
+      const json = await apiFetch(`/api/table/${table}?${qs.toString()}`);
+      dbTotal = json.total||0;
+      const rows = json.rows||[];
+      const cols = autoCols(rows);
+      renderTable("db-table", rows, cols, {onRowClick: (rows.length && (rows[0].symbol||rows[0].code)) ? (r=>goToSymbol(r.symbol||r.code)) : undefined});
+      const totalPages = Math.max(1, Math.ceil(dbTotal/limit));
+      $("#db-pageinfo").textContent = `共 ${dbTotal} 筆，第 ${dbPage}/${totalPages} 頁`;
+      $("#db-prev").disabled = dbPage<=1;
+      $("#db-next").disabled = dbPage>=totalPages;
+      $("#db-status-msg").textContent="";
+    }catch(err){ $("#db-status-msg").textContent="查詢失敗："+err.message; $("#db-status-msg").classList.add("err"); }
+  }
+  $("#db-refresh").addEventListener("click",()=>{ dbPage=1; loadDbTable(); });
+  $("#db-name").addEventListener("change",()=>{ dbPage=1; loadDbTable(); });
+  $("#db-prev").addEventListener("click",()=>{ if(dbPage>1){ dbPage--; loadDbTable(); } });
+  $("#db-next").addEventListener("click",()=>{ dbPage++; loadDbTable(); });
+
+  // ==================================================================
+  //  盤前計劃 /api/premarket
+  // ==================================================================
+  function pmFillForm(rec, date){
+    $("#pm-date").value = date || rec?.date || "";
+    $("#pm-mood").value = rec?.mood || "";
+    $("#pm-trend").value = rec?.marketTrend || "";
+    $("#pm-permission").value = rec?.tradingPermission || "";
+    $("#pm-notes").value = rec?.marketNotes || "";
+    $("#pm-reminder").value = rec?.todayReminder || "";
+    const wl = rec?.watchlist;
+    $("#pm-watchlist").value = Array.isArray(wl) ? wl.join(", ") : (wl ? String(wl) : "");
+  }
+  function pmClear(){ pmFillForm(null, ""); $("#pm-status").textContent=""; }
+  const pmListCols = [
+    {label:"日期", key:"date"},
+    {label:"心情", key:"mood"},
+    {label:"趨勢", key:"marketTrend"},
+    {label:"交易許可", key:"tradingPermission"},
+    {label:"更新時間", key:"updated_at", fmt:v=>v?esc(String(v).slice(0,16).replace("T"," ")):"—"},
+  ];
+  async function loadPremarketList(){
+    try{
+      const json = await apiFetch(`/api/premarket`);
+      renderTable("pm-table", json.premarketRecords||[], pmListCols, {onRowClick:r=>{ pmFillForm(null, r.date); loadPremarketOne(); }});
+    }catch(err){ $("#pm-status").textContent="列表載入失敗："+err.message; $("#pm-status").classList.add("err"); }
+  }
+  async function loadPremarketOne(){
+    const date=$("#pm-date").value;
+    if(!date){ $("#pm-status").textContent="請先選擇日期。"; return; }
+    $("#pm-status").textContent="載入中…"; $("#pm-status").classList.remove("err");
+    try{
+      const json = await apiFetch(`/api/premarket?date=${date}`);
+      if(json.premarket) pmFillForm(json.premarket, date); else pmFillForm(null, date);
+      $("#pm-status").textContent = json.premarket ? "已載入該日期計畫。" : "該日期尚無計畫，可直接新增。";
+    }catch(err){ $("#pm-status").textContent="載入失敗："+err.message; $("#pm-status").classList.add("err"); }
+  }
+  async function savePremarket(){
+    const date=$("#pm-date").value;
+    if(!date){ $("#pm-status").textContent="請先選擇日期。"; $("#pm-status").classList.add("err"); return; }
+    const watchlist = $("#pm-watchlist").value.split(",").map(s=>s.trim()).filter(Boolean);
+    try{
+      await apiSend(`/api/premarket`, "POST", {
+        date, mood: $("#pm-mood").value||null, marketTrend: $("#pm-trend").value||null,
+        tradingPermission: $("#pm-permission").value||null, marketNotes: $("#pm-notes").value||null,
+        todayReminder: $("#pm-reminder").value||null, watchlist
+      });
+      $("#pm-status").textContent="已儲存。"; $("#pm-status").classList.remove("err");
+      loadPremarketList();
+    }catch(err){ $("#pm-status").textContent="儲存失敗："+err.message; $("#pm-status").classList.add("err"); }
+  }
+  async function deletePremarket(){
+    const date=$("#pm-date").value;
+    if(!date){ $("#pm-status").textContent="請先選擇日期。"; $("#pm-status").classList.add("err"); return; }
+    if(!confirm(`確定刪除 ${date} 的盤前計畫？`)) return;
+    try{
+      await apiSend(`/api/premarket?date=${date}`, "DELETE");
+      $("#pm-status").textContent="已刪除。"; $("#pm-status").classList.remove("err");
+      pmClear(); loadPremarketList();
+    }catch(err){ $("#pm-status").textContent="刪除失敗："+err.message; $("#pm-status").classList.add("err"); }
+  }
+  $("#pm-load-btn").addEventListener("click",loadPremarketOne);
+  $("#pm-save").addEventListener("click",savePremarket);
+  $("#pm-delete").addEventListener("click",deletePremarket);
+  $("#pm-clear").addEventListener("click",pmClear);
+
+  // ==================================================================
+  //  交易日誌 /api/journal
+  // ==================================================================
+  let jnCurrentId=null;
+  function jnClear(){
+    jnCurrentId=null; $("#jn-form-title").textContent="新增日誌";
+    ["jn-date","jn-symbol","jn-direction","jn-strategy","jn-mood","jn-trend",
+     "jn-entry","jn-stop","jn-exit","jn-title","jn-content","jn-notes","jn-watchlist"]
+      .forEach(id=>$("#"+id).value="");
+    $("#jn-status").textContent="";
+  }
+  function jnFillForm(e){
+    jnCurrentId=e.id; $("#jn-form-title").textContent="編輯日誌 #"+e.id;
+    $("#jn-date").value = e.trade_date ? String(e.trade_date).slice(0,10) : "";
+    $("#jn-symbol").value = e.symbol||"";
+    $("#jn-direction").value = e.direction||"";
+    $("#jn-strategy").value = e.strategy||"";
+    $("#jn-mood").value = e.mood||"";
+    $("#jn-trend").value = e.trend||"";
+    $("#jn-entry").value = e.entry_price??"";
+    $("#jn-stop").value = e.stop_loss??"";
+    $("#jn-exit").value = e.exit_price??"";
+    $("#jn-title").value = e.title||"";
+    $("#jn-content").value = e.content||"";
+    $("#jn-notes").value = e.notes||"";
+    let wl = e.watchlist;
+    if(typeof wl==="string"){ try{ wl=JSON.parse(wl); }catch(_){ } }
+    $("#jn-watchlist").value = Array.isArray(wl) ? wl.join(", ") : (wl||"");
+  }
+  const jnListCols = [
+    {label:"ID", key:"id"},
+    {label:"日期", key:"trade_date", fmt:v=>v?esc(String(v).slice(0,10)):"—"},
+    {label:"代號", key:"symbol"},
+    {label:"方向", key:"direction"},
+    {label:"策略", key:"strategy"},
+    {label:"進場", key:"entry_price", fmt:v=>fmtNum(v)},
+    {label:"停損", key:"stop_loss", fmt:v=>fmtNum(v)},
+    {label:"出場", key:"exit_price", fmt:v=>fmtNum(v)},
+    {label:"操作", key:"_actions", fmt:(_,r)=>`<button class="linkbtn del" data-del="${r.id}">刪除</button>`},
+  ];
+  async function loadJournalList(){
+    try{
+      const json = await apiFetch(`/api/journal`);
+      const rows = json.entries||[];
+      renderTable("jn-table", rows, jnListCols, {onRowClick:r=>jnFillForm(r)});
+      document.querySelectorAll('#jn-table [data-del]').forEach(btn=>{
+        btn.addEventListener("click", ev=>{
+          ev.stopPropagation();
+          deleteJournal(Number(btn.dataset.del));
+        });
+      });
+    }catch(err){ $("#jn-status").textContent="列表載入失敗："+err.message; $("#jn-status").classList.add("err"); }
+  }
+  async function saveJournal(){
+    const watchlist = $("#jn-watchlist").value.split(",").map(s=>s.trim()).filter(Boolean);
+    const body = {
+      title: $("#jn-title").value||null, content: $("#jn-content").value||null,
+      mood: $("#jn-mood").value||null, trend: $("#jn-trend").value||null,
+      symbol: $("#jn-symbol").value||null, direction: $("#jn-direction").value||null,
+      strategy: $("#jn-strategy").value||null,
+      entryPrice: $("#jn-entry").value!==""?Number($("#jn-entry").value):null,
+      stopLoss: $("#jn-stop").value!==""?Number($("#jn-stop").value):null,
+      exitPrice: $("#jn-exit").value!==""?Number($("#jn-exit").value):null,
+      notes: $("#jn-notes").value||null, watchlist,
+      tradeDate: $("#jn-date").value||null,
+    };
+    try{
+      if(jnCurrentId) await apiSend(`/api/journal/${jnCurrentId}`, "PUT", body);
+      else await apiSend(`/api/journal`, "POST", body);
+      $("#jn-status").textContent="已儲存。"; $("#jn-status").classList.remove("err");
+      jnClear(); loadJournalList();
+    }catch(err){ $("#jn-status").textContent="儲存失敗："+err.message; $("#jn-status").classList.add("err"); }
+  }
+  async function deleteJournal(id){
+    if(!confirm(`確定刪除日誌 #${id}？`)) return;
+    try{
+      await apiSend(`/api/journal/${id}`, "DELETE");
+      if(jnCurrentId===id) jnClear();
+      loadJournalList();
+    }catch(err){ $("#jn-status").textContent="刪除失敗："+err.message; $("#jn-status").classList.add("err"); }
+  }
+  $("#jn-save").addEventListener("click",saveJournal);
+  $("#jn-new").addEventListener("click",jnClear);
+
+  // ==================================================================
+  //  抓取控制 /api/fetch-range /api/fetch-status /api/stock-info/sync
+  // ==================================================================
+  async function runFetchRange(){
+    const start=$("#fr-start").value, end=$("#fr-end").value;
+    if(!start||!end){ $("#fr-status-msg").textContent="請選擇開始與結束日期。"; $("#fr-status-msg").classList.add("err"); return; }
+    try{
+      const json = await apiSend(`/api/fetch-range`, "POST", {start, end});
+      $("#fr-status-msg").textContent = json.message || "已送出抓取請求。";
+      $("#fr-status-msg").classList.remove("err");
+    }catch(err){ $("#fr-status-msg").textContent="送出失敗："+err.message; $("#fr-status-msg").classList.add("err"); }
+  }
+  async function checkFetchStatus(){
+    try{
+      const json = await apiFetch(`/api/fetch-status`);
+      $("#fr-status-msg").textContent = json.running ? "目前有抓取任務執行中…" : "目前沒有抓取任務在執行。";
+      $("#fr-status-msg").classList.remove("err");
+    }catch(err){ $("#fr-status-msg").textContent="查詢失敗："+err.message; $("#fr-status-msg").classList.add("err"); }
+  }
+  async function runStockInfoSync(){
+    $("#si-status-msg").textContent="同步中…"; $("#si-status-msg").classList.remove("err");
+    try{
+      const json = await apiSend(`/api/stock-info/sync`, "POST");
+      $("#si-status-msg").textContent = json.msg ? `${json.msg}（處置股 ${json.dispose} 筆）` : "同步完成。";
+    }catch(err){ $("#si-status-msg").textContent="同步失敗："+err.message; $("#si-status-msg").classList.add("err"); }
+  }
+  $("#fr-run").addEventListener("click",runFetchRange);
+  $("#fr-status").addEventListener("click",checkFetchStatus);
+  $("#si-sync").addEventListener("click",runStockInfoSync);
+
+  // ==================================================================
+  //  系統狀態 /db-status /api/v2/health /api/db-health
+  // ==================================================================
+  const healthRecentCols = [
+    {label:"日期", key:"date"},
+    {label:"檔數", key:"stocks"},
+    {label:"有筆數欄位", key:"with_trades"},
+    {label:"有成交額欄位", key:"with_turnover"},
+  ];
+  function healthCard(title, rows){
+    return `<div class="card"><h3>${esc(title)}</h3>` +
+      rows.map(([k,v])=>`<div class="row"><span>${esc(k)}</span><b>${esc(v==null?"—":v)}</b></div>`).join("") +
+      `</div>`;
+  }
+  async function loadHealth(){
+    $("#health-status").textContent="查詢中…"; $("#health-status").classList.remove("err");
+    try{
+      const [db, health, dbh] = await Promise.all([
+        apiFetch("/db-status").catch(e=>({error:e.message})),
+        apiFetch("/api/v2/health").catch(e=>({error:e.message})),
+        apiFetch("/api/db-health").catch(e=>({error:e.message})),
+      ]);
+      let html = "";
+      html += healthCard("資料庫連線 /db-status", db.error ? [["狀態","錯誤"],["訊息",db.error]] : [["狀態",db.status]]);
+      html += healthCard("應用伺服器 /api/v2/health", health.error ? [["狀態","錯誤"],["訊息",health.error]] : [["狀態",health.status]]);
+      if(!dbh.error){
+        const tables = [
+          ["market_data", dbh.market_data], ["daily_indicators", dbh.daily_indicators],
+          ["strong_stocks", dbh.strong_stocks], ["stock_info", dbh.stock_info],
+          ["premarket_plans", dbh.premarket_plans], ["journal_entries", dbh.journal_entries],
+        ];
+        tables.forEach(([name, obj])=>{
+          if(!obj) return;
+          html += healthCard(name, Object.entries(obj));
+        });
+        renderTable("health-recent", dbh.recent_dates||[], healthRecentCols);
+      } else {
+        html += healthCard("db-health 錯誤", [["訊息", dbh.error]]);
+        renderTable("health-recent", [], healthRecentCols);
+      }
+      $("#health-cards").innerHTML = html;
+      $("#health-status").textContent="更新時間："+new Date().toLocaleString();
+    }catch(err){ $("#health-status").textContent="查詢失敗："+err.message; $("#health-status").classList.add("err"); }
+  }
+  $("#health-refresh").addEventListener("click",loadHealth);
+
+  // ==================================================================
+  //  tab switching
+  // ==================================================================
+  const LOADERS = {
+    daily: loadDaily, gainers: loadGainers,
+    strong: ()=>{ loadStrongDates(); loadStrong(); },
+    indicators: loadIndicatorsTab,
+    dispose: loadDispose, h52: loadH52, dbtable: loadDbTable,
+    premarket: loadPremarketList, journal: loadJournalList,
+    health: loadHealth,
+  };
+  const loadedOnce = new Set();
+  function showTab(name){
+    document.querySelectorAll(".tabnav button").forEach(b=>b.classList.toggle("on", b.dataset.tab===name));
+    document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("on", p.dataset.panel===name));
+    if(name==="kline"){ if(DATA.length) render(); return; }
+    if(!loadedOnce.has(name)){ loadedOnce.add(name); const fn=LOADERS[name]; if(fn) fn(); }
+  }
+  document.querySelectorAll(".tabnav button").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
+
+  // default dates for per-tab date pickers (db-date left blank: no date = browse across all dates)
+  ["daily-date","gainers-date","strong-date","ind-rank-date","dispose-date","h52-date"].forEach(id=>{
+    const el=$("#"+id); if(el) el.value = todayStr();
+  });
+
+  // auto-load kline on open
+  loadKline();
+})();
+</script>
