@@ -1,1 +1,82 @@
-11
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <title>📌 便利貼佈告欄</title>
+
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#b7814d" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="便利貼佈告欄" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #b7814d;
+      overflow: hidden;
+    }
+
+    #app {
+      border: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+    }
+
+    #offline {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #b7814d;
+      color: #fff;
+      font-family: 'Microsoft JhengHei', system-ui, sans-serif;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+
+<body>
+  <!--
+    ⚠️ 部署前必做：
+    把下面 iframe 的 src 換成你自己部署 Google Apps Script 網頁應用程式後拿到的網址
+    （網址長得像 https://script.google.com/macros/s/AKfycb.../exec）
+  -->
+  <iframe id="app" src="PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE" title="便利貼佈告欄"></iframe>
+
+  <div id="offline">
+    <div>
+      <div style="font-size:40px;">📡</div>
+      <p>目前沒有網路連線，便利貼資料需要連線才能讀取／儲存。<br />請連上網路後重新開啟本 App。</p>
+    </div>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(function (err) {
+          console.error('Service worker 註冊失敗：', err);
+        });
+      });
+    }
+
+    function updateOnlineStatus() {
+      document.getElementById('offline').style.display = navigator.onLine ? 'none' : 'flex';
+    }
+    window.addEventListener('offline', updateOnlineStatus);
+    window.addEventListener('online', updateOnlineStatus);
+    updateOnlineStatus();
+  </script>
+</body>
+
+</html>
