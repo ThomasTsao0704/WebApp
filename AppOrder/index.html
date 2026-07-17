@@ -1,1 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>雲端廚房總覽</title>
+<style>
+  :root {
+    /* 👉 請把下面這個網址換成你自己「已部署」的 GAS 網頁應用程式網址
+       部署方式：Apps Script 編輯器 -> 部署 -> 新增部署 -> 選「網頁應用程式」
+       執行身分：我；誰可以存取：任何人
+       部署完成後會拿到一個像這樣的網址：
+       https://script.google.com/macros/s/AKfycb.......xyz/exec */
+    --app-base-url: "https://script.google.com/macros/s/AKfycbz3ikMhHnShWM03lzbDWlJWb0mjzvb92Mc7tKIiIezVfju_aSd42noHu1nWAfoO8Ggz7Q/exec";
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", sans-serif;
+    background: #0f172a;
+    color: #f1f5f9;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    padding: 12px 20px;
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 18px; margin: 0; }
+  header .hint { font-size: 12px; color: #94a3b8; }
 
+  .layout {
+    flex: 1;
+    display: flex;
+    gap: 2px;
+    background: #334155; /* 當作欄與欄之間的分隔線 */
+    overflow: hidden;
+  }
+  .pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #0f172a;
+    min-width: 0;
+  }
+  .pane-title {
+    font-size: 13px;
+    padding: 8px 14px;
+    background: #1e293b;
+    color: #cbd5e1;
+    flex-shrink: 0;
+  }
+  .pane iframe {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+  .config-warning {
+    margin: 40px auto;
+    max-width: 560px;
+    background: #7f1d1d;
+    border: 1px solid #b91c1c;
+    padding: 16px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* 手機畫面：改成上下堆疊，各佔一半高度 */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .pane { flex: 1 1 50%; }
+  }
+</style>
+</head>
+<body>
+
+  <header>
+    <h1>👨‍🍳 雲端廚房總覽</h1>
+    <span class="hint">左：廚房出餐儀表板　｜　右：外場點餐系統</span>
+  </header>
+
+  <div class="layout" id="layout">
+    <!-- 這裡由 JS 動態產生，方便統一檢查網址是否設定好 -->
+  </div>
+
+  <script>
+    const baseUrl = getComputedStyle(document.documentElement)
+      .getPropertyValue('--app-base-url')
+      .trim()
+      .replace(/^["']|["']$/g, '');
+
+    const layout = document.getElementById('layout');
+
+    if (!baseUrl || baseUrl.includes('請貼上你的部署ID')) {
+      layout.innerHTML = `
+        <div class="config-warning">
+          ⚠️ 尚未設定 GAS 部署網址。<br><br>
+          請打開這個檔案原始碼，把 <code>&lt;style&gt;</code> 區塊裡的
+          <code>--app-base-url</code> 換成你自己部署的網頁應用程式網址
+          （格式類似 <code>https://script.google.com/macros/s/AKfycb.../exec</code>）。
+        </div>
+      `;
+    } else {
+      layout.innerHTML = `
+        <div class="pane">
+          <div class="pane-title">🍳 廚房出餐儀表板</div>
+          <iframe src="${baseUrl}?page=kitchen" title="廚房出餐儀表板"></iframe>
+        </div>
+        <div class="pane">
+          <div class="pane-title">🧾 外場點餐系統</div>
+          <iframe src="${baseUrl}?page=order" title="外場點餐系統"></iframe>
+        </div>
+      `;
+    }
+  </script>
+
+</body>
+</html>
