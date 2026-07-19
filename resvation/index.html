@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bloom Nails｜線上預約</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500;1,600&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F7EDE6;
+    --card:#FFFCFA;
+    --ink:#34222E;
+    --ink-soft:#6B5A64;
+    --rose:#B85C7A;
+    --rose-deep:#8C3F5B;
+    --rose-pale:#F0DCE1;
+    --sage:#7C8F6E;
+    --sage-deep:#5E7052;
+    --line:#E4D2CB;
+    --danger:#B23A3A;
+    --radius:20px;
+    --shadow: 0 20px 50px -20px rgba(52,34,46,0.25);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, #FBEFE9 0%, transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, #F3E2E9 0%, transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Manrope', sans-serif;
+    min-height:100vh;
+    padding:48px 20px 80px;
+  }
+  .wrap{ max-width:680px; margin:0 auto; }
+
+  /* ---------- Hero ---------- */
+  .hero{ text-align:center; margin-bottom:36px; }
+  .hero .mark{
+    display:inline-flex; align-items:center; gap:10px;
+    font-family:'Fraunces', serif; font-style:italic; font-weight:600;
+    font-size:2.4rem; color:var(--ink); letter-spacing:0.5px;
+  }
+  .hero .mark svg{ width:34px; height:34px; flex:none; }
+  .hero p{
+    margin:10px 0 0; color:var(--ink-soft); font-size:0.98rem;
+    font-weight:500;
+  }
+
+  /* ---------- Stepper (signature element) ---------- */
+  .stepper{
+    display:flex; align-items:center; justify-content:center;
+    gap:6px; margin-bottom:28px; flex-wrap:wrap;
+  }
+  .step-dot-group{ display:flex; align-items:center; gap:6px; }
+  .step-line{ width:28px; height:2px; background:var(--line); border-radius:2px; }
+  .step-line.done{ background:var(--rose); }
+  .bud{
+    width:34px; height:34px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--card); border:2px solid var(--line);
+    color:var(--ink-soft); font-family:'JetBrains Mono', monospace;
+    font-size:0.75rem; font-weight:600;
+    transition:border-color .3s ease, background .3s ease, transform .3s ease;
+    position:relative;
+  }
+  .bud.active{ border-color:var(--rose); color:var(--rose-deep); transform:scale(1.08); }
+  .bud.done{ border-color:var(--rose); background:var(--rose); }
+  .bud.done svg{ width:16px; height:16px; }
+  .bud .num{ display:block; }
+  .bud.done .num{ display:none; }
+  .bud svg{ display:none; }
+  .bud.done svg{ display:block; animation:bloom .5s ease; }
+  @keyframes bloom{ from{ transform:scale(.2) rotate(-25deg); opacity:0; } to{ transform:scale(1) rotate(0); opacity:1; } }
+  .step-label{
+    text-align:center; font-size:0.78rem; color:var(--ink-soft);
+    font-weight:600; margin-top:-16px; margin-bottom:22px; letter-spacing:0.3px;
+  }
+
+  /* ---------- Card ---------- */
+  .card{
+    background:var(--card); border-radius:var(--radius);
+    box-shadow:var(--shadow); border:1px solid var(--line);
+    padding:32px clamp(20px,5vw,40px);
+  }
+  .panel{ display:none; }
+  .panel.active{ display:block; animation:fadeUp .35s ease; }
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+
+  h2.panel-title{
+    font-family:'Fraunces', serif; font-weight:600; font-size:1.5rem;
+    margin:0 0 6px;
+  }
+  .panel-sub{ color:var(--ink-soft); font-size:0.92rem; margin:0 0 24px; }
+
+  /* Designer / service choice cards */
+  .choice-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  @media (max-width:520px){ .choice-grid{ grid-template-columns:1fr; } }
+  .choice{
+    border:2px solid var(--line); border-radius:14px; padding:16px 14px;
+    background:#fff; cursor:pointer; text-align:left;
+    transition:border-color .2s ease, background .2s ease, transform .15s ease;
+    font-family:'Manrope', sans-serif;
+  }
+  .choice:hover{ transform:translateY(-2px); border-color:#D9B7C2; }
+  .choice.selected{ border-color:var(--rose); background:var(--rose-pale); }
+  .choice .c-name{ font-weight:700; font-size:1.02rem; margin-bottom:4px; }
+  .choice .c-meta{ font-size:0.8rem; color:var(--ink-soft); font-family:'JetBrains Mono',monospace; }
+
+  /* Date */
+  input[type="date"]{
+    width:100%; padding:14px 16px; border-radius:12px;
+    border:2px solid var(--line); font-family:'JetBrains Mono', monospace;
+    font-size:1rem; color:var(--ink); background:#fff;
+  }
+  input[type="date"]:focus, input[type="text"]:focus{
+    outline:3px solid #E9C3D0; outline-offset:1px; border-color:var(--rose);
+  }
+  input[type="text"]{
+    width:100%; padding:14px 16px; border-radius:12px;
+    border:2px solid var(--line); font-family:'Manrope', sans-serif;
+    font-size:1rem; color:var(--ink); background:#fff;
+  }
+  label.field-label{
+    display:block; font-size:0.82rem; font-weight:700; color:var(--ink-soft);
+    margin-bottom:8px; letter-spacing:0.3px;
+  }
+
+  /* Slot grid */
+  .slot-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(84px,1fr));
+    gap:10px; margin-top:6px;
+  }
+  .slot{
+    border:2px solid var(--line); background:#fff; border-radius:12px;
+    padding:10px 6px; font-family:'JetBrains Mono', monospace; font-size:0.86rem;
+    font-weight:600; cursor:pointer; color:var(--ink);
+    transition:all .18s ease; text-align:center;
+  }
+  .slot:hover:not(.booked){ border-color:var(--rose); transform:translateY(-1px); }
+  .slot.selected{
+    background:var(--rose); border-color:var(--rose); color:#fff;
+  }
+  .slot.selected::before{ content:"✿ "; }
+  .slot.booked{
+    color:#B8A7AE; text-decoration:line-through; cursor:not-allowed;
+    background:#F5EFEC; border-color:#F5EFEC;
+  }
+  .slot-empty{ color:var(--ink-soft); font-size:0.9rem; padding:20px 0; text-align:center; }
+
+  /* Buttons */
+  .row-actions{ display:flex; gap:10px; margin-top:28px; }
+  .btn{
+    font-family:'Manrope', sans-serif; font-weight:700; font-size:0.95rem;
+    padding:13px 22px; border-radius:12px; border:none; cursor:pointer;
+    transition:transform .15s ease, background .2s ease;
+  }
+  .btn:disabled{ opacity:0.45; cursor:not-allowed; }
+  .btn-primary{ background:var(--rose); color:#fff; flex:1; }
+  .btn-primary:hover:not(:disabled){ background:var(--rose-deep); }
+  .btn-ghost{ background:transparent; color:var(--ink-soft); border:2px solid var(--line); }
+  .btn-ghost:hover{ border-color:#D9B7C2; }
+  .btn:active:not(:disabled){ transform:scale(0.98); }
+
+  .error-msg{
+    background:#FBEAEA; color:var(--danger); border:1px solid #F0C9C9;
+    padding:10px 14px; border-radius:10px; font-size:0.85rem; margin-top:16px;
+  }
+
+  /* Confirmation */
+  .confirm-icon{
+    width:64px; height:64px; margin:0 auto 18px; display:block;
+    animation:bloom .6s ease;
+  }
+  .confirm-box{ text-align:center; }
+  .confirm-summary{
+    background:#FBF5F2; border:1px solid var(--line); border-radius:14px;
+    padding:18px 20px; margin:20px 0; text-align:left;
+    font-size:0.92rem; line-height:1.9;
+  }
+  .confirm-summary b{ color:var(--rose-deep); }
+  .confirm-status{
+    display:inline-block; font-size:0.78rem; font-weight:700;
+    background:#FDECC8; color:#8A6A1B; padding:3px 10px; border-radius:20px;
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  /* Footer / admin link */
+  .footer{ text-align:center; margin-top:26px; }
+  .admin-link{
+    background:none; border:none; color:var(--ink-soft); font-size:0.82rem;
+    cursor:pointer; text-decoration:underline; font-family:'Manrope',sans-serif;
+  }
+
+  /* Admin modal */
+  .modal-backdrop{
+    display:none; position:fixed; inset:0; background:rgba(52,34,46,0.45);
+    align-items:center; justify-content:center; padding:20px; z-index:50;
+  }
+  .modal-backdrop.active{ display:flex; }
+  .modal{
+    background:var(--card); border-radius:20px; padding:28px clamp(18px,5vw,32px);
+    max-width:560px; width:100%; max-height:86vh; overflow-y:auto;
+    box-shadow:var(--shadow);
+  }
+  .modal h3{ font-family:'Fraunces',serif; font-weight:600; margin:0 0 4px; font-size:1.3rem; }
+  .modal .modal-sub{ color:var(--ink-soft); font-size:0.85rem; margin:0 0 20px; }
+  .modal-close{
+    float:right; background:none; border:none; font-size:1.1rem; cursor:pointer;
+    color:var(--ink-soft);
+  }
+  .appt-row{
+    display:flex; justify-content:space-between; align-items:center;
+    border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:8px;
+    font-size:0.88rem; gap:10px; flex-wrap:wrap;
+  }
+  .appt-row .appt-time{ font-family:'JetBrains Mono',monospace; font-weight:700; }
+  .appt-row .appt-status{
+    font-size:0.72rem; font-weight:700; padding:2px 8px; border-radius:20px;
+    background:var(--rose-pale); color:var(--rose-deep); white-space:nowrap;
+  }
+  .cancel-btn{
+    background:none; border:1px solid var(--danger); color:var(--danger);
+    padding:4px 10px; border-radius:8px; font-size:0.76rem; cursor:pointer; font-weight:700;
+  }
+  hr.divider{ border:none; border-top:1px dashed var(--line); margin:22px 0; }
+  .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:480px){ .grid-2{ grid-template-columns:1fr; } }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation:none !important; transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="mark">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 2c1.2 2 1.2 4 0 6-1.2-2-1.2-4 0-6Z" fill="#B85C7A"/><path d="M12 2c1.2 2 1.2 4 0 6-1.2-2-1.2-4 0-6Z" fill="#B85C7A" transform="rotate(72 12 12)"/><path d="M12 2c1.2 2 1.2 4 0 6-1.2-2-1.2-4 0-6Z" fill="#B85C7A" transform="rotate(144 12 12)"/><path d="M12 2c1.2 2 1.2 4 0 6-1.2-2-1.2-4 0-6Z" fill="#B85C7A" transform="rotate(216 12 12)"/><path d="M12 2c1.2 2 1.2 4 0 6-1.2-2-1.2-4 0-6Z" fill="#B85C7A" transform="rotate(288 12 12)"/><circle cx="12" cy="12" r="2.3" fill="#7C8F6E"/></svg>
+      Bloom Nails
+    </div>
+    <p>在你的指尖，種一朵花 — 線上預約美甲時段</p>
+  </div>
+
+  <div class="stepper" id="stepper"></div>
+  <div class="step-label" id="stepLabel"></div>
+
+  <div class="card">
+
+    <!-- STEP 1: Designer -->
+    <div class="panel" data-step="1">
+      <h2 class="panel-title">選擇設計師</h2>
+      <p class="panel-sub">每位設計師風格略有不同，選一位陪你完成這次造型。</p>
+      <div class="choice-grid" id="designerGrid"></div>
+      <div class="row-actions">
+        <button class="btn btn-primary" id="toStep2" disabled>下一步</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Date -->
+    <div class="panel" data-step="2">
+      <h2 class="panel-title">選擇日期</h2>
+      <p class="panel-sub">營業時間為每日 10:00–20:00。</p>
+      <label class="field-label" for="dateInput">預約日期</label>
+      <input type="date" id="dateInput">
+      <div class="row-actions">
+        <button class="btn btn-ghost" data-back="1">上一步</button>
+        <button class="btn btn-primary" id="toStep3" disabled>下一步</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Service -->
+    <div class="panel" data-step="3">
+      <h2 class="panel-title">選擇服務項目</h2>
+      <p class="panel-sub">依服務時長，系統會自動排出可預約的連續時段。</p>
+      <div class="choice-grid" id="serviceGrid"></div>
+      <div class="row-actions">
+        <button class="btn btn-ghost" data-back="2">上一步</button>
+        <button class="btn btn-primary" id="toStep4" disabled>下一步</button>
+      </div>
+    </div>
+
+    <!-- STEP 4: Time slot -->
+    <div class="panel" data-step="4">
+      <h2 class="panel-title">選擇時段</h2>
+      <p class="panel-sub" id="slotSub">開放的時段如下，點選一個開始時間。</p>
+      <div id="slotArea"><div class="slot-empty">請先完成前面的選擇</div></div>
+      <div class="row-actions">
+        <button class="btn btn-ghost" data-back="3">上一步</button>
+        <button class="btn btn-primary" id="toStep5" disabled>下一步</button>
+      </div>
+    </div>
+
+    <!-- STEP 5: Contact + confirm -->
+    <div class="panel" data-step="5">
+      <h2 class="panel-title">留下您的姓名</h2>
+      <p class="panel-sub">確認以下資訊無誤後即可完成預約。</p>
+      <label class="field-label" for="nameInput">姓名 / 稱呼</label>
+      <input type="text" id="nameInput" placeholder="請輸入姓名">
+      <div class="confirm-summary" id="reviewBox"></div>
+      <div id="bookError"></div>
+      <div class="row-actions">
+        <button class="btn btn-ghost" data-back="4">上一步</button>
+        <button class="btn btn-primary" id="submitBooking">確認預約</button>
+      </div>
+    </div>
+
+    <!-- STEP 6: Success -->
+    <div class="panel" data-step="6">
+      <div class="confirm-box">
+        <svg class="confirm-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2c1.2 2 1.2 4 0 6-1.2-2-1.2-4 0-6Z" fill="#B85C7A"/><path d="M12 2c1.2 2 1.2 4 0 6-1.2-2-1.2-4 0-6Z" fill="#B85C7A" transform="rotate(72 12 12)"/><path d="M12 2c1.2 2 1.2 4 0 6-1.2-2-1.2-4 0-6Z" fill="#B85C7A" transform="rotate(144 12 12)"/><path d="M12 2c1.2 2 1.2 4 0 6-1.2-2-1.2-4 0-6Z" fill="#B85C7A" transform="rotate(216 12 12)"/><path d="M12 2c1.2 2 1.2 4 0 6-1.2-2-1.2-4 0-6Z" fill="#B85C7A" transform="rotate(288 12 12)"/><circle cx="12" cy="12" r="2.3" fill="#7C8F6E"/></svg>
+        <h2 class="panel-title">預約已送出</h2>
+        <p class="panel-sub">我們已收到您的預約申請。</p>
+        <div class="confirm-summary" id="successBox"></div>
+        <button class="btn btn-primary" id="restartBtn" style="width:100%">再預約一筆</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <button class="admin-link" id="openAdmin">店家後台管理</button>
+  </div>
+</div>
+
+<!-- Admin modal -->
+<div class="modal-backdrop" id="adminBackdrop">
+  <div class="modal">
+    <button class="modal-close" id="closeAdmin">✕</button>
+    <div id="adminPinView">
+      <h3>後台登入</h3>
+      <p class="modal-sub">請輸入管理 PIN 碼</p>
+      <label class="field-label" for="pinInput">PIN 碼</label>
+      <input type="text" id="pinInput" placeholder="••••••">
+      <div id="pinError"></div>
+      <div class="row-actions">
+        <button class="btn btn-primary" id="pinSubmit" style="width:100%">登入</button>
+      </div>
+    </div>
+
+    <div id="adminMainView" style="display:none">
+      <h3>預約管理</h3>
+      <p class="modal-sub">查詢與管理指定日期、設計師的預約狀況</p>
+      <div class="grid-2">
+        <div>
+          <label class="field-label" for="adminDesigner">設計師</label>
+          <select id="adminDesigner" style="width:100%;padding:12px;border-radius:12px;border:2px solid var(--line);font-family:'Manrope',sans-serif;"></select>
+        </div>
+        <div>
+          <label class="field-label" for="adminDate">日期</label>
+          <input type="date" id="adminDate">
+        </div>
+      </div>
+      <div class="row-actions">
+        <button class="btn btn-primary" id="adminQuery" style="width:100%">查詢</button>
+      </div>
+      <div id="adminError"></div>
+      <div id="adminList" style="margin-top:18px;"></div>
+
+      <hr class="divider">
+      <h3 style="font-size:1.05rem;">手動加單</h3>
+      <p class="modal-sub">供電話 / 現場預約使用，不做衝突檢查</p>
+      <label class="field-label">姓名</label>
+      <input type="text" id="addName" placeholder="客人姓名">
+      <div class="grid-2" style="margin-top:12px;">
+        <div>
+          <label class="field-label">服務</label>
+          <select id="addService" style="width:100%;padding:12px;border-radius:12px;border:2px solid var(--line);font-family:'Manrope',sans-serif;"></select>
+        </div>
+        <div>
+          <label class="field-label">開始時間</label>
+          <input type="text" id="addStart" placeholder="例如 14:00">
+        </div>
+      </div>
+      <div id="addError"></div>
+      <div class="row-actions">
+        <button class="btn btn-primary" id="addSubmit" style="width:100%">新增預約</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   設定：請將下方 SCRIPT_URL 換成你部署後的 Apps Script 網址
+   （部署 → 網頁應用程式 → 複製網址）
+   ========================================================= */
+const SCRIPT_URL = "YOUR_DEPLOYED_WEB_APP_URL_HERE";
+
+const DESIGNERS = ["Mina", "Yuri", "Rei"];
+const SERVICES = {
+  "素色凝膠": { duration: 90,  desc: "簡約俐落，日常首選" },
+  "手繪設計": { duration: 120, desc: "客製圖案，展現個性" },
+  "延甲造型": { duration: 150, desc: "長效造型，質感升級" }
+};
+const WORK_START = 10 * 60;
+const WORK_END   = 20 * 60;
+const SLOT_MIN   = 30;
+
+const state = { step: 1, designer: null, date: null, service: null, startTime: null, name: "" };
+
+const STEP_LABELS = { 1:"設計師", 2:"日期", 3:"服務項目", 4:"時段", 5:"完成預約" };
+
+/* ---------- helpers ---------- */
+function toMins(t){ const [h,m] = t.split(":").map(Number); return h*60+m; }
+function fromMins(m){ return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"); }
+function generateAllSlots(){
+  const slots = [];
+  for(let m = WORK_START; m < WORK_END; m += SLOT_MIN) slots.push(fromMins(m));
+  return slots;
+}
+function computeAvailable(bookedRanges, durationMins){
+  const blocked = {};
+  bookedRanges.forEach(r=>{
+    const s = toMins(r.startTime), e = toMins(r.endTime);
+    for(let m=s; m<e; m+=SLOT_MIN) blocked[m]=true;
+  });
+  return generateAllSlots().filter(slot=>{
+    const startM = toMins(slot);
+    const endM = startM + durationMins;
+    if(endM > WORK_END) return false;
+    for(let m=startM; m<endM; m+=SLOT_MIN) if(blocked[m]) return false;
+    return true;
+  });
+}
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+async function callApi(action, params){
+  if(!SCRIPT_URL || SCRIPT_URL.indexOf("YOUR_DEPLOYED") === 0){
+    throw new Error("尚未設定 SCRIPT_URL，請先在程式碼中填入部署後的 Apps Script 網址");
+  }
+  // 一律用 GET + 網址參數呼叫，避免 Apps Script 302 導向把 POST body 弄丟的問題
+  const qs = new URLSearchParams(Object.assign({ action }, params || {})).toString();
+  const res = await fetch(SCRIPT_URL + "?" + qs);
+  const data = await res.json();
+  if(!data.ok) throw new Error(data.message || "發生錯誤");
+  return data;
+}
+
+/* ---------- stepper UI ---------- */
+function renderStepper(){
+  const stepper = document.getElementById("stepper");
+  stepper.innerHTML = "";
+  for(let i=1;i<=5;i++){
+    const group = document.createElement("div");
+    group.className = "step-dot-group";
+    const bud = document.createElement("div");
+    let cls = "bud";
+    if(i < state.step) cls += " done";
+    else if(i === state.step) cls += " active";
+    bud.className = cls;
+    bud.innerHTML = `<span class="num">${i}</span><svg viewBox="0 0 24 24" fill="none"><path d="M12 4c1 1.6 1 3.2 0 4.8-1-1.6-1-3.2 0-4.8Z" fill="white"/><path d="M12 4c1 1.6 1 3.2 0 4.8-1-1.6-1-3.2 0-4.8Z" fill="white" transform="rotate(120 12 12)"/><path d="M12 4c1 1.6 1 3.2 0 4.8-1-1.6-1-3.2 0-4.8Z" fill="white" transform="rotate(240 12 12)"/></svg>`;
+    group.appendChild(bud);
+    if(i < 5){
+      const line = document.createElement("div");
+      line.className = "step-line" + (i < state.step ? " done" : "");
+      group.appendChild(line);
+    }
+    stepper.appendChild(group);
+  }
+  document.getElementById("stepLabel").textContent = STEP_LABELS[state.step] || "";
+}
+
+function showPanel(step){
+  document.querySelectorAll(".panel").forEach(p=>{
+    p.classList.toggle("active", Number(p.dataset.step) === step);
+  });
+  state.step = step;
+  renderStepper();
+}
+
+/* ---------- STEP 1: designer ---------- */
+function renderDesignerGrid(){
+  const grid = document.getElementById("designerGrid");
+  grid.innerHTML = "";
+  DESIGNERS.forEach(name=>{
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = "choice" + (state.designer === name ? " selected" : "");
+    el.innerHTML = `<div class="c-name">${name}</div><div class="c-meta">美甲設計師</div>`;
+    el.addEventListener("click", ()=>{
+      state.designer = name;
+      renderDesignerGrid();
+      document.getElementById("toStep2").disabled = false;
+    });
+    grid.appendChild(el);
+  });
+}
+
+/* ---------- STEP 3: service ---------- */
+function renderServiceGrid(){
+  const grid = document.getElementById("serviceGrid");
+  grid.innerHTML = "";
+  Object.keys(SERVICES).forEach(name=>{
+    const svc = SERVICES[name];
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = "choice" + (state.service === name ? " selected" : "");
+    el.innerHTML = `<div class="c-name">${name}</div><div class="c-meta">約 ${svc.duration} 分鐘</div><div class="c-meta" style="margin-top:4px;">${svc.desc}</div>`;
+    el.addEventListener("click", ()=>{
+      state.service = name;
+      renderServiceGrid();
+      document.getElementById("toStep4").disabled = false;
+    });
+    grid.appendChild(el);
+  });
+}
+
+/* ---------- STEP 4: slots ---------- */
+async function loadSlots(){
+  const area = document.getElementById("slotArea");
+  area.innerHTML = `<div class="slot-empty">載入中…</div>`;
+  document.getElementById("toStep5").disabled = true;
+  state.startTime = null;
+  try{
+    const data = await callApi("slots", { date: state.date, designer: state.designer });
+    const available = computeAvailable(data.bookedRanges || [], SERVICES[state.service].duration);
+    const bookedStarts = new Set((data.bookedRanges||[]).map(r=>r.startTime));
+    if(available.length === 0){
+      area.innerHTML = `<div class="slot-empty">這天已經沒有足夠長度的空檔了，換一天看看吧。</div>`;
+      return;
+    }
+    area.innerHTML = "";
+    const grid = document.createElement("div");
+    grid.className = "slot-grid";
+    generateAllSlots().forEach(slot=>{
+      if(!available.includes(slot) && !bookedStarts.has(slot)) return; // hide slots that don't even start a valid window and aren't shown as booked marker
+      const btn = document.createElement("button");
+      btn.type = "button";
+      const isAvailable = available.includes(slot);
+      btn.className = "slot" + (isAvailable ? "" : " booked") + (state.startTime===slot ? " selected":"");
+      btn.textContent = slot;
+      btn.disabled = !isAvailable;
+      if(isAvailable){
+        btn.addEventListener("click", ()=>{
+          state.startTime = slot;
+          document.getElementById("toStep5").disabled = false;
+          Array.from(grid.children).forEach(c=>c.classList.remove("selected"));
+          btn.classList.add("selected");
+        });
+      }
+      grid.appendChild(btn);
+    });
+    area.appendChild(grid);
+  }catch(e){
+    area.innerHTML = `<div class="error-msg">${e.message}</div>`;
+  }
+}
+
+/* ---------- STEP 5: review + submit ---------- */
+function renderReview(){
+  const dur = SERVICES[state.service].duration;
+  const endTime = fromMins(toMins(state.startTime) + dur);
+  document.getElementById("reviewBox").innerHTML = `
+    設計師：<b>${state.designer}</b><br>
+    日期：<b>${state.date}</b><br>
+    服務：<b>${state.service}</b>（約 ${dur} 分鐘）<br>
+    時段：<b>${state.startTime} – ${endTime}</b>
+  `;
+}
+
+/* ---------- wiring ---------- */
+document.getElementById("toStep2").addEventListener("click", ()=>showPanel(2));
+document.getElementById("toStep3").addEventListener("click", ()=>showPanel(3));
+document.getElementById("toStep4").addEventListener("click", ()=>{ showPanel(4); loadSlots(); });
+document.getElementById("toStep5").addEventListener("click", ()=>{ renderReview(); showPanel(5); });
+document.querySelectorAll("[data-back]").forEach(btn=>{
+  btn.addEventListener("click", ()=> showPanel(Number(btn.dataset.back)));
+});
+
+document.getElementById("dateInput").min = todayStr();
+document.getElementById("dateInput").addEventListener("change", (e)=>{
+  state.date = e.target.value;
+  document.getElementById("toStep3").disabled = !state.date;
+});
+
+document.getElementById("submitBooking").addEventListener("click", async ()=>{
+  const nameInput = document.getElementById("nameInput");
+  const errBox = document.getElementById("bookError");
+  errBox.innerHTML = "";
+  const name = nameInput.value.trim();
+  if(!name){
+    errBox.innerHTML = `<div class="error-msg">請輸入姓名</div>`;
+    return;
+  }
+  const btn = document.getElementById("submitBooking");
+  btn.disabled = true; btn.textContent = "送出中…";
+  try{
+    const data = await callApi("book", {
+      name, date: state.date, designer: state.designer,
+      service: state.service, startTime: state.startTime
+    });
+    document.getElementById("successBox").innerHTML = `
+      設計師：<b>${state.designer}</b><br>
+      日期：<b>${state.date}</b><br>
+      時段：<b>${state.startTime} – ${data.endTime}</b><br>
+      姓名：<b>${name}</b><br>
+      狀態：<span class="confirm-status">待確認</span>
+    `;
+    showPanel(6);
+  }catch(e){
+    errBox.innerHTML = `<div class="error-msg">${e.message}，請重新選擇時段。</div>`;
+    // Refresh slots in background in case of conflict
+    loadSlots();
+  }finally{
+    btn.disabled = false; btn.textContent = "確認預約";
+  }
+});
+
+document.getElementById("restartBtn").addEventListener("click", ()=>{
+  state.designer = null; state.date = null; state.service = null; state.startTime = null;
+  document.getElementById("dateInput").value = "";
+  document.getElementById("nameInput").value = "";
+  document.getElementById("toStep2").disabled = true;
+  document.getElementById("toStep3").disabled = true;
+  document.getElementById("toStep4").disabled = true;
+  document.getElementById("toStep5").disabled = true;
+  renderDesignerGrid();
+  renderServiceGrid();
+  showPanel(1);
+});
+
+/* ---------- init customer flow ---------- */
+renderDesignerGrid();
+renderServiceGrid();
+showPanel(1);
+
+/* =========================================================
+   ADMIN
+   ========================================================= */
+let adminPin = "";
+
+function populateAdminSelects(){
+  const designerSel = document.getElementById("adminDesigner");
+  designerSel.innerHTML = DESIGNERS.map(d=>`<option value="${d}">${d}</option>`).join("");
+  const serviceSel = document.getElementById("addService");
+  serviceSel.innerHTML = Object.keys(SERVICES).map(s=>`<option value="${s}">${s}（${SERVICES[s].duration}分）</option>`).join("");
+  document.getElementById("adminDate").min = todayStr();
+  document.getElementById("adminDate").value = todayStr();
+}
+populateAdminSelects();
+
+document.getElementById("openAdmin").addEventListener("click", ()=>{
+  document.getElementById("adminBackdrop").classList.add("active");
+});
+document.getElementById("closeAdmin").addEventListener("click", ()=>{
+  document.getElementById("adminBackdrop").classList.remove("active");
+});
+
+document.getElementById("pinSubmit").addEventListener("click", async ()=>{
+  const pin = document.getElementById("pinInput").value.trim();
+  const errBox = document.getElementById("pinError");
+  errBox.innerHTML = "";
+  if(!pin){ errBox.innerHTML = `<div class="error-msg">請輸入 PIN 碼</div>`; return; }
+  adminPin = pin;
+  document.getElementById("adminPinView").style.display = "none";
+  document.getElementById("adminMainView").style.display = "block";
+  queryAdmin();
+});
+
+async function queryAdmin(){
+  const designer = document.getElementById("adminDesigner").value;
+  const date = document.getElementById("adminDate").value;
+  const listEl = document.getElementById("adminList");
+  const errEl = document.getElementById("adminError");
+  errEl.innerHTML = ""; listEl.innerHTML = `<div class="slot-empty">載入中…</div>`;
+  try{
+    const data = await callApi("admin_get", { pin: adminPin, date, designer });
+    if(!data.appointments || data.appointments.length === 0){
+      listEl.innerHTML = `<div class="slot-empty">這天這位設計師沒有預約</div>`;
+      return;
+    }
+    listEl.innerHTML = "";
+    data.appointments.forEach(a=>{
+      const row = document.createElement("div");
+      row.className = "appt-row";
+      row.innerHTML = `
+        <div>
+          <span class="appt-time">${a.startTime}–${a.endTime}</span>
+          &nbsp; ${a.name} · ${a.service}
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="appt-status">${a.status}</span>
+          <button class="cancel-btn" data-id="${a.id}">取消</button>
+        </div>
+      `;
+      row.querySelector(".cancel-btn").addEventListener("click", async (e)=>{
+        e.target.disabled = true; e.target.textContent = "處理中";
+        try{
+          await callApi("admin_cancel", { pin: adminPin, id: a.id });
+          queryAdmin();
+        }catch(err){
+          errEl.innerHTML = `<div class="error-msg">${err.message}</div>`;
+          e.target.disabled = false; e.target.textContent = "取消";
+        }
+      });
+      listEl.appendChild(row);
+    });
+  }catch(e){
+    errEl.innerHTML = `<div class="error-msg">${e.message}</div>`;
+    listEl.innerHTML = "";
+    if(String(e.message).indexOf("PIN") !== -1){
+      document.getElementById("adminPinView").style.display = "block";
+      document.getElementById("adminMainView").style.display = "none";
+    }
+  }
+}
+document.getElementById("adminQuery").addEventListener("click", queryAdmin);
+
+document.getElementById("addSubmit").addEventListener("click", async ()=>{
+  const errEl = document.getElementById("addError");
+  errEl.innerHTML = "";
+  const name = document.getElementById("addName").value.trim();
+  const service = document.getElementById("addService").value;
+  const startTime = document.getElementById("addStart").value.trim();
+  const designer = document.getElementById("adminDesigner").value;
+  const date = document.getElementById("adminDate").value;
+  if(!name || !startTime){
+    errEl.innerHTML = `<div class="error-msg">請填寫姓名與開始時間（格式 HH:MM）</div>`;
+    return;
+  }
+  const btn = document.getElementById("addSubmit");
+  btn.disabled = true; btn.textContent = "新增中…";
+  try{
+    await callApi("admin_add", { pin: adminPin, name, date, designer, service, startTime });
+    document.getElementById("addName").value = "";
+    document.getElementById("addStart").value = "";
+    queryAdmin();
+  }catch(e){
+    errEl.innerHTML = `<div class="error-msg">${e.message}</div>`;
+  }finally{
+    btn.disabled = false; btn.textContent = "新增預約";
+  }
+});
+</script>
+</body>
+</html>
