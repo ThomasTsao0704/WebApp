@@ -265,6 +265,41 @@
 
     .conclusion-card{background:linear-gradient(135deg,#19293d,#0e1722);border:1px solid #2f6ea8}
 
+    /* ---------- Info details (金融知識說明) ---------- */
+    .info-details{display:inline-block;font-weight:400}
+    .info-details summary{
+      display:inline-block;cursor:pointer;list-style:none;color:var(--accent);
+      font-size:11.5px;font-weight:600;padding:2px 9px;border:1px solid var(--border);
+      border-radius:999px;background:rgba(125,196,255,.06);
+    }
+    .info-details summary::-webkit-details-marker{display:none}
+    .info-details[open] summary{background:rgba(125,196,255,.16)}
+    .info-body{
+      margin-top:9px;padding:12px 14px;background:#0a121c;border:1px solid var(--border-soft);
+      border-radius:var(--radius-sm);color:var(--muted);font-size:13px;line-height:1.85;font-weight:400;
+    }
+
+    /* ---------- LTV quick buttons ---------- */
+    .btn.ltv-quick{flex:0 0 auto;min-width:0;padding:7px 18px;font-size:13px}
+    .btn.ltv-quick.active{background:linear-gradient(135deg,#2f6ea8,#234f7f);border-color:#3a7bc0;color:#fff}
+
+    /* ---------- Grace-period payment jump panel ---------- */
+    .jump-panel{margin-top:10px}
+    .jump-month{font-size:13px;color:var(--muted);margin-bottom:12px}
+    .jump-values{display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap}
+    .jump-side{text-align:center}
+    .jump-tag{font-size:12px;color:var(--muted);margin-bottom:4px}
+    .jump-num{font-size:clamp(20px,5vw,26px);font-weight:800}
+    .jump-num.jump-danger{color:var(--danger)}
+    .jump-arrow{font-size:20px;color:var(--muted)}
+    .jump-diff{text-align:center;margin-top:14px;font-size:14px;color:var(--text)}
+    .jump-diff b{color:var(--danger)}
+    .jump-pct{display:inline-block;padding:2px 10px;border-radius:999px;background:rgba(255,107,107,.15);color:var(--danger);font-weight:700;margin-left:4px}
+
+    /* ---------- Bank-threshold marker on pressure indicator ---------- */
+    .threshold-marker{position:absolute;top:-22px;bottom:-2px;width:0;border-left:2px dashed rgba(255,255,255,.55)}
+    .threshold-label{position:absolute;top:-20px;left:6px;font-size:10.5px;color:var(--muted);white-space:nowrap}
+
     .footer{color:#73849b;margin-top:18px;font-size:12.5px;text-align:center;line-height:1.7}
 
     /* ---------- Accessibility / motion ---------- */
@@ -291,6 +326,84 @@
     </div>
   </header>
 
+  <!-- 購屋資訊試算 -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">🏠 購屋資訊試算</div>
+      <div class="hint">從房屋總價出發，自動算出貸款金額與需要準備的現金</div>
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label>房屋成交價（元）</label>
+        <input id="housePrice" type="number" value="12000000" min="0" step="100000">
+      </div>
+      <div class="field">
+        <label>銀行鑑價（元）</label>
+        <input id="bankAppraisal" type="number" value="11800000" min="0" step="100000">
+        <div class="field-hint">銀行鑑價可能低於成交價，貸款金額以較低者計算</div>
+      </div>
+    </div>
+
+    <div class="field" style="margin-top:4px">
+      <label style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        預估貸款成數（%）
+        <details class="info-details">
+          <summary>？LTV 是什麼</summary>
+          <div class="info-body">
+            <b>LTV（貸款成數）</b> = 貸款金額 ÷ 房屋價值。<br>
+            常見成數：<b>70% ／ 80% ／ 85% ／ 90%</b>，依身分、地區、屋齡與銀行政策而定。<br>
+            提醒：銀行鑑價常低於實際成交價，實際可貸金額可能比預期少。
+          </div>
+        </details>
+      </label>
+      <input id="ltvPercent" type="number" value="80" min="0" max="100" step="1">
+      <div class="row" style="margin-top:8px;gap:6px">
+        <button type="button" class="btn ltv-quick" data-ltv="70">70%</button>
+        <button type="button" class="btn ltv-quick active" data-ltv="80">80%</button>
+        <button type="button" class="btn ltv-quick" data-ltv="85">85%</button>
+        <button type="button" class="btn ltv-quick" data-ltv="90">90%</button>
+      </div>
+    </div>
+
+    <div class="grid-4" style="margin-top:14px">
+      <div class="field">
+        <label>契稅（元）</label>
+        <input id="taxFee" type="number" value="40000" min="0" step="1000">
+      </div>
+      <div class="field">
+        <label>仲介費（元）</label>
+        <input id="agentFee" type="number" value="0" min="0" step="1000">
+      </div>
+      <div class="field">
+        <label>裝潢預算（元）</label>
+        <input id="renovationBudget" type="number" value="300000" min="0" step="10000">
+      </div>
+      <div class="field">
+        <label>搬家成本（元）</label>
+        <input id="movingCost" type="number" value="30000" min="0" step="1000">
+      </div>
+    </div>
+
+    <div class="stats" style="margin-top:18px">
+      <div class="stat-box">
+        <div class="stat-label">自動算出貸款金額</div>
+        <div class="stat-value num" id="calcLoanAmount">-</div>
+        <div class="stat-sub" id="calcLTV">-</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">自備款</div>
+        <div class="stat-value num" id="calcDownPayment">-</div>
+        <div class="stat-sub">成交價 − 貸款金額</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">總共需要準備現金</div>
+        <div class="stat-value num" id="calcTotalCash">-</div>
+        <div class="stat-sub">自備款＋契稅＋仲介費＋裝潢＋搬家</div>
+      </div>
+    </div>
+    <div class="field-hint" style="margin-top:10px">✓ 修改上面欄位會即時更新下方「貸款金額」，所有分頁同步套用</div>
+  </div>
+
   <!-- 共用參數 -->
   <div class="card">
     <div class="card-head">
@@ -300,7 +413,7 @@
     <div class="grid">
       <div class="field">
         <label>貸款金額（元）</label>
-        <input id="loan" type="number" value="10000000" min="100000" step="100000">
+        <input id="loan" type="number" value="9440000" min="100000" step="100000">
       </div>
       <div class="field">
         <label>年利率（%）</label>
@@ -311,9 +424,28 @@
         <input id="years" type="number" value="30" min="1" max="40" step="1">
       </div>
       <div class="field">
-        <label>寬限期（年）</label>
+        <label style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          寬限期（年）
+          <details class="info-details">
+            <summary>？寬限期是什麼</summary>
+            <div class="info-body">
+              <b>寬限期</b>：只繳利息、不還本金的期間，月繳較低但期滿後會跳升。<br><br>
+              <b>通常較容易申請：</b>首購、換屋、青年安心成家貸款、公教／軍公教人員。<br>
+              <b>通常較不容易申請：</b>投資客、第二戶、第三戶（非自用）。
+            </div>
+          </details>
+        </label>
         <input id="grace" type="number" value="5" min="0" max="10" step="1">
       </div>
+      <div class="field">
+        <label>月收入（元）</label>
+        <input id="income" type="number" value="150000" min="0" step="5000">
+        <div class="field-hint">用於寬限期跳升的收入負擔檢核</div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:14px;gap:10px">
+      <button class="btn" id="copyShareLink">🔗 複製分享連結</button>
+      <span class="field-hint" style="align-self:center">已自動保存到本機瀏覽器，重新整理不會遺失</span>
     </div>
   </div>
 
@@ -381,7 +513,29 @@
       <div id="warningBox" class="warning-box">
         <div class="warning-text">
           <span class="warning-icon">⚠️</span>
-          <span id="warningText"></span>
+          <span>寬限期結束，月繳將大幅跳升</span>
+        </div>
+        <div class="jump-panel">
+          <div class="jump-month">第 <b id="jumpMonth">-</b> 個月開始</div>
+          <div class="jump-values">
+            <div class="jump-side">
+              <div class="jump-tag">目前月繳</div>
+              <div class="jump-num num" id="jumpFrom">-</div>
+            </div>
+            <div class="jump-arrow">→</div>
+            <div class="jump-side">
+              <div class="jump-tag">跳升後月繳</div>
+              <div class="jump-num num jump-danger" id="jumpTo">-</div>
+            </div>
+          </div>
+          <div class="jump-diff">
+            增加 <b class="num" id="jumpDiff">-</b> 元<span class="jump-pct num" id="jumpPercent">-</span>
+          </div>
+        </div>
+        <div class="health-metric" id="burdenCheck" style="margin-top:16px;display:none">
+          <div class="metric-title"><span>跳升後房貸佔月收入</span><span class="num" id="burdenRatio">-</span></div>
+          <div class="metric-bar"><div class="metric-fill" id="burdenBar"></div></div>
+          <div class="metric-info" id="burdenText">-</div>
         </div>
       </div>
     </div>
@@ -455,7 +609,10 @@
 
         <div style="margin-top:22px">
           <div class="card-title" style="margin-bottom:12px">財務壓力指標</div>
-          <div class="pressure-indicator"><div class="pressure-marker" id="pressureMarker"></div></div>
+          <div class="pressure-indicator">
+            <div class="pressure-marker" id="pressureMarker"></div>
+            <div class="threshold-marker" style="left:40%"><span class="threshold-label">銀行標準 &lt;40%</span></div>
+          </div>
           <div class="pressure-labels">
             <span>安全 (&lt;30%)</span>
             <span>警戒 (30–50%)</span>
@@ -899,8 +1056,10 @@
     byId('gracePayment').textContent = fmt(graceRes.interestOnly);
     byId('repayPayment').textContent = fmt(graceRes.baseAmortPay);
 
-    const increase = ((graceRes.baseAmortPay - graceRes.interestOnly) / graceRes.interestOnly * 100).toFixed(1);
-    byId('increasePercent').innerHTML = `<span class="stat-increase">↑ ${increase}%</span>`;
+    const increase = graceRes.interestOnly > 0
+      ? ((graceRes.baseAmortPay - graceRes.interestOnly) / graceRes.interestOnly * 100)
+      : 0;
+    byId('increasePercent').innerHTML = `<span class="stat-increase">↑ ${increase.toFixed(1)}%</span>`;
 
     byId('totalInterest').textContent = fmt(graceRes.totalInterest);
 
@@ -910,11 +1069,46 @@
       : `與無寬限期相同`;
 
     const warningBox = byId('warningBox');
-    if (increase > 50) {
+    const grace = Number(byId('grace').value);
+    const burdenCheck = byId('burdenCheck');
+
+    if (grace > 0 && graceRes.monthsGrace > 0 && graceRes.baseAmortPay > 0) {
       warningBox.classList.add('show');
-      byId('warningText').textContent = `攤還期月繳暴增 ${increase}%！請確保收入足以負擔。`;
+
+      const from = graceRes.interestOnly;
+      const to = graceRes.baseAmortPay;
+      const diff = to - from;
+
+      byId('jumpMonth').textContent = graceRes.monthsGrace + 1;
+      byId('jumpFrom').textContent = fmt(from);
+      byId('jumpTo').textContent = fmt(to);
+      byId('jumpDiff').textContent = fmt(diff);
+      byId('jumpPercent').textContent = `+${increase.toFixed(0)}%`;
+
+      const income = Number(byId('income').value);
+      if (income > 0) {
+        const ratio = to / income * 100;
+        burdenCheck.style.display = 'block';
+
+        let level, color, icon;
+        if (ratio < 30) { level = '健康'; color = 'var(--success)'; icon = '✓'; }
+        else if (ratio < 50) { level = '警戒'; color = 'var(--warn)'; icon = '⚠'; }
+        else if (ratio < 70) { level = '危險'; color = 'var(--danger)'; icon = '❌'; }
+        else { level = '極危險'; color = 'var(--danger)'; icon = '❌'; }
+
+        const bar = byId('burdenBar');
+        bar.style.width = Math.max(4, Math.min(100, ratio)) + '%';
+        bar.style.background = color;
+        bar.textContent = ratio.toFixed(0) + '%';
+
+        byId('burdenRatio').innerHTML = `<b style="color:${color}">${ratio.toFixed(0)}%</b>`;
+        byId('burdenText').innerHTML = `${icon} <b style="color:${color}">${level}</b>　銀行核貸通常希望房貸負擔低於 <b>40%</b>`;
+      } else {
+        burdenCheck.style.display = 'none';
+      }
     } else {
       warningBox.classList.remove('show');
+      burdenCheck.style.display = 'none';
     }
   }
 
@@ -1451,6 +1645,105 @@
     ];
   }
 
+  // 購屋資訊試算：房屋成交價／鑑價／成數 → 自動算出貸款金額與總現金需求
+  function computePurchaseInfo(applyToLoan = true) {
+    const housePrice = Number(byId('housePrice').value) || 0;
+    const bankAppraisal = Number(byId('bankAppraisal').value) || 0;
+    const ltvPercent = Number(byId('ltvPercent').value) || 0;
+    const taxFee = Number(byId('taxFee').value) || 0;
+    const agentFee = Number(byId('agentFee').value) || 0;
+    const renovationBudget = Number(byId('renovationBudget').value) || 0;
+    const movingCost = Number(byId('movingCost').value) || 0;
+
+    const appraisalBase = bankAppraisal > 0 ? Math.min(housePrice, bankAppraisal) : housePrice;
+    const loanAmount = Math.round(appraisalBase * ltvPercent / 100 / 10000) * 10000;
+    const ltvOnPrice = housePrice > 0 ? (loanAmount / housePrice * 100) : 0;
+    const downPayment = Math.max(0, housePrice - loanAmount);
+    const totalCash = downPayment + taxFee + agentFee + renovationBudget + movingCost;
+
+    byId('calcLoanAmount').textContent = fmt(loanAmount);
+    byId('calcLTV').textContent = `實際 LTV ${ltvOnPrice.toFixed(1)}%`;
+    byId('calcDownPayment').textContent = fmt(downPayment);
+    byId('calcTotalCash').textContent = fmt(totalCash);
+
+    if (applyToLoan && loanAmount > 0) {
+      byId('loan').value = loanAmount;
+    }
+
+    saveState();
+    if (byId('tab-basic').classList.contains('active')) runBasic();
+  }
+
+  ['housePrice','bankAppraisal','ltvPercent','taxFee','agentFee','renovationBudget','movingCost'].forEach(id => {
+    byId(id).addEventListener('input', () => computePurchaseInfo(true));
+  });
+
+  document.querySelectorAll('.ltv-quick').forEach(btn => {
+    btn.addEventListener('click', () => {
+      byId('ltvPercent').value = btn.dataset.ltv;
+      document.querySelectorAll('.ltv-quick').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      computePurchaseInfo(true);
+    });
+  });
+
+  // LocalStorage 自動保存 + URL 分享連結
+  const SYNC_FIELDS = ['housePrice','bankAppraisal','ltvPercent','taxFee','agentFee','renovationBudget','movingCost','loan','rate','years','grace','income'];
+  const STORAGE_KEY = 'loanCalcState_v1';
+
+  function saveState() {
+    try {
+      const state = {};
+      SYNC_FIELDS.forEach(id => { const el = byId(id); if (el) state[id] = el.value; });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {}
+  }
+
+  function loadState() {
+    const params = new URLSearchParams(location.search);
+    let fromUrl = false;
+    SYNC_FIELDS.forEach(id => {
+      if (params.has(id)) {
+        const el = byId(id);
+        if (el) { el.value = params.get(id); fromUrl = true; }
+      }
+    });
+    if (fromUrl) return;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const state = JSON.parse(raw);
+      SYNC_FIELDS.forEach(id => {
+        if (state[id] !== undefined) { const el = byId(id); if (el) el.value = state[id]; }
+      });
+    } catch (e) {}
+  }
+
+  function buildShareURL() {
+    const params = new URLSearchParams();
+    SYNC_FIELDS.forEach(id => { const el = byId(id); if (el) params.set(id, el.value); });
+    return location.origin + location.pathname + '?' + params.toString();
+  }
+
+  SYNC_FIELDS.forEach(id => {
+    const el = byId(id);
+    if (el) el.addEventListener('input', saveState);
+  });
+
+  byId('copyShareLink').addEventListener('click', async () => {
+    const url = buildShareURL();
+    const btn = byId('copyShareLink');
+    const original = btn.textContent;
+    try {
+      await navigator.clipboard.writeText(url);
+      btn.textContent = '✓ 已複製連結';
+    } catch (e) {
+      window.prompt('請手動複製連結：', url);
+      btn.textContent = original;
+    }
+    setTimeout(() => { btn.textContent = original; }, 1800);
+  });
+
   byId('enableExtraPay').addEventListener('change', (e) => {
     byId('extraPaySection').style.display = e.target.checked ? 'block' : 'none';
   });
@@ -1479,6 +1772,8 @@
     if (animationInterval) { pauseAnimation(); playAnimation(); }
   });
 
+  loadState();
+  computePurchaseInfo(false);
   runBasic();
 </script>
 </body>
