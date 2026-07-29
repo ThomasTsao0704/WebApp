@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>程式工程提示詞生成器（本機版）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EAEDE7;
+    --card:#F6F7F3;
+    --ink:#222B28;
+    --ink-soft:#535E59;
+    --ink-faint:#8B948F;
+    --line:#D5DAD0;
+    --line-soft:#E2E6DD;
+    --pine:#356258;
+    --pine-deep:#26463F;
+    --pine-tint:#E4ECE7;
+    --amber:#B57B2E;
+    --amber-tint:#F3E9D6;
+    --focus:#4E8A7C;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(38,70,63,.05), 0 12px 30px -18px rgba(38,70,63,.25);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Noto Sans TC",system-ui,-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei",sans-serif;
+    font-weight:400;
+    line-height:1.7;
+    letter-spacing:.01em;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:56px 24px 96px;}
+
+  /* ---- Header ---- */
+  header{margin-bottom:32px;}
+  .eyebrow{
+    font-size:12px;letter-spacing:.28em;text-transform:uppercase;
+    color:var(--pine);font-weight:700;margin-bottom:14px;
+    display:flex;align-items:center;gap:12px;
+  }
+  .eyebrow::before{content:"";width:26px;height:2px;background:var(--pine);display:inline-block;}
+  h1{
+    font-family:"Noto Serif TC",serif;font-weight:700;
+    font-size:clamp(30px,5.5vw,44px);line-height:1.25;
+    margin:0 0 16px;color:var(--pine-deep);letter-spacing:.01em;
+  }
+  .lede{font-size:16.5px;color:var(--ink-soft);max-width:60ch;margin:0;font-weight:300;}
+  .lede strong{font-weight:500;color:var(--ink);}
+
+  /* ---- Mode switcher ---- */
+  .modes{
+    display:flex;gap:6px;margin:0 0 26px;padding:6px;
+    background:var(--card);border:1px solid var(--line-soft);
+    border-radius:999px;box-shadow:var(--shadow);
+  }
+  .mode-tab{
+    flex:1;font-family:inherit;cursor:pointer;border:0;background:transparent;
+    padding:12px 18px;border-radius:999px;font-size:15px;font-weight:500;
+    color:var(--ink-soft);transition:background .15s,color .15s,box-shadow .15s;
+    display:flex;align-items:center;justify-content:center;gap:8px;line-height:1.3;
+  }
+  .mode-tab .mt-num{font-family:"Noto Serif TC",serif;font-size:13px;opacity:.7;}
+  .mode-tab:hover{color:var(--ink);}
+  .mode-tab[aria-selected="true"]{
+    background:var(--pine);color:#fff;
+    box-shadow:0 6px 16px -8px rgba(53,98,88,.7);
+  }
+  .mode-tab[aria-selected="true"] .mt-num{opacity:.85;}
+  .mode-tab:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}
+
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+  /* ---- Section ---- */
+  .section{
+    background:var(--card);border:1px solid var(--line-soft);
+    border-radius:var(--radius);padding:26px 26px 28px;margin-bottom:18px;
+    box-shadow:var(--shadow);
+  }
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:6px;}
+  .num{
+    font-family:"Noto Serif TC",serif;font-size:15px;font-weight:600;
+    color:var(--pine);flex:none;min-width:1.4em;
+  }
+  .sec-title{font-family:"Noto Serif TC",serif;font-size:19px;font-weight:600;color:var(--ink);margin:0;}
+  .sec-hint{font-size:13.5px;color:var(--ink-faint);margin:2px 0 20px calc(1.4em + 14px);font-weight:300;}
+
+  /* ---- Controls ---- */
+  fieldset{border:0;margin:0;padding:0;}
+  legend{padding:0;}
+  .opts{display:flex;flex-wrap:wrap;gap:9px;}
+  .opt{position:relative;}
+  .opt input{position:absolute;opacity:0;width:0;height:0;}
+  .opt label{
+    display:inline-flex;align-items:center;gap:7px;cursor:pointer;
+    padding:9px 15px;border:1px solid var(--line);border-radius:999px;
+    background:#fff;font-size:14.5px;color:var(--ink-soft);
+    transition:border-color .15s,background .15s,color .15s,box-shadow .15s;
+    user-select:none;
+  }
+  .opt label:hover{border-color:var(--pine);color:var(--ink);}
+  .opt input:checked + label{
+    background:var(--pine);border-color:var(--pine);color:#fff;font-weight:500;
+    box-shadow:0 4px 12px -5px rgba(53,98,88,.6);
+  }
+  .opt input:focus-visible + label{outline:2px solid var(--focus);outline-offset:2px;}
+
+  /* hotfix chip special colour when active */
+  .opt.crisis input:checked + label{
+    background:var(--amber);border-color:var(--amber);
+    box-shadow:0 4px 12px -5px rgba(181,123,46,.65);
+  }
+
+  /* ---- Text inputs ---- */
+  .field{margin-top:4px;}
+  label.flabel{display:block;font-size:14.5px;font-weight:500;color:var(--ink);margin-bottom:8px;}
+  label.flabel .opt-tag{font-weight:300;color:var(--ink-faint);font-size:13px;margin-left:6px;}
+  input[type=text], textarea, select{
+    width:100%;font-family:inherit;font-size:15px;color:var(--ink);
+    background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:12px 14px;line-height:1.6;transition:border-color .15s,box-shadow .15s;
+    resize:vertical;
+  }
+  textarea{min-height:92px;}
+  textarea.code-font{font-family:'Fira Code', Consolas, Monaco, monospace; font-size: 13.5px;}
+  input[type=text]:focus, textarea:focus, select:focus{
+    outline:none;border-color:var(--focus);box-shadow:0 0 0 3px rgba(78,138,124,.16);
+  }
+  input::placeholder, textarea::placeholder{color:var(--ink-faint);font-weight:300;}
+  .field + .field{margin-top:20px;}
+  select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23535E59' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px;cursor:pointer;}
+
+  /* ---- Hotfix notice ---- */
+  .crisis-note{
+    display:none;margin-top:18px;padding:14px 16px;
+    background:var(--amber-tint);border:1px solid #E4CFA3;border-radius:10px;
+    font-size:14px;color:#7A5418;line-height:1.65;
+  }
+  .crisis-note.show{display:block;}
+  .crisis-note b{color:#5E3F0F;}
+
+  /* ---- Buttons ---- */
+  .actions{margin-top:30px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;}
+  .btn{
+    font-family:inherit;cursor:pointer;border:0;border-radius:11px;
+    font-size:15.5px;font-weight:500;padding:14px 26px;transition:transform .12s,box-shadow .15s,background .15s;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{
+    background:var(--pine);color:#fff;
+    box-shadow:0 6px 18px -8px rgba(53,98,88,.75);
+  }
+  .btn-primary:hover{background:var(--pine-deep);}
+  .btn-primary:focus-visible{outline:2px solid var(--focus);outline-offset:3px;}
+  .btn-ghost{background:transparent;color:var(--ink-soft);border:1px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--pine);color:var(--ink);}
+  .warn{font-size:13.5px;color:var(--amber);margin:0;display:none;}
+  .warn.show{display:block;}
+
+  /* ---- Output ---- */
+  #output{margin-top:34px;scroll-margin-top:24px;}
+  .out-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+  .out-head h2{font-family:"Noto Serif TC",serif;font-size:20px;font-weight:600;color:var(--pine-deep);margin:0;}
+  .out-box{
+    background:var(--pine-deep);color:#E8EFEB;border-radius:var(--radius);
+    padding:26px 26px 28px;font-size:13.5px;line-height:1.75;
+    white-space:pre-wrap;word-break:break-word;
+    font-family:'Fira Code', Consolas, Monaco, monospace;
+    max-height:560px;overflow:auto;
+    box-shadow:var(--shadow);
+  }
+  .out-box::-webkit-scrollbar{width:10px;}
+  .out-box::-webkit-scrollbar-thumb{background:#3d6459;border-radius:8px;border:2px solid var(--pine-deep);}
+  .copy-btn{
+    font-family:inherit;cursor:pointer;font-size:14px;font-weight:500;
+    padding:9px 18px;border-radius:9px;border:1px solid var(--pine);
+    background:var(--pine-tint);color:var(--pine-deep);transition:background .15s;
+  }
+  .copy-btn:hover{background:#d6e3dc;}
+  .out-hint{font-size:12.5px;color:var(--ink-faint);margin:0 0 12px;font-weight:300;}
+  /* editable output textarea inherits the dark code-box look */
+  textarea.out-box{
+    display:block;width:100%;min-height:200px;
+    caret-color:#CFE3DB;border:0;outline:none;resize:vertical;
+  }
+  textarea.out-box:focus{box-shadow:var(--shadow), 0 0 0 3px rgba(78,138,124,.25);}
+  .savebar{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:12.5px;color:var(--ink-faint);font-weight:300;}
+  .savebar .dot{width:7px;height:7px;border-radius:50%;background:var(--ink-faint);flex:none;transition:background .2s;}
+  .savebar.saved .dot{background:var(--pine);}
+  .hidden{display:none;}
+
+  footer{margin-top:48px;text-align:center;font-size:12.5px;color:var(--ink-faint);font-weight:300;}
+
+  @media (max-width:560px){
+    .wrap{padding:40px 16px 72px;}
+    .section{padding:22px 18px 24px;}
+    .sec-hint{margin-left:0;}
+    .modes{flex-direction:column;border-radius:var(--radius);}
+    .mode-tab{border-radius:10px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important;scroll-behavior:auto;}
+    .tab-panel.active{animation:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">軟體工程・提示詞生成</div>
+    <h1>把複雜的程式需求，<br>轉化為精準的工程提示詞</h1>
+    <p class="lede">兩種模式：<strong>「開發除錯」</strong>幫你打包 Bug 與需求成一份結構嚴謹的工程提示詞；<strong>「目的分析」</strong>則讓 AI 逆向理解一個專案存在的理由，直接產出 README、作品集文案或產品定位。</p>
+  </header>
+
+  <!-- ===== Mode switcher ===== -->
+  <div class="modes" role="tablist" aria-label="選擇工具模式">
+    <button class="mode-tab" role="tab" id="tab-dev" aria-controls="panel-dev" aria-selected="true">
+      <span class="mt-num">A</span>開發除錯提示詞
+    </button>
+    <button class="mode-tab" role="tab" id="tab-purpose" aria-controls="panel-purpose" aria-selected="false">
+      <span class="mt-num">B</span>AI 程式目的分析
+    </button>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- ===== Panel A：開發除錯提示詞（原 01–05） ================== -->
+  <!-- ============================================================ -->
+  <div class="tab-panel active" id="panel-dev" role="tabpanel" aria-labelledby="tab-dev">
+
+    <!-- 1. 開發任務類型 -->
+    <div class="section">
+      <div class="sec-head"><span class="num">01</span><h3 class="sec-title">這次的任務類型是什麼？</h3></div>
+      <p class="sec-hint">任務類型決定 AI 的思考模式：除錯著重根因分析，重構著重不改變行為的品質提升。</p>
+      <fieldset>
+        <div class="opts" id="taskType">
+          <span class="opt"><input type="radio" name="taskType" id="t1" value="Debug／異常排查" checked><label for="t1">Bug 排查／除錯</label></span>
+          <span class="opt"><input type="radio" name="taskType" id="t2" value="新功能開發與邏輯實現"><label for="t2">新功能實作</label></span>
+          <span class="opt"><input type="radio" name="taskType" id="t3" value="代碼重構與 Clean Code 優化"><label for="t3">代碼重構</label></span>
+          <span class="opt"><input type="radio" name="taskType" id="t4" value="效能調優與瓶頸改善"><label for="t4">效能調優</label></span>
+          <span class="opt"><input type="radio" name="taskType" id="t5" value="系統架構設計與 API 設計"><label for="t5">架構／API 設計</label></span>
+        </div>
+      </fieldset>
+    </div>
+
+    <!-- 2. 緊急與影響程度 -->
+    <div class="section">
+      <div class="sec-head"><span class="num">02</span><h3 class="sec-title">問題的影響範圍與緊急度？</h3></div>
+      <p class="sec-hint">如果是線上緊急事故，提示詞會優先引導 AI 給出最快且安全的 Hotfix 臨時修復方案。</p>
+      <fieldset>
+        <div class="opts" id="priority">
+          <span class="opt"><input type="radio" name="priority" id="p1" value="日常開發／優化" data-hotfix="false" checked><label for="p1">日常開發</label></span>
+          <span class="opt"><input type="radio" name="priority" id="p2" value="區塊性阻礙（Blocker）" data-hotfix="false"><label for="p2">阻礙進度 (Blocker)</label></span>
+          <span class="opt crisis"><input type="radio" name="priority" id="p3" value="線上事故（Production Hotfix）" data-hotfix="true"><label for="p3">線上緊急事故 (Hotfix)</label></span>
+        </div>
+      </fieldset>
+      <div class="crisis-note" id="crisisNote">
+        <b>你選擇了「線上事故 (Hotfix)」。</b>提示詞將會指令 AI 採取「雙階段修復策略」：先提供影響範圍最小、能快速上線止血的修復手段，再給出長期根本解決方案（Root Cause Fix）。
+      </div>
+    </div>
+
+    <!-- 3. 技術棧環境 -->
+    <div class="section">
+      <div class="sec-head"><span class="num">03</span><h3 class="sec-title">主要技術棧與語言環境？</h3></div>
+      <p class="sec-hint">讓 AI 使用該語言的最佳實踐（Best Practices）與設計模式來回答。</p>
+      <div class="field">
+        <label class="flabel" for="techStack">程式語言 / 框架 / 相關套件</label>
+        <input type="text" id="techStack" placeholder="例如：Python 3.11 + FastAPI, TypeScript / React 18, PostgreSQL 15, Docker">
+      </div>
+    </div>
+
+    <!-- 4. 專案脈絡與問題細節 -->
+    <div class="section">
+      <div class="sec-head"><span class="num">04</span><h3 class="sec-title">問題細節與脈絡？</h3></div>
+      <p class="sec-hint">提供越清楚的上下文與錯誤訊息，AI 產出的代碼越能即插即用。</p>
+      <div class="field">
+        <label class="flabel" for="context">問題與現狀描述 <span class="opt-tag">必填</span></label>
+        <textarea id="context" placeholder="描述你目前正在做的事，或是遇到的問題。例如：我在做一個使用者權限校驗的中間件，但在處理非同步 JWT 驗證時會隨機拋出 Timeout 錯誤..."></textarea>
+      </div>
+      <div class="field">
+        <label class="flabel" for="codeSnippets">相關代碼碎片 / 錯誤訊息 Stack Trace <span class="opt-tag">選填</span></label>
+        <textarea id="codeSnippets" class="code-font" placeholder="貼上相關程式碼、Console Log 或 Error Stack Trace..."></textarea>
+      </div>
+      <div class="field">
+        <label class="flabel" for="constraints">限制條件與已知嘗試 <span class="opt-tag">選填</span></label>
+        <input type="text" id="constraints" placeholder="例如：不能修改現有的 DB Schema、必須相容 Node.js 16、已試過清快取但無效...">
+      </div>
+    </div>
+
+    <!-- 5. 輸出偏好 -->
+    <div class="section">
+      <div class="sec-head"><span class="num">05</span><h3 class="sec-title">希望 AI 額外提供哪些內容？</h3></div>
+      <p class="sec-hint">可複選。根據你的需要引導 AI 補充單元測試、效能分析或註解。</p>
+      <fieldset>
+        <div class="opts" id="tags"><!-- filled by JS --></div>
+      </fieldset>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- ===== Panel B：AI 程式目的分析（原 06） =================== -->
+  <!-- ============================================================ -->
+  <div class="tab-panel" id="panel-purpose" role="tabpanel" aria-labelledby="tab-purpose">
+
+    <!-- 6. 專案資訊 -->
+    <div class="section">
+      <div class="sec-head"><span class="num">06</span><h3 class="sec-title">AI 程式目的分析器</h3></div>
+      <p class="sec-hint">讓 AI 不只是理解程式功能，而是分析這個程式真正想解決的問題、目標使用者、產品價值與未來發展方向。</p>
+
+      <div class="field">
+        <label class="flabel" for="projectName">專案名稱 <span class="opt-tag">選填</span></label>
+        <input type="text" id="projectName" placeholder="例如：程式開發提示詞生成器、LifeOS、房貸寬限期分析系統">
+      </div>
+
+      <div class="field">
+        <label class="flabel" for="projectCode">專案程式碼 / 專案結構 <span class="opt-tag">建議提供</span></label>
+        <textarea id="projectCode" class="code-font" rows="10" placeholder="貼上 HTML、JavaScript、Python、React、Vue 或整個專案結構..."></textarea>
+      </div>
+
+      <div class="field">
+        <label class="flabel" for="projectDescription">我目前知道的用途 <span class="opt-tag">選填</span></label>
+        <textarea id="projectDescription" rows="4" placeholder="例如：這是一個協助開發者整理需求並生成 AI Prompt 的工具。"></textarea>
+      </div>
+    </div>
+
+    <!-- 7. 分析範圍 -->
+    <div class="section">
+      <div class="sec-head"><span class="num">07</span><h3 class="sec-title">希望 AI 分析哪些內容？</h3></div>
+      <p class="sec-hint">可複選。勾選的每一項都會成為 AI 輸出報告的一個獨立段落。</p>
+      <fieldset>
+        <div class="opts" id="purposeTags"><!-- filled by JS --></div>
+      </fieldset>
+    </div>
+
+    <!-- 8. 分析深度與風格 -->
+    <div class="section">
+      <div class="sec-head"><span class="num">08</span><h3 class="sec-title">分析深度與輸出風格？</h3></div>
+      <p class="sec-hint">深度決定篇幅，風格決定用詞與觀點——同一份程式，PM 看重指標，投資人看重市場。</p>
+      <div class="field">
+        <label class="flabel" for="analysisDepth">分析深度</label>
+        <select id="analysisDepth">
+          <option value="快速摘要（約 3–5 分鐘閱讀）">快速摘要</option>
+          <option value="完整產品分析（約 10–15 分鐘閱讀）" selected>完整產品分析</option>
+          <option value="產品經理等級深度分析（20 分鐘以上）">產品經理等級分析</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="flabel" for="analysisStyle">輸出風格 / 目標讀者</label>
+        <select id="analysisStyle">
+          <option value="產品經理（PM），重視使用者痛點與指標" selected>產品經理（PM）</option>
+          <option value="技術架構師，重視設計取捨與擴充性">技術架構師（Architect）</option>
+          <option value="投資人 / 商業提案，重視市場、模式與規模化">投資人 / 商業提案</option>
+          <option value="GitHub README，重視上手、安裝與使用">GitHub README</option>
+          <option value="求職作品集，重視動機、貢獻與成果亮點">求職作品集</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Shared actions ===== -->
+  <div class="actions">
+    <button class="btn btn-primary" id="generate">生成提示詞</button>
+    <button class="btn btn-ghost" id="reset">清空重填</button>
+    <p class="warn" id="warn"></p>
+    <span class="savebar" id="savebar" aria-live="polite" title="草稿會自動存在你的瀏覽器，不會上傳"><span class="dot"></span><span id="saveText">草稿自動儲存已開啟</span></span>
+  </div>
+
+  <!-- ===== Shared output ===== -->
+  <div id="output" class="hidden">
+    <div class="out-head">
+      <h2 id="outTitle">產出的提示詞 (Prompt)</h2>
+      <button class="copy-btn" id="copy">複製全部</button>
+    </div>
+    <p class="out-hint">可直接在下方修改文字後再複製；你的編輯也會一起自動存成草稿。</p>
+    <textarea class="out-box" id="outbox" spellcheck="false" aria-label="產出的提示詞，可編輯"></textarea>
+  </div>
+
+  <footer>複製後貼進 ChatGPT、Claude、Cursor 或任何 AI 對話框。純前端運算，草稿只存在你自己的瀏覽器，不會上傳伺服器。</footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- 選項資料（集中管理，方便日後增減） ---------- */
+  var DEV_TAGS = [
+    "附帶完整單元測試 (Unit Test)",
+    "寫出代碼改動前後對比 (Before/After)",
+    "補充 TypeScript／強型別定義",
+    "關鍵邏輯加上詳細中文註解",
+    "提供時間/空間複雜度分析",
+    "條列潛在的安全風險或 Edge Cases",
+    "附帶完整且可運行的範例代碼"
+  ];
+
+  var PURPOSE_TAGS = [
+    { v:"程式目的（Purpose）", label:"程式目的", on:true },
+    { v:"解決的問題（Problem）", label:"解決的問題", on:true },
+    { v:"目標使用者（Target User）", label:"目標使用者", on:true },
+    { v:"核心價值（Value Proposition）", label:"核心價值", on:true },
+    { v:"一句話產品定位（One-liner）", label:"一句話定位", on:true },
+    { v:"README.md 專案簡介", label:"README 簡介", on:true },
+    { v:"作品集專案介紹文案", label:"作品集介紹", on:true },
+    { v:"商業化與產品化建議（Roadmap）", label:"產品化建議", on:true }
+  ];
+
+  /* ---------- 小工具 ---------- */
+  function $(id){ return document.getElementById(id); }
+  function val(id){ var el = $(id); return el ? el.value.trim() : ''; }
+  function radio(name){ var el = document.querySelector('input[name="'+name+'"]:checked'); return el ? el.value : ''; }
+  function checkedIn(wrap){
+    return Array.prototype.slice.call(wrap.querySelectorAll('input:checked')).map(function(x){ return x.value; });
+  }
+  function esc(s){ // 供 innerHTML 安全插入用（此處資料為常數，仍保持防護習慣）
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  /* ---------- 動態產生 chips ---------- */
+  var tagWrap = $('tags');
+  DEV_TAGS.forEach(function(t,i){
+    var span = document.createElement('span');
+    span.className = 'opt';
+    span.innerHTML = '<input type="checkbox" id="tag'+i+'" value="'+esc(t)+'"><label for="tag'+i+'">'+esc(t)+'</label>';
+    tagWrap.appendChild(span);
+  });
+
+  var purposeWrap = $('purposeTags');
+  PURPOSE_TAGS.forEach(function(t,i){
+    var span = document.createElement('span');
+    span.className = 'opt';
+    span.innerHTML = '<input type="checkbox" id="pt'+i+'" value="'+esc(t.v)+'"'+(t.on?' checked':'')+'>'
+                   + '<label for="pt'+i+'">'+esc(t.label)+'</label>';
+    purposeWrap.appendChild(span);
+  });
+
+  /* ---------- 模式切換 ---------- */
+  var mode = 'dev';
+  var tabDev = $('tab-dev'), tabPurpose = $('tab-purpose');
+  var panelDev = $('panel-dev'), panelPurpose = $('panel-purpose');
+  var warn = $('warn'), output = $('output'), outbox = $('outbox');
+  var genBtn = $('generate'), outTitle = $('outTitle');
+
+  function switchMode(next){
+    mode = next;
+    var isDev = next === 'dev';
+    tabDev.setAttribute('aria-selected', isDev);
+    tabPurpose.setAttribute('aria-selected', !isDev);
+    panelDev.classList.toggle('active', isDev);
+    panelPurpose.classList.toggle('active', !isDev);
+    genBtn.textContent = isDev ? '生成工程提示詞' : '生成專案分析提示詞';
+    outTitle.textContent = isDev ? '產出的提示詞 (Prompt)' : '產出的分析提示詞 (Prompt)';
+    warn.classList.remove('show');
+    output.classList.add('hidden'); // 換模式時收起上一個結果，避免混淆
+  }
+  tabDev.addEventListener('click', function(){ switchMode('dev'); });
+  tabPurpose.addEventListener('click', function(){ switchMode('purpose'); });
+  switchMode('dev');
+
+  /* ---------- Hotfix 提示卡（用 data-hotfix，不依賴文字比對） ---------- */
+  var crisisNote = $('crisisNote');
+  $('priority').addEventListener('change', function(e){
+    var isHotfix = e.target.getAttribute('data-hotfix') === 'true';
+    crisisNote.classList.toggle('show', isHotfix);
+  });
+
+  /* ---------- 產生「開發除錯」提示詞 ---------- */
+  function buildDevPrompt(){
+    var taskType   = radio('taskType');
+    var priorityEl = document.querySelector('input[name="priority"]:checked');
+    var priority   = priorityEl ? priorityEl.value : '';
+    var isHotfix   = priorityEl ? priorityEl.getAttribute('data-hotfix') === 'true' : false;
+    var techStack  = val('techStack')   || '（請根據輸入的程式碼語法自行推斷）';
+    var context    = val('context');
+    var code       = val('codeSnippets');
+    var constraints= val('constraints') || '（無特殊限制，遵循該語言的最佳實踐即可）';
+    var tags       = checkedIn(tagWrap);
+    var tagStr     = tags.length ? tags.join('、') : '（無特殊要求，輸出清晰簡潔的代碼即可）';
+
+    var p = '';
+    p += '# 角色設定\n';
+    p += '你是一位資深軟體架構師與 Dev Lead，具備極強的除錯（Debugging）、重構、系統架構設計與演算法優化能力。\n';
+    p += '你的目標是給出優雅、健全（Robust）、安全、高效且符合 Clean Code 原則的解決方案，而不是隨手修補或未經驗證的臨時代碼。\n\n';
+
+    p += '# 專案與問題上下文\n';
+    p += '- 任務類型：' + taskType + '\n';
+    p += '- 緊急與影響程度：' + priority + '\n';
+    p += '- 技術棧環境：' + techStack + '\n';
+    p += '- 現狀與問題描述：' + context + '\n';
+    p += '- 限制條件與已知嘗試：' + constraints + '\n';
+    p += '- 附加要求：' + tagStr + '\n\n';
+
+    if(code){
+      p += '## 相關代碼／錯誤訊息 (Code / Logs)\n```\n' + code + '\n```\n\n';
+    }
+
+    p += '# 思考過程引導 (Chain of Thought)\n';
+    p += '在給出最終程式碼解決方案前，請務必按照以下步驟深入推理與分析：\n';
+    p += '1. **根本原因／需求剖析**：造成此問題的底層機制是什麼？（例如：記憶體洩漏、非同步競爭條件、介面不相符、SQL 效能瓶頸等）\n';
+    p += '2. **邊界條件 (Edge Cases)**：極端狀況下（空值、併發、網路中斷、資料邊界）這段邏輯會發生什麼事？\n';
+    p += '3. **潛在影響範圍 (Blast Radius)**：修改這段代碼是否會破壞現有的其他模組或既有功能？\n';
+    p += '4. **技術選型比較**：是否有至少兩種解決方案？哪一種在可維護性與效能上取得最佳平衡？\n\n';
+
+    if(isHotfix){
+      p += '# 【緊急事故特別指示】\n';
+      p += '由於這是線上緊急事故 (Production Hotfix)，請將輸出劃分為兩個階段：\n';
+      p += '1. **第一階段（緊急止血方案）**：改動最小、風險最低、能最快上線的修補手段。\n';
+      p += '2. **第二階段（長期根本解決方案）**：徹底解決問題、完善測試與架構的優化方案。\n\n';
+    }
+
+    p += '# 輸出結構規範\n';
+    p += '請按以下結構組織回答：\n';
+    p += '1. **問題根因分析**（1–2 句話精準指出問題點）\n';
+    p += '2. **解決方案核心思路**\n';
+    p += '3. **完整、可運行的程式碼解答**（請寫出完整邏輯，避免使用 `// 請在這邊實作 ...` 等省略占位符）\n';
+    p += '4. **關鍵邏輯與技術細節說明**\n';
+    p += '5. **驗證與測試方式**（如何確認此修改確實解決問題）\n\n';
+
+    p += '# 代碼編寫核心原則\n';
+    p += '1. **生產環境等級 (Production-Ready)**：包含完整的例外處理 (Exception Handling) 與防護性程式設計 (Defensive Programming)。\n';
+    p += '2. **可讀性與可維護性**：命名語意清晰，避免神奇數字 (Magic Numbers) 或過度巢狀。\n';
+    p += '3. **遵守限制**：務必符合上述環境限制與條件：' + constraints + '\n';
+
+    return p;
+  }
+
+  /* ---------- 產生「目的分析」提示詞 ---------- */
+  function buildPurposePrompt(){
+    var name  = val('projectName')        || '（未命名專案，請依內容自行推測合適名稱）';
+    var code  = val('projectCode');
+    var desc  = val('projectDescription') || '（作者未提供，請完全從程式碼推導）';
+    var depth = val('analysisDepth');
+    var style = val('analysisStyle');
+    var tags  = checkedIn(purposeWrap);
+    if(!tags.length){ tags = ['程式目的（Purpose）', '解決的問題（Problem）', '核心價值（Value Proposition）']; }
+
+    var p = '';
+    p += '# 角色設定\n';
+    p += '你是一位資深產品經理（PM）兼技術架構師，擅長從程式碼與專案結構逆向推導出產品的核心價值、目標使用者與商業定位。\n';
+    p += '你不只描述「這個程式做了什麼」，更要分析「它為什麼存在、為誰解決什麼問題」。\n\n';
+
+    p += '# 專案資訊\n';
+    p += '- 專案名稱：' + name + '\n';
+    p += '- 作者已知的用途：' + desc + '\n';
+    p += '- 分析深度：' + depth + '\n';
+    p += '- 輸出風格 / 目標讀者：' + style + '\n\n';
+
+    if(code){
+      p += '## 專案程式碼 / 結構\n```\n' + code + '\n```\n\n';
+    } else {
+      p += '（作者未貼上程式碼，請根據專案名稱與用途描述進行合理推論，並明確標示哪些結論屬於推測。）\n\n';
+    }
+
+    p += '# 分析任務\n';
+    p += '請針對以下面向逐項深入分析，每一項獨立成段：\n';
+    tags.forEach(function(t,i){ p += (i+1) + '. ' + t + '\n'; });
+    p += '\n';
+
+    p += '# 思考過程引導 (Chain of Thought)\n';
+    p += '1. **功能盤點**：先從程式碼辨識實際實作的功能、輸入輸出與資料流。\n';
+    p += '2. **意圖推導**：由功能反推使用者的真實需求與痛點（為什麼有人需要它？）。\n';
+    p += '3. **價值定位**：相較於現有替代方案或手動作法，這個程式的獨特價值在哪？\n';
+    p += '4. **讀者適配**：依「輸出風格：' + style + '」調整用詞、觀點與結構。\n\n';
+
+    p += '# 輸出結構規範\n';
+    p += '- 依「分析任務」的每一項，各自輸出一個帶標題的段落。\n';
+    p += '- 若包含「一句話產品定位」，請用一句不超過 30 字、抓得住重點的定位語。\n';
+    p += '- 若包含「README」或「作品集介紹」，請直接產出可貼上的成品文案（含標題、簡介、特色），而非說明「應該怎麼寫」。\n';
+    p += '- 篇幅與細緻度請對應分析深度：' + depth + '。\n\n';
+
+    p += '# 撰寫原則\n';
+    p += '1. **有根據**：所有結論都要能對應到程式碼中的具體證據，不要憑空捏造不存在的功能。\n';
+    p += '2. **誠實**：若資訊不足以支撐某個結論，明確標註「需補充資訊」，不要虛構。\n';
+    p += '3. **從使用者視角出發**：用使用者聽得懂的語言描述價值，而非只羅列技術名詞。\n';
+
+    return p;
+  }
+
+  /* ---------- 生成 ---------- */
+  genBtn.addEventListener('click', function(){
+    var text;
+    if(mode === 'dev'){
+      if(!val('context')){
+        warn.textContent = '請至少填寫「問題與現狀描述」，AI 才有足夠資訊分析。';
+        warn.classList.add('show');
+        $('context').focus();
+        return;
+      }
+      text = buildDevPrompt();
+    } else {
+      if(!val('projectCode') && !val('projectDescription')){
+        warn.textContent = '請至少貼上「專案程式碼」或填寫「我目前知道的用途」，AI 才有東西可分析。';
+        warn.classList.add('show');
+        $('projectCode').focus();
+        return;
+      }
+      text = buildPurposePrompt();
+    }
+    warn.classList.remove('show');
+    outbox.value = text;
+    output.classList.remove('hidden');
+    saveDraft();
+    output.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  /* ---------- 清空 ---------- */
+  $('reset').addEventListener('click', function(){
+    // 文字類
+    document.querySelectorAll('input[type=text], textarea').forEach(function(el){ el.value = ''; });
+    // 下拉：回到預設（第一個 selected 或首項）
+    document.querySelectorAll('select').forEach(function(sel){ sel.selectedIndex = [].findIndex.call(sel.options, function(o){return o.defaultSelected;}); if(sel.selectedIndex < 0) sel.selectedIndex = 0; });
+    // 單選：回預設
+    $('t1').checked = true;
+    $('p1').checked = true;
+    // 開發附加要求：全部取消
+    tagWrap.querySelectorAll('input:checked').forEach(function(x){ x.checked = false; });
+    // 目的分析標籤：回到各自預設值
+    purposeWrap.querySelectorAll('input[type=checkbox]').forEach(function(x){ x.checked = x.defaultChecked; });
+    crisisNote.classList.remove('show');
+    warn.classList.remove('show');
+    outbox.value = '';
+    output.classList.add('hidden');
+    clearDraft();
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+
+  /* ---------- 複製 ---------- */
+  var copyBtn = $('copy');
+  copyBtn.addEventListener('click', function(){
+    var text = outbox.value;
+    function done(){ var old = copyBtn.textContent; copyBtn.textContent = '已複製 ✓'; setTimeout(function(){ copyBtn.textContent = old; }, 1600); }
+    function fallback(){
+      var ta = document.createElement('textarea'); ta.value = text;
+      ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      try{ document.execCommand('copy'); done(); }catch(e){}
+      document.body.removeChild(ta);
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done).catch(fallback);
+    } else { fallback(); }
+  });
+
+  /* ---------- 草稿自動儲存 / 還原（localStorage） ---------- */
+  var STORAGE_KEY = 'promptgen.draft.v1';
+  var savebar = $('savebar'), saveText = $('saveText');
+  var suppressSave = false; // 還原資料時暫停儲存，避免覆寫
+
+  function lsAvailable(){
+    try{ var k='__t'; localStorage.setItem(k,'1'); localStorage.removeItem(k); return true; }
+    catch(e){ return false; }
+  }
+  var CAN_SAVE = lsAvailable();
+
+  function collectState(){
+    var s = { v:1, mode:mode, fields:{}, radios:{}, checks:{},
+              outText:outbox.value, outVisible:!output.classList.contains('hidden') };
+    document.querySelectorAll('.wrap input[type=text], .wrap textarea, .wrap select').forEach(function(el){
+      if(el.id && el.id !== 'outbox') s.fields[el.id] = el.value;
+    });
+    document.querySelectorAll('.wrap input[type=radio]:checked').forEach(function(el){
+      if(el.name) s.radios[el.name] = el.id;
+    });
+    document.querySelectorAll('.wrap input[type=checkbox]').forEach(function(el){
+      if(el.id) s.checks[el.id] = el.checked;
+    });
+    return s;
+  }
+
+  function saveDraft(){
+    if(!CAN_SAVE || suppressSave) return;
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(collectState()));
+      savebar.classList.add('saved');
+      var t = new Date();
+      var pad = function(n){ return (n<10?'0':'')+n; };
+      saveText.textContent = '草稿已存 · ' + pad(t.getHours()) + ':' + pad(t.getMinutes()) + ':' + pad(t.getSeconds());
+    }catch(e){/* 配額滿等狀況，靜默略過 */}
+  }
+
+  function clearDraft(){
+    try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+    savebar.classList.remove('saved');
+    saveText.textContent = CAN_SAVE ? '草稿已清除' : '此環境無法儲存草稿';
+  }
+
+  function restoreDraft(){
+    if(!CAN_SAVE){ saveText.textContent = '此環境無法儲存草稿（請下載後於本機開啟）'; return; }
+    var raw;
+    try{ raw = localStorage.getItem(STORAGE_KEY); }catch(e){ return; }
+    if(!raw) return;
+    var s;
+    try{ s = JSON.parse(raw); }catch(e){ return; }
+    if(!s) return;
+
+    suppressSave = true;
+    Object.keys(s.fields||{}).forEach(function(id){ var el=$(id); if(el) el.value=s.fields[id]; });
+    Object.keys(s.radios||{}).forEach(function(name){ var el=$(s.radios[name]); if(el) el.checked=true; });
+    Object.keys(s.checks||{}).forEach(function(id){ var el=$(id); if(el) el.checked=!!s.checks[id]; });
+
+    // 還原依附的 UI 狀態
+    var pr = document.querySelector('input[name="priority"]:checked');
+    crisisNote.classList.toggle('show', !!(pr && pr.getAttribute('data-hotfix')==='true'));
+    switchMode(s.mode === 'purpose' ? 'purpose' : 'dev'); // 這會先收起 output
+    if(s.outText){ outbox.value = s.outText; if(s.outVisible) output.classList.remove('hidden'); }
+    suppressSave = false;
+
+    savebar.classList.add('saved');
+    saveText.textContent = '已還原上次草稿';
+  }
+
+  // 任何輸入 / 勾選 / 換模式後，防抖存檔
+  var saveTimer = null;
+  function scheduleSave(){
+    if(!CAN_SAVE) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveDraft, 400);
+  }
+  document.querySelector('.wrap').addEventListener('input', scheduleSave);
+  document.querySelector('.wrap').addEventListener('change', scheduleSave);
+  tabDev.addEventListener('click', scheduleSave);
+  tabPurpose.addEventListener('click', scheduleSave);
+
+  // 開頁還原
+  restoreDraft();
+})();
+</script>
+</body>
+</html>
