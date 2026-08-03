@@ -167,6 +167,18 @@
   .disclaimer b{color:var(--text)}
 
   .end-nav{text-align:center;margin-top:34px}
+  .actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:14px}
+  .btn.outline{background:transparent;color:var(--text);box-shadow:none;
+    border:1.5px solid var(--line);padding:13.5px 28px}
+  .btn.outline:hover{border-color:var(--muted);background:var(--surface);box-shadow:none}
+
+  #toast{position:fixed;left:50%;bottom:32px;transform:translate(-50%,20px);
+    background:var(--surface-2);color:var(--text);border:1px solid var(--line);
+    padding:12px 22px;border-radius:999px;font-size:14px;font-weight:500;
+    box-shadow:0 12px 40px rgba(0,0,0,.4);opacity:0;pointer-events:none;z-index:60;
+    transition:opacity .25s,transform .25s}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  @media(prefers-reduced-motion:reduce){#toast{transition:opacity .25s}}
 
   .fade{animation:fade .45s ease}
   @keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -278,19 +290,29 @@ const QUESTIONS = [
   {f:"rel", q:"你的社交能量傾向：", o:[["集中在幾個重要的人",2],["分散一些",1],["盡量認識更多人",0]]},
 ];
 
-/* MBTI 參考原型（0–100）：ext, anx, nov, foc, hsp, emp, ana, rel */
+/* MBTI 參考原型（0–100）：ext, anx, nov, foc, hsp, emp, ana, rel
+   依四軸組合推導：E/I→外向；N+P→新奇；I+T+J→深度專注；
+   N+F+I→高敏感；F→共感；N+T→分析；I+F+J→關係深度 */
 const MBTI = {
-  INFJ:[30,55,50,80,85,90,72,90],
-  INTJ:[28,45,55,90,45,45,95,82],
-  INFP:[30,58,55,60,85,90,55,86],
-  INTP:[30,50,72,82,45,45,95,70],
-  ENFJ:[80,42,55,70,75,90,66,74],
-  ENTJ:[82,30,60,86,40,45,92,64],
-  ENFP:[82,45,90,45,72,86,52,60],
-  ENTP:[82,35,90,55,48,52,86,55],
-  ISFJ:[35,55,30,72,72,82,55,86],
-  ISTJ:[30,45,25,90,40,45,84,80],
+  INTJ:[28,42,58,92,42,40,96,80],
+  INTP:[28,50,78,78,46,42,95,70],
+  ENTJ:[80,30,60,86,38,44,93,62],
+  ENTP:[82,34,92,55,46,50,86,54],
+  INFJ:[30,54,52,80,88,92,66,90],
+  INFP:[29,58,60,58,90,93,52,86],
+  ENFJ:[80,44,56,72,76,93,60,74],
+  ENFP:[82,46,92,46,74,88,50,62],
+  ISTJ:[28,44,22,90,38,40,82,80],
+  ISFJ:[32,52,26,78,72,84,52,86],
+  ESTJ:[78,32,34,82,34,44,80,66],
+  ESFJ:[80,42,36,70,66,86,52,74],
+  ISTP:[32,42,66,72,40,42,82,60],
+  ISFP:[33,50,62,58,78,88,50,72],
+  ESTP:[82,30,88,50,40,50,72,52],
+  ESFP:[84,38,84,44,66,86,46,58],
 };
+/* 相似度權重：社交焦慮與高敏感是 MBTI 未量測的校正構面，權重調低 */
+const MBTI_W = [1, .4, 1, 1, .5, 1, 1, .8];
 
 /* ============================ 狀態 ============================ */
 const app = document.getElementById('app');
@@ -403,9 +425,10 @@ function computeScores(){
 function stars(v){const n=Math.round(v/20);return {full:Math.max(0,Math.min(5,n))};}
 function mbtiScores(s){
   const v=FACETS.map(f=>s[f.key]);
+  const wsum=MBTI_W.reduce((a,b)=>a+b,0);
   const out=Object.entries(MBTI).map(([t,p])=>{
-    let d=0; for(let i=0;i<8;i++) d+=Math.abs(v[i]-p[i]);
-    d/=8;
+    let d=0; for(let i=0;i<8;i++) d+=MBTI_W[i]*Math.abs(v[i]-p[i]);
+    d/=wsum;
     return [t, Math.max(0,Math.round(100-d))];
   });
   out.sort((a,b)=>b[1]-a[1]);
@@ -488,9 +511,15 @@ function renderResults(){
     </div>
 
     <div class="end-nav">
+      <div class="actions">
+        <button class="btn" id="share">分享結果</button>
+        <button class="btn outline" id="export">匯出圖片</button>
+      </div>
       <button class="btn ghost" id="retake">重新測驗</button>
     </div>`;
 
+  document.getElementById('share').onclick=()=>shareResults(s, mb);
+  document.getElementById('export').onclick=()=>exportImage(s, mb);
   document.getElementById('retake').onclick=()=>{
     answers=new Array(QUESTIONS.length).fill(null); cur=0;
     FACETS.forEach((f,i)=>{seg.children[i].style.background='var(--line-soft)';seg.children[i].style.boxShadow='none';});
@@ -507,653 +536,165 @@ function renderResults(){
 }
 
 /* ============================ 雷達圖 ============================ */
+const D_COLORS=()=>FACETS.map((f,i)=>getComputedStyle(document.documentElement).getPropertyValue(`--d${i+1}`).trim());
+
+// 通用繪製：t = 展開進度(0–1)，scale 依畫布大小調整字級
+function drawRadarOn(ctx, cx, cy, R, s, t, scale){
+  const N=8, colors=D_COLORS();
+  const vals=FACETS.map(f=>s[f.key]/100);
+  const pt=(i,r)=>{ const a=-Math.PI/2 + i*2*Math.PI/N; return [cx+Math.cos(a)*r, cy+Math.sin(a)*r]; };
+
+  for(let g=1;g<=5;g++){
+    ctx.beginPath();
+    for(let i=0;i<=N;i++){ const[x,y]=pt(i%N,R*g/5); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+    ctx.closePath();
+    ctx.strokeStyle='rgba(255,255,255,'+(g===5?0.14:0.06)+')'; ctx.lineWidth=1*scale; ctx.stroke();
+  }
+  ctx.textBaseline='middle';
+  for(let i=0;i<N;i++){
+    const[ex,ey]=pt(i,R);
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(ex,ey);
+    ctx.strokeStyle='rgba(255,255,255,0.07)'; ctx.lineWidth=1*scale; ctx.stroke();
+    ctx.beginPath(); ctx.arc(ex,ey,4*scale,0,7); ctx.fillStyle=colors[i]; ctx.fill();
+    const[lx,ly]=pt(i,R+52*scale);
+    ctx.textAlign = Math.abs(lx-cx)<6?'center':(lx>cx?'left':'right');
+    ctx.font=`600 ${26*scale}px "PingFang TC","Noto Sans TC",sans-serif`;
+    ctx.fillStyle=colors[i]; ctx.fillText(FACETS[i].short, lx, ly);
+    ctx.font=`500 ${21*scale}px "Space Grotesk",monospace`;
+    ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fillText(Math.round(s[FACETS[i].key]), lx, ly+26*scale);
+  }
+  const grad=ctx.createRadialGradient(cx,cy,0,cx,cy,R);
+  grad.addColorStop(0,'rgba(52,193,201,0.30)');
+  grad.addColorStop(1,'rgba(155,124,240,0.28)');
+  ctx.beginPath();
+  for(let i=0;i<=N;i++){ const[x,y]=pt(i%N,R*vals[i%N]*t); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+  ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
+  ctx.strokeStyle='rgba(238,241,250,0.85)'; ctx.lineWidth=2.2*scale; ctx.stroke();
+  for(let i=0;i<N;i++){
+    const[x,y]=pt(i,R*vals[i]*t);
+    ctx.beginPath(); ctx.arc(x,y,6*scale,0,7); ctx.fillStyle=colors[i]; ctx.fill();
+    ctx.strokeStyle='#0d1120'; ctx.lineWidth=2*scale; ctx.stroke();
+  }
+}
+
 function drawRadar(s){
   const cv=document.getElementById('radar');
   const ctx=cv.getContext('2d');
   const W=cv.width, cx=W/2, cy=W/2, R=W*0.34;
-  const N=8;
-  const vals=FACETS.map(f=>s[f.key]/100);
-  const colors=FACETS.map((f,i)=>getComputedStyle(document.documentElement).getPropertyValue(`--d${i+1}`).trim());
   const reduce=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
-
-  const pt=(i,r)=>{ const a=-Math.PI/2 + i*2*Math.PI/N; return [cx+Math.cos(a)*r, cy+Math.sin(a)*r]; };
-
-  function frame(t){
-    ctx.clearRect(0,0,W,W);
-    // rings
-    for(let g=1;g<=5;g++){
-      ctx.beginPath();
-      for(let i=0;i<=N;i++){ const[x,y]=pt(i%N,R*g/5); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
-      ctx.closePath();
-      ctx.strokeStyle='rgba(255,255,255,'+(g===5?0.14:0.06)+')';
-      ctx.lineWidth=1; ctx.stroke();
-    }
-    // spokes + outer labels + dots
-    ctx.font='600 26px "PingFang TC","Noto Sans TC",sans-serif';
-    for(let i=0;i<N;i++){
-      const[ex,ey]=pt(i,R);
-      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(ex,ey);
-      ctx.strokeStyle='rgba(255,255,255,0.07)'; ctx.lineWidth=1; ctx.stroke();
-      // axis end dot
-      ctx.beginPath(); ctx.arc(ex,ey,4,0,7); ctx.fillStyle=colors[i]; ctx.fill();
-      // label
-      const[lx,ly]=pt(i,R+52);
-      ctx.fillStyle=colors[i];
-      ctx.textAlign = Math.abs(lx-cx)<6?'center':(lx>cx?'left':'right');
-      ctx.textBaseline='middle';
-      ctx.fillText(FACETS[i].short, lx, ly);
-      // score under label
-      ctx.font='500 21px "Space Grotesk",monospace';
-      ctx.fillStyle='rgba(255,255,255,0.5)';
-      ctx.fillText(Math.round(s[FACETS[i].key]), lx, ly+26);
-      ctx.font='600 26px "PingFang TC","Noto Sans TC",sans-serif';
-    }
-    // polygon
-    const grad=ctx.createRadialGradient(cx,cy,0,cx,cy,R);
-    grad.addColorStop(0,'rgba(52,193,201,0.30)');
-    grad.addColorStop(1,'rgba(155,124,240,0.28)');
-    ctx.beginPath();
-    for(let i=0;i<=N;i++){ const[x,y]=pt(i%N,R*vals[i%N]*t); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
-    ctx.closePath();
-    ctx.fillStyle=grad; ctx.fill();
-    ctx.strokeStyle='rgba(238,241,250,0.85)'; ctx.lineWidth=2.2; ctx.stroke();
-    // vertices
-    for(let i=0;i<N;i++){
-      const[x,y]=pt(i,R*vals[i]*t);
-      ctx.beginPath(); ctx.arc(x,y,6,0,7); ctx.fillStyle=colors[i]; ctx.fill();
-      ctx.strokeStyle='#0d1120'; ctx.lineWidth=2; ctx.stroke();
-    }
-  }
-
-  if(reduce){ frame(1); return; }
+  if(reduce){ ctx.clearRect(0,0,W,W); drawRadarOn(ctx,cx,cy,R,s,1,1); return; }
   const dur=950, start=performance.now();
   (function loop(now){
-    const p=Math.min(1,(now-start)/dur);
-    const e=1-Math.pow(1-p,3);
-    frame(e);
+    const p=Math.min(1,(now-start)/dur), e=1-Math.pow(1-p,3);
+    ctx.clearRect(0,0,W,W); drawRadarOn(ctx,cx,cy,R,s,e,1);
     if(p<1) requestAnimationFrame(loop);
   })(start);
 }
 
-renderIntro();
-</script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>人格偏好分析 v2.0 · Professional Edition</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --ink:#0d1120;
-    --ink-2:#141a2e;
-    --surface:#181f37;
-    --surface-2:#1e263f;
-    --line:#2a3350;
-    --line-soft:#232b46;
-    --text:#eef1fa;
-    --muted:#8b93b0;
-    --muted-2:#646d8c;
+/* ============================ 分享 / 匯出圖片 ============================ */
+function buildShareCanvas(s, mb){
+  const W=1080, H=1350, scale=2;
+  const cv=document.createElement('canvas');
+  cv.width=W*scale; cv.height=H*scale;
+  const ctx=cv.getContext('2d'); ctx.scale(scale,scale);
 
-    --d1:#f59e42; /* 外向性   */
-    --d2:#ef5d6b; /* 社交焦慮 */
-    --d3:#e86fb0; /* 新奇刺激 */
-    --d4:#9b7cf0; /* 深度專注 */
-    --d5:#5b8def; /* 高敏感   */
-    --d6:#34c1c9; /* 情緒共感 */
-    --d7:#46c878; /* 分析思維 */
-    --d8:#e0b341; /* 關係深度 */
+  // background
+  const bg=ctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#0d1120'); bg.addColorStop(1,'#141a2e');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+  const glow=ctx.createRadialGradient(W*0.8,80,0,W*0.8,80,700);
+  glow.addColorStop(0,'rgba(91,141,239,0.16)'); glow.addColorStop(1,'transparent');
+  ctx.fillStyle=glow; ctx.fillRect(0,0,W,H);
 
-    --mono:"Space Grotesk", ui-monospace, monospace;
-    --sans:"PingFang TC","Noto Sans TC","Microsoft JhengHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  }
+  // header
+  ctx.textAlign='left';
+  ctx.fillStyle='#8b93b0'; ctx.font='500 22px "Space Grotesk",monospace';
+  ctx.fillText('人格偏好分析  ·  v2.0', 70, 82);
+  ctx.fillStyle='#eef1fa'; ctx.font='700 54px "PingFang TC","Noto Sans TC",sans-serif';
+  ctx.fillText('八維人格輪廓', 70, 148);
 
-  *{box-sizing:border-box;margin:0;padding:0}
-  html{-webkit-text-size-adjust:100%}
-  body{
-    font-family:var(--sans);
-    background:
-      radial-gradient(1200px 700px at 78% -8%, rgba(91,141,239,.14), transparent 60%),
-      radial-gradient(1000px 600px at 10% 108%, rgba(155,124,240,.12), transparent 55%),
-      var(--ink);
-    color:var(--text);
-    min-height:100vh;
-    line-height:1.6;
-    letter-spacing:.01em;
-    overflow-x:hidden;
-  }
-  .wrap{max-width:720px;margin:0 auto;padding:clamp(20px,5vw,48px) clamp(18px,5vw,32px) 80px}
-  .num{font-family:var(--mono);font-feature-settings:"tnum" 1;letter-spacing:.02em}
+  // radar
+  drawRadarOn(ctx, W/2, 460, 230, s, 1, 1);
 
-  /* ---------- top bar / progress ---------- */
-  .topbar{position:sticky;top:0;z-index:20;background:linear-gradient(var(--ink),rgba(13,17,32,.86) 78%,transparent);
-    padding:14px clamp(18px,5vw,32px) 10px;backdrop-filter:blur(6px)}
-  .topbar-inner{max-width:720px;margin:0 auto;display:flex;align-items:center;gap:14px}
-  .brand{font-size:12px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
-  .brand b{color:var(--text);font-weight:600}
-  .seg{flex:1;display:flex;gap:3px}
-  .seg span{flex:1;height:5px;border-radius:4px;background:var(--line-soft);transition:background .35s,box-shadow .35s}
-  .qcount{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
-  .qcount b{color:var(--text)}
+  // top MBTI match pill
+  ctx.textAlign='center';
+  ctx.fillStyle='#34c1c9'; ctx.font='600 30px "Space Grotesk",monospace';
+  ctx.fillText(`最接近參考類型  ${mb[0][0]}  ·  ${mb[0][1]}%`, W/2, 806);
 
-  /* ---------- intro ---------- */
-  .eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.26em;color:var(--muted);text-transform:uppercase}
-  h1{font-size:clamp(30px,7vw,46px);line-height:1.12;font-weight:700;margin:14px 0 0;letter-spacing:-.01em}
-  h1 .ver{font-family:var(--mono);font-weight:500;color:var(--d5)}
-  .lede{color:var(--muted);font-size:clamp(15px,2.6vw,17px);margin-top:18px;max-width:52ch}
-  .lede strong{color:var(--text);font-weight:600}
-
-  .facets{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:30px 0 8px}
-  @media(max-width:520px){.facets{grid-template-columns:1fr}}
-  .facet{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);
-    border:1px solid var(--line-soft);border-radius:13px}
-  .dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 12px currentColor}
-  .facet .idx{font-family:var(--mono);font-size:11px;color:var(--muted-2);width:20px;flex:none}
-  .facet .fname{font-size:14.5px;font-weight:500}
-  .facet .fsub{font-size:11.5px;color:var(--muted);margin-left:auto;font-family:var(--mono)}
-
-  .note{margin-top:22px;padding:16px 18px;border-left:2px solid var(--line);color:var(--muted);
-    font-size:13.5px;background:linear-gradient(90deg,rgba(91,141,239,.05),transparent)}
-  .note b{color:var(--text)}
-
-  .btn{appearance:none;border:none;cursor:pointer;font-family:var(--sans);font-weight:600;
-    font-size:16px;color:var(--ink);background:var(--text);border-radius:999px;
-    padding:15px 30px;letter-spacing:.02em;transition:transform .15s,box-shadow .2s,background .2s}
-  .btn:hover{transform:translateY(-1px);box-shadow:0 10px 30px rgba(238,241,250,.14)}
-  .btn:active{transform:translateY(0)}
-  .btn:focus-visible{outline:3px solid var(--d5);outline-offset:3px}
-  .btn.big{margin-top:30px;padding:17px 40px}
-  .btn.ghost{background:transparent;color:var(--muted);box-shadow:none;padding:14px 22px}
-  .btn.ghost:hover{color:var(--text);transform:none;box-shadow:none}
-  .btn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
-
-  /* ---------- question ---------- */
-  .qhead{display:flex;align-items:baseline;gap:14px;margin-top:10px}
-  .qtag{font-family:var(--mono);font-size:12px;letter-spacing:.14em;padding:5px 11px;border-radius:999px;
-    color:var(--ink);font-weight:600;white-space:nowrap}
-  .qno{font-family:var(--mono);font-size:13px;color:var(--muted-2)}
-  .qtext{font-size:clamp(21px,4.6vw,27px);font-weight:600;line-height:1.35;margin:20px 0 26px;letter-spacing:-.005em}
-
-  .opts{display:flex;flex-direction:column;gap:12px}
-  .opt{display:flex;align-items:center;gap:16px;width:100%;text-align:left;cursor:pointer;
-    background:var(--surface);border:1.5px solid var(--line-soft);border-radius:15px;
-    padding:18px 20px;color:var(--text);font-family:var(--sans);font-size:16.5px;
-    transition:border-color .18s,background .18s,transform .12s}
-  .opt:hover{border-color:var(--line);background:var(--surface-2);transform:translateX(3px)}
-  .opt:focus-visible{outline:3px solid var(--accent,var(--d5));outline-offset:2px}
-  .opt .key{font-family:var(--mono);font-size:15px;font-weight:600;width:34px;height:34px;flex:none;
-    display:grid;place-items:center;border-radius:9px;border:1.5px solid var(--line);color:var(--muted);
-    transition:all .18s}
-  .opt.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--surface))}
-  .opt.sel .key{background:var(--accent);border-color:var(--accent);color:var(--ink)}
-  .opt .otext{flex:1}
-
-  .qnav{display:flex;justify-content:space-between;align-items:center;margin-top:28px}
-
-  /* ---------- results ---------- */
-  .rwrap{max-width:860px}
-  .rhead{text-align:center;margin-bottom:8px}
-  .rhead .eyebrow{display:block}
-  .rtitle{font-size:clamp(26px,5.5vw,38px);font-weight:700;margin-top:12px;line-height:1.2}
-  .rsub{color:var(--muted);margin-top:10px;font-size:15px}
-
-  .radar-card{margin:26px 0;padding:clamp(16px,4vw,30px);background:linear-gradient(180deg,var(--surface),var(--ink-2));
-    border:1px solid var(--line-soft);border-radius:22px}
-  .radar-box{display:block;margin:0 auto;width:100%;max-width:460px;aspect-ratio:1/1}
-
-  .rows{display:flex;flex-direction:column;gap:2px;margin-top:6px}
-  .row{display:grid;grid-template-columns:132px 1fr auto;align-items:center;gap:16px;
-    padding:15px 4px;border-bottom:1px solid var(--line-soft)}
-  @media(max-width:560px){
-    .row{grid-template-columns:1fr auto;gap:8px 14px;padding:16px 2px}
-    .row .track-wrap{grid-column:1/-1;order:3}
-  }
-  .rlabel{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px}
-  .rlabel .dot{width:8px;height:8px}
-  .track-wrap{display:flex;align-items:center;gap:12px}
-  .track{flex:1;height:9px;border-radius:6px;background:var(--line-soft);overflow:hidden;min-width:80px}
-  .track i{display:block;height:100%;width:0;border-radius:6px;transition:width 1s cubic-bezier(.2,.7,.2,1)}
-  .rscore{font-family:var(--mono);font-size:15px;font-weight:600;width:58px;text-align:right}
-  .rscore span{color:var(--muted-2);font-size:12px}
-  .stars{font-size:15px;letter-spacing:2px;white-space:nowrap}
-  .star-off{color:var(--line)}
-  .rinterp{grid-column:1/-1;color:var(--muted);font-size:13px;margin-top:2px;padding-left:18px}
-  @media(max-width:560px){.rinterp{padding-left:0}}
-
-  .section-h{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;
-    color:var(--muted);margin:38px 0 4px;display:flex;align-items:center;gap:12px}
-  .section-h::after{content:"";flex:1;height:1px;background:var(--line-soft)}
-
-  .profile-card{margin-top:16px;padding:22px clamp(18px,4vw,26px);background:var(--surface);
-    border:1px solid var(--line-soft);border-radius:18px}
-  .profile-line{font-size:16px;margin:2px 0;color:var(--text)}
-  .profile-line .plabel{color:var(--muted);display:inline-block;min-width:150px}
-
-  .mbti{margin-top:16px;display:flex;flex-direction:column;gap:11px}
-  .mbti-row{display:grid;grid-template-columns:72px 1fr 54px;align-items:center;gap:14px}
-  .mbti-type{font-family:var(--mono);font-weight:600;font-size:15px;letter-spacing:.05em}
-  .mbti-track{height:11px;border-radius:7px;background:var(--line-soft);overflow:hidden}
-  .mbti-track i{display:block;height:100%;width:0;border-radius:7px;
-    background:linear-gradient(90deg,var(--d4),var(--d6));transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
-  .mbti-val{font-family:var(--mono);font-size:14px;font-weight:600;text-align:right}
-  .mbti-row:first-child .mbti-type{color:var(--d6)}
-
-  .disclaimer{margin-top:30px;padding:18px 20px;border:1px dashed var(--line);border-radius:14px;
-    color:var(--muted);font-size:13px}
-  .disclaimer b{color:var(--text)}
-
-  .end-nav{text-align:center;margin-top:34px}
-
-  .fade{animation:fade .45s ease}
-  @keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-  @media(prefers-reduced-motion:reduce){
-    .fade{animation:none}
-    .track i,.mbti-track i{transition:none}
-    .opt:hover{transform:none}
-    .btn:hover{transform:none}
-  }
-</style>
-</head>
-<body>
-
-<div class="topbar" id="topbar" hidden>
-  <div class="topbar-inner">
-    <div class="brand"><b>人格偏好分析</b> · v2.0</div>
-    <div class="seg" id="seg"></div>
-    <div class="qcount"><b id="qcur">1</b> / 40</div>
-  </div>
-</div>
-
-<main class="wrap" id="app"></main>
-
-<script>
-/* ============================ 構面設定 ============================ */
-const FACETS = [
-  {key:"ext", short:"外向性",   name:"內向 × 外向",       en:"Extraversion",  color:"var(--d1)",
-   desc:"測量恢復能量的來源，而非社交技巧。",
-   hi:"能量來自與人互動，偏外向。", mid:"視情境切換，介於內外向之間。", lo:"能量來自獨處，偏內向。"},
-  {key:"anx", short:"社交焦慮", name:"社交焦慮校正",       en:"Social Anxiety", color:"var(--d2)",
-   desc:"避免把「害羞」誤判成「內向」。",
-   hi:"社交場合容易緊張與自我檢視。", mid:"偶爾緊張，多數場合可調適。", lo:"面對人群幾乎沒有心理壓力。"},
-  {key:"nov", short:"新奇刺激", name:"刺激需求",           en:"Novelty Seeking", color:"var(--d3)",
-   desc:"對新奇、探索與挑戰的偏好。",
-   hi:"渴望新鮮體驗，容易對重複感到無聊。", mid:"喜歡一點變化，但也需要穩定。", lo:"偏好熟悉、可預期的生活。"},
-  {key:"foc", short:"深度專注", name:"深度專注傾向",       en:"Deep Focus", color:"var(--d4)",
-   desc:"持續專注、鑽研與系統分析的傾向。",
-   hi:"能長時間深入，鑽研到底。", mid:"多數時候專注，偶爾需要切換。", lo:"偏好多工與快速切換，較難久坐。"},
-  {key:"hsp", short:"高敏感",   name:"高敏感（HSP）",       en:"Sensory Sensitivity", color:"var(--d5)",
-   desc:"對環境刺激與內外訊息的敏感度。",
-   hi:"對聲光、氛圍與情緒訊息高度敏銳。", mid:"對強烈刺激有感，尚在可承受範圍。", lo:"不易被外在刺激干擾。"},
-  {key:"emp", short:"情緒共感", name:"情緒共感",           en:"Empathy", color:"var(--d6)",
-   desc:"與高敏感分開：能否感同身受他人情緒。",
-   hi:"容易與他人情緒共振，感同身受。", mid:"能體會他人情緒，但仍有界線。", lo:"理解他人處境，情緒相對抽離穩定。"},
-  {key:"ana", short:"分析思維", name:"資訊處理模式",       en:"Analytical Processing", color:"var(--d7)",
-   desc:"傾向系統分析，或傾向直覺判斷。",
-   hi:"偏好蒐證、拆解與邏輯推理。", mid:"分析與直覺並用。", lo:"偏好直覺與經驗，先做再修正。"},
-  {key:"rel", short:"關係深度", name:"關係偏好",           en:"Relationship Depth", color:"var(--d8)",
-   desc:"重質不重量，或廣結善緣。",
-   hi:"重質不重量，偏好少數深交。", mid:"深度與廣度兼顧。", lo:"廣結善緣，享受認識更多人。"},
-];
-
-/* option.score：0 / 1 / 2，2 = 該構面「高分」端 */
-const QUESTIONS = [
-  // 1 外向性 —— 高分 = 外向
-  {f:"ext", q:"參加八小時聚會後，你隔天最希望：", o:[["完全不安排任何社交",0],["看對象",1],["再約朋友出去",2]]},
-  {f:"ext", q:"完成一件值得開心的事情，你第一個反應：", o:[["自己慢慢享受",0],["看情況分享",1],["馬上找人分享",2]]},
-  {f:"ext", q:"理想的週末安排：", o:[["一個人在家充電",0],["找一兩位好友小聚",1],["和一群人出門熱鬧",2]]},
-  {f:"ext", q:"長時間獨處之後，你會：", o:[["覺得很自在，還想繼續",0],["還好，可有可無",1],["開始想找人互動",2]]},
-  {f:"ext", q:"在團體裡，你通常是：", o:[["安靜傾聽的那個",0],["看氣氛而定",1],["主動帶動氣氛的那個",2]]},
-
-  // 2 社交焦慮 —— 高分 = 焦慮
-  {f:"anx", q:"第一次見陌生人時：", o:[["擔心別人怎麼看我",2],["一開始會有點緊張",1],["幾乎沒有心理壓力",0]]},
-  {f:"anx", q:"公開發言時：", o:[["很擔心出錯",2],["有點緊張",1],["表現得很自然",0]]},
-  {f:"anx", q:"傳訊息給不太熟的人之後：", o:[["會反覆回想有沒有講錯",2],["偶爾想一下",1],["傳完就不太在意",0]]},
-  {f:"anx", q:"走進一個大家都已就座的房間：", o:[["會覺得很多目光讓我不安",2],["有一點不自在",1],["幾乎沒感覺",0]]},
-  {f:"anx", q:"當自己成為被注意的焦點：", o:[["很容易緊張",2],["要看場合",1],["反而更放得開",0]]},
-
-  // 3 新奇刺激 —— 高分 = 喜歡新奇
-  {f:"nov", q:"你多久會想體驗新事物？", o:[["喜歡熟悉、穩定的生活",0],["偶爾想換換口味",1],["一直都想嘗試新的",2]]},
-  {f:"nov", q:"面對重複性的工作：", o:[["覺得很安穩舒服",0],["還算普通",1],["很快就覺得無聊",2]]},
-  {f:"nov", q:"安排旅行時，你偏好：", o:[["去熟悉、放心的地方",0],["新舊都可以",1],["探索沒去過的地方",2]]},
-  {f:"nov", q:"面對帶點風險的選擇：", o:[["盡量避免不確定",0],["衡量之後再決定",1],["會被那份刺激感吸引",2]]},
-  {f:"nov", q:"你喜歡的生活節奏是：", o:[["規律、可預期",0],["帶一點變化",1],["不斷有新的挑戰",2]]},
-
-  // 4 深度專注 —— 高分 = 專注
-  {f:"foc", q:"投入工作時，你通常能：", o:[["連續專注好幾個小時",2],["偶爾會分心",1],["一直想切換到別的事",0]]},
-  {f:"foc", q:"讀一本書時，你偏好：", o:[["一次深入讀進去",2],["看當下狀況",1],["在不同段落跳來跳去",0]]},
-  {f:"foc", q:"處理複雜任務時：", o:[["喜歡鑽研到徹底搞懂",2],["看情況投入",1],["容易失去耐心",0]]},
-  {f:"foc", q:"被打斷之後，你能：", o:[["很快回到原本的專注",2],["需要一點時間收心",1],["很難再進入狀態",0]]},
-  {f:"foc", q:"學習新東西時，你傾向：", o:[["徹底弄懂背後原理",2],["懂個大概就好",1],["會用就好、不深究",0]]},
-
-  // 5 高敏感 —— 高分 = 敏感
-  {f:"hsp", q:"待在吵雜的環境裡：", o:[["幾乎不受影響",0],["還好",1],["非常容易感到疲累",2]]},
-  {f:"hsp", q:"對於別人的情緒：", o:[["影響我不大",0],["偶爾會被牽動",1],["非常容易感受到",2]]},
-  {f:"hsp", q:"強烈的氣味、光線或觸感：", o:[["幾乎不受影響",0],["有時會注意到",1],["很容易覺得不舒服",2]]},
-  {f:"hsp", q:"一次要接收很多資訊時：", o:[["處理起來沒問題",0],["還可以應付",1],["很快就感到過載",2]]},
-  {f:"hsp", q:"環境裡細微的變化（燈光、聲響）：", o:[["通常不會注意到",0],["偶爾察覺",1],["很快就會發現",2]]},
-
-  // 6 情緒共感 —— 高分 = 共感
-  {f:"emp", q:"朋友難過時，你多半：", o:[["知道，但情緒仍穩定",0],["有點被影響",1],["像自己也在難過",2]]},
-  {f:"emp", q:"看電影裡的角色時：", o:[["知道劇情而已",0],["偶爾會投入",1],["非常容易入戲",2]]},
-  {f:"emp", q:"看到陌生人遭遇不幸：", o:[["覺得可惜，但很快平復",0],["會放在心上一陣子",1],["心情跟著沉重許久",2]]},
-  {f:"emp", q:"身邊的人很開心時：", o:[["替他高興",0],["有被感染到",1],["快樂會直接傳染給我",2]]},
-  {f:"emp", q:"聽別人訴說煩惱時，你會：", o:[["理性地給建議",0],["先聽，再回應",1],["感同身受地陪著他",2]]},
-
-  // 7 分析思維 —— 高分 = 分析
-  {f:"ana", q:"做決策時，你偏向：", o:[["先做大量分析",2],["分析加上直覺",1],["先憑直覺再修正",0]]},
-  {f:"ana", q:"遇到問題時，你會：", o:[["先搜尋、蒐集資料",2],["先想一下",1],["直接動手試",0]]},
-  {f:"ana", q:"面對一份新資訊：", o:[["習慣拆解、找出邏輯",2],["視情況而定",1],["憑整體感覺判斷",0]]},
-  {f:"ana", q:"買重要的東西之前：", o:[["詳細比較各種規格",2],["大致比較一下",1],["喜歡就買",0]]},
-  {f:"ana", q:"要相信某件事是真的，你需要：", o:[["證據與推理",2],["兩者參半",1],["直覺與經驗",0]]},
-
-  // 8 關係深度 —— 高分 = 重質、深交
-  {f:"rel", q:"你理想的朋友圈是：", o:[["3～5 位深交即可",2],["適中就好",1],["越多越好",0]]},
-  {f:"rel", q:"你更享受的聊天是：", o:[["少數人的深度對談",2],["都可以",1],["認識新朋友、拓展圈子",0]]},
-  {f:"rel", q:"你重視的友誼是：", o:[["少數但長久深刻",2],["介於中間",1],["廣泛而多元",0]]},
-  {f:"rel", q:"分享私人的事情，你會：", o:[["只對極少數人",2],["看關係深淺",1],["相對比較開放",0]]},
-  {f:"rel", q:"你的社交能量傾向：", o:[["集中在幾個重要的人",2],["分散一些",1],["盡量認識更多人",0]]},
-];
-
-/* MBTI 參考原型（0–100）：ext, anx, nov, foc, hsp, emp, ana, rel */
-const MBTI = {
-  INFJ:[30,55,50,80,85,90,72,90],
-  INTJ:[28,45,55,90,45,45,95,82],
-  INFP:[30,58,55,60,85,90,55,86],
-  INTP:[30,50,72,82,45,45,95,70],
-  ENFJ:[80,42,55,70,75,90,66,74],
-  ENTJ:[82,30,60,86,40,45,92,64],
-  ENFP:[82,45,90,45,72,86,52,60],
-  ENTP:[82,35,90,55,48,52,86,55],
-  ISFJ:[35,55,30,72,72,82,55,86],
-  ISTJ:[30,45,25,90,40,45,84,80],
-};
-
-/* ============================ 狀態 ============================ */
-const app = document.getElementById('app');
-const topbar = document.getElementById('topbar');
-const seg = document.getElementById('seg');
-const qcur = document.getElementById('qcur');
-let answers = new Array(QUESTIONS.length).fill(null);
-let cur = 0;
-
-FACETS.forEach((f,i)=>{ // 8 progress segments, one per facet
-  const s=document.createElement('span'); s.dataset.f=i; seg.appendChild(s);
-});
-
-/* ============================ 畫面：開始 ============================ */
-function renderIntro(){
-  topbar.hidden = true;
-  window.scrollTo(0,0);
-  const facets = FACETS.map((f,i)=>`
-    <div class="facet">
-      <span class="dot" style="color:${f.color};background:${f.color}"></span>
-      <span class="idx">${String(i+1).padStart(2,'0')}</span>
-      <span class="fname">${f.short}</span>
-      <span class="fsub">${f.en}</span>
-    </div>`).join('');
-  app.className='wrap fade';
-  app.innerHTML = `
-    <p class="eyebrow">Professional Edition</p>
-    <h1>人格偏好分析 <span class="ver">v2.0</span></h1>
-    <p class="lede">用 <strong>8 個獨立構面</strong>、共 40 題，描繪你的特質輪廓——
-      而不是把你塞進一個標籤。測完你會得到一張<strong>八維雷達圖</strong>、逐項星級側寫，
-      以及與 MBTI 類型的<strong>參考相似度</strong>。</p>
-    <div class="facets">${facets}</div>
-    <div class="note">這份測驗刻意把「社交焦慮」與「內向」、「高敏感」與「情緒共感」<b>分開量測</b>，
-      因為它們常被混為一談。結果不下診斷，只呈現你在各構面上的相對位置。</div>
-    <button class="btn big" id="start">開始測驗 →</button>`;
-  document.getElementById('start').onclick=()=>{cur=0;renderQuestion();};
-}
-
-/* ============================ 畫面：題目 ============================ */
-function renderQuestion(){
-  topbar.hidden = false;
-  const item = QUESTIONS[cur];
-  const f = FACETS.find(x=>x.key===item.f);
-  const fIdx = FACETS.findIndex(x=>x.key===item.f);
-  qcur.textContent = cur+1;
-  updateSegments();
-  window.scrollTo({top:0,behavior:'instant'in document.body.style?'instant':'auto'});
-
-  const opts = item.o.map((o,i)=>{
-    const key = ['A','B','C'][i];
-    const selected = answers[cur]===i ? 'sel':'';
-    return `<button class="opt ${selected}" data-i="${i}" style="--accent:${f.color}">
-      <span class="key">${key}</span><span class="otext">${o[0]}</span></button>`;
-  }).join('');
-
-  app.className='wrap fade';
-  app.innerHTML = `
-    <div class="qhead">
-      <span class="qtag" style="background:${f.color}">${f.short}</span>
-      <span class="qno num">第 ${String(cur+1).padStart(2,'0')} 題 · 構面 ${fIdx+1}/8</span>
-    </div>
-    <p class="qtext">${item.q}</p>
-    <div class="opts">${opts}</div>
-    <div class="qnav">
-      <button class="btn ghost" id="back" ${cur===0?'disabled':''}>← 上一題</button>
-      <button class="btn" id="next" ${answers[cur]===null?'disabled':''}>
-        ${cur===QUESTIONS.length-1?'看結果':'下一題 →'}</button>
-    </div>`;
-
-  app.querySelectorAll('.opt').forEach(el=>{
-    el.onclick=()=>{
-      answers[cur]=+el.dataset.i;
-      app.querySelectorAll('.opt').forEach(o=>o.classList.remove('sel'));
-      el.classList.add('sel');
-      const nx=document.getElementById('next'); nx.disabled=false;
-      updateSegments();
-      setTimeout(()=>{ cur<QUESTIONS.length-1 ? (cur++,renderQuestion()) : renderResults(); }, 230);
-    };
-  });
-  document.getElementById('back').onclick=()=>{ if(cur>0){cur--;renderQuestion();} };
-  document.getElementById('next').onclick=()=>{
-    if(answers[cur]===null) return;
-    cur<QUESTIONS.length-1 ? (cur++,renderQuestion()) : renderResults();
-  };
-}
-
-function updateSegments(){
-  // fill each facet segment by proportion answered, color when complete
+  // 8 mini bars (two columns)
+  const colors=D_COLORS();
+  const colX=[70, 570], colW=440, rowH=54, startY=880;
   FACETS.forEach((f,i)=>{
-    const idxs=[]; QUESTIONS.forEach((q,qi)=>{ if(q.f===f.key) idxs.push(qi); });
-    const done = idxs.filter(qi=>answers[qi]!==null).length;
-    const el = seg.children[i];
-    const cvar = getComputedStyle(document.documentElement).getPropertyValue(`--d${i+1}`).trim();
-    if(done===idxs.length){ el.style.background=cvar; el.style.boxShadow=`0 0 8px ${cvar}66`; }
-    else if(done>0){ el.style.background=`linear-gradient(90deg,${cvar} ${done/idxs.length*100}%, var(--line-soft) 0)`; el.style.boxShadow='none'; }
-    else { el.style.background='var(--line-soft)'; el.style.boxShadow='none'; }
-  });
-}
-
-/* ============================ 計分 ============================ */
-function computeScores(){
-  const s={};
-  FACETS.forEach(f=>{
-    let sum=0,n=0;
-    QUESTIONS.forEach((q,qi)=>{ if(q.f===f.key){ sum += q.o[answers[qi]][1]; n++; } });
-    s[f.key]=Math.round(sum/(n*2)*100);
-  });
-  return s;
-}
-function stars(v){const n=Math.round(v/20);return {full:Math.max(0,Math.min(5,n))};}
-function mbtiScores(s){
-  const v=FACETS.map(f=>s[f.key]);
-  const out=Object.entries(MBTI).map(([t,p])=>{
-    let d=0; for(let i=0;i<8;i++) d+=Math.abs(v[i]-p[i]);
-    d/=8;
-    return [t, Math.max(0,Math.round(100-d))];
-  });
-  out.sort((a,b)=>b[1]-a[1]);
-  return out;
-}
-
-/* ============================ 畫面：結果 ============================ */
-function renderResults(){
-  topbar.hidden=true;
-  window.scrollTo(0,0);
-  const s=computeScores();
-  const cssColor=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
-
-  const rows = FACETS.map((f,i)=>{
-    const v=s[f.key]; const st=stars(v);
-    const tier = v>=67?'hi':(v>=34?'mid':'lo');
-    const starStr = '★'.repeat(st.full)+`<span class="star-off">${'★'.repeat(5-st.full)}</span>`;
-    return `<div class="row">
-      <div class="rlabel"><span class="dot" style="color:${f.color};background:${f.color}"></span>${f.short}</div>
-      <div class="track-wrap">
-        <div class="track"><i data-w="${v}" style="background:${f.color}"></i></div>
-      </div>
-      <div class="rscore num">${v}<span>/100</span></div>
-      <div class="rinterp"><span class="stars">${starStr}</span> · ${f[tier]}</div>
-    </div>`;
-  }).join('');
-
-  // relationship & analytical descriptive labels
-  const relLabel = s.rel>=67?'重質不重量':(s.rel>=34?'質量兼顧':'廣結善緣');
-  const anaLabel = s.ana>=67?'分析型':(s.ana>=34?'分析＋直覺':'直覺型');
-
-  const profile = [
-    ['內向 ↔ 外向', s.ext],
-    ['社交焦慮', s.anx],
-    ['新奇刺激需求', s.nov],
-    ['深度專注', s.foc],
-    ['高敏感程度', s.hsp],
-    ['情緒共感', s.emp],
-  ].map(([lbl,v])=>{
-    const n=stars(v).full;
-    return `<p class="profile-line"><span class="plabel">${lbl}</span>${'★'.repeat(n)}<span class="star-off">${'★'.repeat(5-n)}</span></p>`;
-  }).join('') +
-  `<p class="profile-line"><span class="plabel">資訊處理模式</span>${anaLabel}</p>`+
-  `<p class="profile-line"><span class="plabel">關係偏好</span>${relLabel}</p>`;
-
-  const mb=mbtiScores(s);
-  const mbtiRows=mb.slice(0,6).map(([t,v])=>`
-    <div class="mbti-row">
-      <span class="mbti-type">${t}</span>
-      <div class="mbti-track"><i data-w="${v}"></i></div>
-      <span class="mbti-val num">${v}%</span>
-    </div>`).join('');
-
-  app.className='wrap rwrap fade';
-  app.innerHTML=`
-    <div class="rhead">
-      <span class="eyebrow">Your Profile</span>
-      <div class="rtitle">八維人格輪廓</div>
-      <p class="rsub">最接近的參考類型是 <b style="color:var(--d6)">${mb[0][0]}</b>（相似度 ${mb[0][1]}%）——但它只是參考座標，不是結論。</p>
-    </div>
-
-    <div class="radar-card">
-      <canvas class="radar-box" id="radar" width="920" height="920" role="img"
-        aria-label="八構面雷達圖"></canvas>
-    </div>
-
-    <div class="section-h">逐項側寫 · By Facet</div>
-    <div class="rows">${rows}</div>
-
-    <div class="section-h">人格分析報告 · Profile</div>
-    <div class="profile-card">${profile}</div>
-
-    <div class="section-h">MBTI 參考相似度 · Reference Only</div>
-    <div class="mbti">${mbtiRows}</div>
-
-    <div class="disclaimer">
-      <b>關於這份結果：</b>MBTI 本身並非診斷工具，也無法只憑外向程度推斷整個人格類型。
-      上面的相似度是把你的八個構面分數與各類型的典型輪廓做比對得到的<b>近似參考值</b>，
-      而不是判定。用多個獨立構面描述一個人，通常會比單一分類更有解釋力。
-    </div>
-
-    <div class="end-nav">
-      <button class="btn ghost" id="retake">重新測驗</button>
-    </div>`;
-
-  document.getElementById('retake').onclick=()=>{
-    answers=new Array(QUESTIONS.length).fill(null); cur=0;
-    FACETS.forEach((f,i)=>{seg.children[i].style.background='var(--line-soft)';seg.children[i].style.boxShadow='none';});
-    renderIntro();
-  };
-
-  // animate bars
-  requestAnimationFrame(()=>{
-    app.querySelectorAll('.track i').forEach(i=>i.style.width=i.dataset.w+'%');
-    app.querySelectorAll('.mbti-track i').forEach(i=>i.style.width=i.dataset.w+'%');
+    const x=colX[i%2], y=startY+Math.floor(i/2)*rowH, v=s[f.key];
+    ctx.textAlign='left'; ctx.fillStyle='#eef1fa';
+    ctx.font='600 24px "PingFang TC","Noto Sans TC",sans-serif';
+    ctx.fillText(f.short, x, y);
+    ctx.textAlign='right'; ctx.fillStyle=colors[i];
+    ctx.font='600 24px "Space Grotesk",monospace';
+    ctx.fillText(v, x+colW, y);
+    // track
+    const ty=y+14;
+    ctx.fillStyle='#232b46'; roundRect(ctx,x,ty,colW,10,5); ctx.fill();
+    ctx.fillStyle=colors[i]; roundRect(ctx,x,ty,colW*v/100,10,5); ctx.fill();
   });
 
-  drawRadar(s);
+  // footer
+  ctx.textAlign='left';
+  ctx.fillStyle='#646d8c'; ctx.font='400 20px "PingFang TC","Noto Sans TC",sans-serif';
+  ctx.fillText('八個獨立構面描述特質 · MBTI 相似度僅供參考，非診斷結論', 70, H-58);
+  ctx.fillStyle='#2a3350'; ctx.fillRect(70, H-40, W-140, 2);
+  return cv;
+}
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+function canvasToBlob(cv){ return new Promise(res=>cv.toBlob(res,'image/png')); }
+
+async function exportImage(s, mb){
+  try{
+    const cv=buildShareCanvas(s, mb);
+    const blob=await canvasToBlob(cv);
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download='人格偏好分析.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    toast('圖片已匯出');
+  }catch(e){ toast('匯出失敗，請改用截圖'); }
 }
 
-/* ============================ 雷達圖 ============================ */
-function drawRadar(s){
-  const cv=document.getElementById('radar');
-  const ctx=cv.getContext('2d');
-  const W=cv.width, cx=W/2, cy=W/2, R=W*0.34;
-  const N=8;
-  const vals=FACETS.map(f=>s[f.key]/100);
-  const colors=FACETS.map((f,i)=>getComputedStyle(document.documentElement).getPropertyValue(`--d${i+1}`).trim());
-  const reduce=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
-
-  const pt=(i,r)=>{ const a=-Math.PI/2 + i*2*Math.PI/N; return [cx+Math.cos(a)*r, cy+Math.sin(a)*r]; };
-
-  function frame(t){
-    ctx.clearRect(0,0,W,W);
-    // rings
-    for(let g=1;g<=5;g++){
-      ctx.beginPath();
-      for(let i=0;i<=N;i++){ const[x,y]=pt(i%N,R*g/5); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
-      ctx.closePath();
-      ctx.strokeStyle='rgba(255,255,255,'+(g===5?0.14:0.06)+')';
-      ctx.lineWidth=1; ctx.stroke();
+async function shareResults(s, mb){
+  const text=`我的八維人格輪廓：最接近 ${mb[0][0]}（${mb[0][1]}%）。`+
+    FACETS.map(f=>`${f.short} ${s[f.key]}`).join('・');
+  try{
+    const cv=buildShareCanvas(s, mb);
+    const blob=await canvasToBlob(cv);
+    const file=new File([blob],'人格偏好分析.png',{type:'image/png'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:'人格偏好分析 v2.0', text});
+      return;
     }
-    // spokes + outer labels + dots
-    ctx.font='600 26px "PingFang TC","Noto Sans TC",sans-serif';
-    for(let i=0;i<N;i++){
-      const[ex,ey]=pt(i,R);
-      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(ex,ey);
-      ctx.strokeStyle='rgba(255,255,255,0.07)'; ctx.lineWidth=1; ctx.stroke();
-      // axis end dot
-      ctx.beginPath(); ctx.arc(ex,ey,4,0,7); ctx.fillStyle=colors[i]; ctx.fill();
-      // label
-      const[lx,ly]=pt(i,R+52);
-      ctx.fillStyle=colors[i];
-      ctx.textAlign = Math.abs(lx-cx)<6?'center':(lx>cx?'left':'right');
-      ctx.textBaseline='middle';
-      ctx.fillText(FACETS[i].short, lx, ly);
-      // score under label
-      ctx.font='500 21px "Space Grotesk",monospace';
-      ctx.fillStyle='rgba(255,255,255,0.5)';
-      ctx.fillText(Math.round(s[FACETS[i].key]), lx, ly+26);
-      ctx.font='600 26px "PingFang TC","Noto Sans TC",sans-serif';
-    }
-    // polygon
-    const grad=ctx.createRadialGradient(cx,cy,0,cx,cy,R);
-    grad.addColorStop(0,'rgba(52,193,201,0.30)');
-    grad.addColorStop(1,'rgba(155,124,240,0.28)');
-    ctx.beginPath();
-    for(let i=0;i<=N;i++){ const[x,y]=pt(i%N,R*vals[i%N]*t); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
-    ctx.closePath();
-    ctx.fillStyle=grad; ctx.fill();
-    ctx.strokeStyle='rgba(238,241,250,0.85)'; ctx.lineWidth=2.2; ctx.stroke();
-    // vertices
-    for(let i=0;i<N;i++){
-      const[x,y]=pt(i,R*vals[i]*t);
-      ctx.beginPath(); ctx.arc(x,y,6,0,7); ctx.fillStyle=colors[i]; ctx.fill();
-      ctx.strokeStyle='#0d1120'; ctx.lineWidth=2; ctx.stroke();
-    }
+    if(navigator.share){ await navigator.share({title:'人格偏好分析 v2.0', text}); return; }
+    // fallback：複製文字 + 下載圖片
+    await navigator.clipboard.writeText(text).catch(()=>{});
+    await exportImage(s, mb);
+    toast('已複製摘要並匯出圖片');
+  }catch(e){
+    if(e && e.name==='AbortError') return; // 使用者取消
+    try{ await navigator.clipboard.writeText(text); toast('已複製文字摘要'); }
+    catch(_){ toast('此環境不支援分享，請改用匯出圖片'); }
   }
+}
 
-  if(reduce){ frame(1); return; }
-  const dur=950, start=performance.now();
-  (function loop(now){
-    const p=Math.min(1,(now-start)/dur);
-    const e=1-Math.pow(1-p,3);
-    frame(e);
-    if(p<1) requestAnimationFrame(loop);
-  })(start);
+let toastTimer;
+function toast(msg){
+  let el=document.getElementById('toast');
+  if(!el){ el=document.createElement('div'); el.id='toast'; document.body.appendChild(el); }
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2200);
 }
 
 renderIntro();
