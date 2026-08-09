@@ -978,11 +978,19 @@
 
     <!-- ★ 新增：行情 CORS Proxy 設定 -->
     <div class="form-card">
-      <div class="section-title">行情 API 設定</div>
+      <div class="section-title">行情資料 API</div>
       <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
         <div>
-          <div class="setting-label">CORS Proxy URL</div>
-          <div class="setting-desc">用於串接 TWSE / TPEX 行情 API，預設為 Cloudflare Worker</div>
+          <div class="setting-label">台股 API Base URL</div>
+          <div class="setting-desc">行情資料來源（GET /daily）；預設 artigianoapp</div>
+        </div>
+        <input type="url" class="setting-input-wide" style="max-width:100%;font-size:.8rem;"
+          id="cfg-apiBaseUrl" placeholder="https://api.artigianoapp.net">
+      </div>
+      <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
+        <div>
+          <div class="setting-label">備援 Proxy URL（選填）</div>
+          <div class="setting-desc">API 若不支援瀏覽器跨來源(CORS)時，改走此 Proxy</div>
         </div>
         <input type="url" class="setting-input-wide" style="max-width:100%;font-size:.8rem;"
           id="cfg-proxyUrl" placeholder="https://your-worker.workers.dev">
@@ -995,7 +1003,7 @@
     <!-- 補抓歷史行情 -->
     <div class="form-card">
       <div class="section-title">補抓歷史行情</div>
-      <div class="setting-desc" style="margin-bottom:12px;">指定日期區間，從 TWSE / TPEX 抓取並寫入資料庫（伺服器直接存取，不需 Proxy）</div>
+      <div class="setting-desc" style="margin-bottom:12px;">指定日期區間，觸發 API 端背景爬蟲（/crawl/range，自動跳過週末）</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
         <div style="display:flex;flex-direction:column;gap:4px;">
           <label style="font-size:.75rem;color:var(--text-muted);">起始日期</label>
@@ -1345,6 +1353,7 @@ function defaultSettings() {
     premktReminder: true, lossAlert: true,
     proxyUrl: '',
     gasUrl: '',
+    apiBaseUrl: 'https://api.artigianoapp.net',
   };
 }
 
@@ -2576,6 +2585,7 @@ function renderSettingsPage() {
   document.getElementById('cfg-lossAlert').checked  = cfg.lossAlert;
   document.getElementById('cfg-darkMode').checked   = document.body.classList.contains('dark');
   document.getElementById('cfg-proxyUrl').value     = (cfg.proxyUrl && !BLOCKED_WORKERS.has(cfg.proxyUrl)) ? cfg.proxyUrl : '';
+  document.getElementById('cfg-apiBaseUrl').value   = cfg.apiBaseUrl || 'https://api.artigianoapp.net';
   document.getElementById('cfg-gasUrl').value       = cfg.gasUrl || '';
 
   document.getElementById('strategy-tags').innerHTML =
@@ -2610,6 +2620,7 @@ function saveSettings() {
   cfg.premktReminder = document.getElementById('cfg-premktReminder').checked;
   cfg.lossAlert      = document.getElementById('cfg-lossAlert').checked;
   cfg.proxyUrl       = document.getElementById('cfg-proxyUrl').value.trim();
+  cfg.apiBaseUrl     = document.getElementById('cfg-apiBaseUrl').value.trim() || 'https://api.artigianoapp.net';
   cfg.gasUrl         = document.getElementById('cfg-gasUrl').value.trim();
   DB.saveSettings(cfg);
   showToast('設定已儲存', 'success');
@@ -2641,7 +2652,10 @@ async function gasInitSheets() {
   _gasStatus('初始化中…');
   try {
     const r = await GAS.post({ action: 'init' });
-    _gasStatus('✅ 已建立並寫入欄位：' + (r.sheets || []).join('、'), 'var(--success)');
+    const el = document.getElementById('gasStatus');
+    el.style.color = 'var(--success)';
+    el.innerHTML = '✅ 已建立並寫入欄位：' + esc((r.sheets || []).join('、')) +
+      (r.spreadsheetUrl ? `<br><a href="${esc(r.spreadsheetUrl)}" target="_blank" style="color:var(--primary);">開啟資料試算表 ↗</a>` : '');
     showToast('Sheets 初始化完成', 'success');
   } catch (e) { _gasStatus('✗ 初始化失敗：' + e.message, 'var(--danger)'); }
 }
@@ -2771,6 +2785,72 @@ function proxyUrl(targetUrl) {
   return `/proxy?url=${encodeURIComponent(targetUrl)}`;
 }
 
+/* ════════════════════════════════════════
+   行情資料來源：台股爬蟲 API（artigianoapp）
+   —— GET /daily 一次回傳某日全部個股（含當沖），取代原本 4 支 TWSE/TPEX 爬蟲
+════════════════════════════════════════ */
+function apiBase() {
+  const cfg = DB.getSettings();
+  return (cfg.apiBaseUrl || 'https://api.artigianoapp.net').trim().replace(/\/$/, '');
+}
+
+// 直連優先；若因 CORS/網路失敗且有設定 Proxy，改走 Proxy
+async function apiFetch(fullUrl) {
+  try {
+    return await fetch(fullUrl);
+  } catch (e) {
+    const cfg = DB.getSettings();
+    const custom = (cfg.proxyUrl || '').trim();
+    if (custom && !BLOCKED_WORKERS.has(custom)) {
+      return fetch(`${custom.replace(/\/$/, '')}?url=${encodeURIComponent(fullUrl)}`);
+    }
+    return fetch(`/proxy?url=${encodeURIComponent(fullUrl)}`);
+  }
+}
+
+// DailyStockResponse → App 內部單日資料結構
+function normApiDaily(r) {
+  const num = v => (v === '' || v == null) ? null : Number(v);
+  const close = num(r.close);
+  const chgRaw = r.change != null ? parseFloat(String(r.change).replace(/[+%,\s]/g, '')) : null;
+  const chg = (chgRaw == null || isNaN(chgRaw)) ? 0 : chgRaw;
+  // 漲跌幅：優先用 API 的 change_pct，否則由 chg/close 推算
+  let pct = r.change_pct != null && r.change_pct !== ''
+    ? parseFloat(String(r.change_pct).replace(/[+%,\s]/g, '')) : null;
+  if ((pct == null || isNaN(pct)) && close != null && (close - chg) !== 0) {
+    pct = chg / (close - chg) * 100;
+  }
+  return {
+    code: String(r.symbol || '').trim(),
+    name: r.name || '',
+    market: r.market || '',
+    close,
+    open: num(r.open), high: num(r.high), low: num(r.low),
+    chg,
+    changePct: (pct == null || isNaN(pct)) ? 0 : pct,
+    volume: num(r.volume) || 0,
+    dtVolume:  num(r.day_trading_volume) || 0,
+    dtBuyAmt:  num(r.dt_buy_value)  || 0,
+    dtSellAmt: num(r.dt_sell_value) || 0,
+    avg: num(r.avg),
+  };
+}
+
+// 取某日全部個股（TWSE + TPEX），回傳以代號為 key 的 map
+async function fetchDailyFromApi(date) {
+  const url = `${apiBase()}/daily?date=${fmtDate(date, 'YYYYMMDD')}&exclude_zero_close=true`;
+  const res = await apiFetch(url);
+  if (!res.ok) throw new Error(`API /daily HTTP ${res.status}`);
+  const arr = await res.json();
+  const map = {};
+  for (const r of (Array.isArray(arr) ? arr : [])) {
+    const d = normApiDaily(r);
+    if (d.code) map[d.code] = d;
+  }
+  return map;
+}
+
+/* ── 以下為舊版 TWSE/TPEX 直接爬蟲，改用 API 後不再呼叫，保留備援參考 ── */
 /* ── API 取資料 ── */
 async function fetchTWSEDaily(date) {
   const url = `https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX?type=ALLBUT0999&response=json&date=${fmtDate(date,'YYYYMMDD')}`;
@@ -2983,15 +3063,11 @@ async function mktMain() {
       const label = MKT_DAY_LABELS[i];
       setStep(`s-day-${i}`, 'active', `載入 ${label} (${dispDate(date)})…`);
       try {
-        const [twseD, twseDT, tpexD, tpexDT] = await Promise.all([
-          fetchTWSEDaily(date), fetchTWSEDayTrade(date),
-          fetchTPEXDaily(date), fetchTPEXDayTrade(date),
-        ]);
-        allDayData.push({ ...buildDayData(twseD, twseDT), ...buildDayData(tpexD, tpexDT) });
+        allDayData.push(await fetchDailyFromApi(date));
         setStep(`s-day-${i}`, 'done', `✓ ${label} (${dispDate(date)}) 完成`);
       } catch(e) {
         allDayData.push({});
-        setStep(`s-day-${i}`, 'fail', `✗ ${label} 載入失敗`);
+        setStep(`s-day-${i}`, 'fail', `✗ ${label} 載入失敗：${e.message}`);
       }
     }
 
@@ -3011,7 +3087,6 @@ async function mktMain() {
 
     loadEl.style.display = 'none';
     mktLoaded = true;
-    saveMarketData(allDayData, mktTradingDays).catch(err => console.warn('Market data save failed:', err.message));
     mktApplyFilterSort();
 
   } catch(err) {
@@ -3039,31 +3114,41 @@ async function triggerFetchRange() {
   if (start > end)    { status.textContent = '起始日期不可晚於結束日期'; status.style.color = 'var(--danger)'; return; }
 
   try {
-    const res = await fetch('/api/fetch-range', {
+    // 觸發 API 端背景爬蟲（start/end 為 YYYY-MM-DD，delay 每日間隔秒數）
+    const res = await fetch(`${apiBase()}/crawl/range?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&delay=3`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ start, end }),
     });
     const data = await res.json();
-    if (!res.ok) { status.textContent = '錯誤：' + (data.error || res.status); status.style.color = 'var(--danger)'; return; }
+    if (!res.ok) { status.textContent = '錯誤：' + (data.detail || data.error || res.status); status.style.color = 'var(--danger)'; return; }
 
+    const taskId = data.task_id;
     status.style.color = 'var(--primary)';
-    status.textContent = `${data.message}`;
+    status.textContent = `已觸發爬蟲（${start} ~ ${end}），背景執行中…`;
+
     clearInterval(fetchRangePolling);
+    if (!taskId) return;
+    let tries = 0;
     fetchRangePolling = setInterval(async () => {
+      tries++;
       try {
-        const r = await fetch('/api/fetch-status');
+        const r = await fetch(`${apiBase()}/crawl/${encodeURIComponent(taskId)}`);
         const s = await r.json();
-        if (!s.running) {
-          clearInterval(fetchRangePolling);
-          fetchRangePolling = null;
-          status.textContent = '✅ 補抓完成';
-          status.style.color = 'var(--success, green)';
+        const state = String(s.state || s.status || '').toUpperCase();
+        if (state) status.textContent = `爬蟲狀態：${state}`;
+        if (state === 'SUCCESS' || state === 'FAILURE' || state === 'DONE' || tries > 40) {
+          clearInterval(fetchRangePolling); fetchRangePolling = null;
+          if (state === 'SUCCESS' || state === 'DONE') {
+            status.textContent = '✅ 補抓完成，可回行情頁重新載入';
+            status.style.color = 'var(--success)';
+          } else if (state === 'FAILURE') {
+            status.textContent = '✗ 爬蟲失敗';
+            status.style.color = 'var(--danger)';
+          }
         }
       } catch { clearInterval(fetchRangePolling); fetchRangePolling = null; }
     }, 3000);
   } catch (err) {
-    status.textContent = '請求失敗：' + err.message;
+    status.textContent = '請求失敗（可能是 API 不允許瀏覽器跨來源 POST）：' + err.message;
     status.style.color = 'var(--danger)';
   }
 }
