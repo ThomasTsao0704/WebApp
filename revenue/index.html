@@ -270,6 +270,10 @@
         <label for="cfgProxy">CORS Proxy（選填，瀏覽器被跨域擋住時才需要）</label>
         <input type="url" id="cfgProxy" placeholder="https://your-worker.workers.dev">
       </div>
+      <div class="field">
+        <label for="cfgPage">每頁筆數（抓全市場時的 limit，API 會被自動分頁翻完）</label>
+        <input type="number" id="cfgPage" min="100" max="5000" step="100">
+      </div>
       <div class="hint">填了 Proxy 之後，請求會變成 <code>{proxy}?url={編碼後的API網址}</code>。</div>
       <div class="btn-row">
         <button class="btn pri" id="cfgSave">儲存並重新載入</button>
@@ -346,7 +350,7 @@ const ymLabel = k => Math.floor(k/100) + '/' + String(k%100).padStart(2,'0');
 const MKT = { TWSE:'上市', TPEX:'上櫃', EMERGING:'興櫃', ROTC:'興櫃' };
 
 /* ═══════════ 設定 / 狀態 ═══════════ */
-const CFG = Object.assign({ base: DEFAULT_BASE, proxy: '' },
+const CFG = Object.assign({ base: DEFAULT_BASE, proxy: '', pageSize: 2500 },
   JSON.parse(localStorage.getItem(CFG_KEY) || '{}'));
 
 const STATE = {
@@ -378,6 +382,14 @@ function showErr(title, detail){
     若是瀏覽器跨域（CORS）被擋，請到「設定」填入 CORS Proxy，或由自家後端轉發。`;
 }
 const hideErr = () => $('errBox').style.display = 'none';
+function showTrunc(got, expect){
+  const box = $('errBox');
+  box.style.display = 'block';
+  box.innerHTML = `<b>目前抓到 ${got} 檔${expect ? `（資料庫收錄 ${expect} 檔）` : ''}，可能還不完整</b>
+    <code>/revenue/latest</code> 有筆數上限，且 <code>offset</code> 參數沒有生效，
+    前端只能用「市場 × 排序」切片去湊，無法保證撈滿。<br>
+    後端請讓 latest 支援 <code>limit</code> + <code>offset</code> 分頁（或把上限提高到 2500），這裡就會一次抓完。`;
+}
 
 /* API 欄位 → 內部欄位 */
 function normalize(r){
@@ -394,10 +406,56 @@ function normalize(r){
 }
 const asArray = d => Array.isArray(d) ? d : (d?.data || d?.items || d?.results || []);
 
+/* /revenue/latest 有筆數上限，而且 offset 可能無效。
+   策略：① 大 limit 一次抓 → ② offset 分頁 → ③ 市場 × 排序切片湊齊 */
+async function fetchAllLatest(y, m){
+  const cap = Math.max(100, Math.min(CFG.pageSize || 2000, 5000));
+  const seen = new Set(), out = [];
+  const push = arr => {
+    let a = 0;
+    arr.forEach(r => { if (r && r.symbol && !seen.has(r.symbol)){ seen.add(r.symbol); out.push(r); a++; } });
+    return a;
+  };
+  const get = q => api(`/revenue/latest?year=${y}&month=${m}${q}`).then(asArray).catch(() => []);
+  const prog = () => setStatus('busy', `抓取中… ${out.length} 檔`);
+
+  // ① 先用大 limit 探一次
+  const probe = await get(`&limit=${cap}`);
+  push(probe);
+  if (probe.length < cap) return { rows: out, truncated: false };   // 沒撞到上限＝已全部
+
+  // ② offset 分頁
+  let offsetWorked = false, done = false;
+  for (let p = 1; p < 20; p++){
+    prog();
+    const b = await get(`&limit=${cap}&offset=${p*cap}`);
+    if (!b.length){ offsetWorked = true; done = true; break; }      // 翻到底
+    if (push(b) === 0) break;                                       // offset 被忽略
+    offsetWorked = true;
+    if (b.length < cap){ done = true; break; }
+  }
+  if (offsetWorked && done) return { rows: out, truncated: false };
+
+  // ③ offset 無效 → 分市場、分排序各取 cap 筆，取聯集
+  let hitCap = false;
+  for (const mk of ['TWSE','TPEX','EMERGING','ROTC']){
+    for (const od of ['yoy','mom','revenue','acc_yoy']){
+      prog();
+      const b = await get(`&limit=${cap}&market=${mk}&order_by=${od}`);
+      if (!b.length) break;                       // 這個市場沒資料，換下一個市場
+      push(b);
+      if (b.length < cap) break;                  // 這個市場一次就拿完了
+      hitCap = true;                              // 撞上限，換排序方式再撈一次
+    }
+  }
+  return { rows: out, truncated: hitCap };
+}
+
 /* ═══════════ 載入流程 ═══════════ */
 async function boot(){
   $('cfgBase').value = CFG.base;
   $('cfgProxy').value = CFG.proxy;
+  $('cfgPage').value = CFG.pageSize;
   setStatus('busy', '連線中…');
   try{
     STATE.stats = await api('/revenue/stats');
@@ -435,11 +493,15 @@ async function loadPeriod(ym){
     <div class="skeleton" style="width:55%"></div></td></tr>`;
   const y = Math.floor(ym/100), m = ym % 100;
   try{
-    const data = asArray(await api(`/revenue/latest?year=${y}&month=${m}`));
+    const { rows: data, truncated } = await fetchAllLatest(y, m);
     STATE.rows = data.map(normalize).filter(r => r.code);
+    hideErr();
     if (!STATE.rows.length) setStatus('err', `${ymLabel(ym)} 沒有資料`);
-    else setStatus('ok', `${STATE.rows.length} 檔 · ${ymLabel(ym)} · 已更新`);
-    hideErr(); saveCache();
+    else {
+      setStatus('ok', `${STATE.rows.length} 檔 · ${ymLabel(ym)} · 已更新`);
+      if (truncated) showTrunc(STATE.rows.length, STATE.stats?.symbols);
+    }
+    saveCache();
   }catch(e){
     setStatus('err', '讀取失敗');
     showErr('讀取當期資料失敗：', e.message);
@@ -821,6 +883,7 @@ $('gwGo').onclick = fetchGrowth;
 $('cfgSave').onclick = () => {
   CFG.base = ($('cfgBase').value.trim() || DEFAULT_BASE).replace(/\/$/,'');
   CFG.proxy = $('cfgProxy').value.trim();
+  CFG.pageSize = Math.max(100, Math.min(5000, +$('cfgPage').value || 1000));
   localStorage.setItem(CFG_KEY, JSON.stringify(CFG));
   STATE.history = {}; STATE.ym = null;
   toast('已儲存，重新載入'); boot();
