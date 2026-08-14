@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>月營收動能 · Revenue Radar</title>
+<title>月營收動能 · 產業版 Revenue Radar</title>
 <style>
   :root{
     --bg:#f4f6f8; --card:#ffffff; --primary:#2563eb;
@@ -23,10 +23,11 @@
   .h-title{font-size:1.05rem;font-weight:700;letter-spacing:.5px;}
   .h-sub{font-size:.72rem;color:var(--muted);flex:1;}
   .h-ctrl{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center;}
-  select,input[type=text],input[type=number],input[type=url]{
+  select,input[type=text],input[type=number],input[type=url],textarea{
     font-size:.82rem;padding:6px 8px;border:1px solid var(--border);
     border-radius:8px;background:#fff;color:var(--text);outline:none;}
-  select:focus,input:focus{border-color:var(--primary);box-shadow:0 0 0 2px var(--b3);}
+  textarea{width:100%;resize:vertical;line-height:1.6;font-size:.8rem;}
+  select:focus,input:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 2px var(--b3);}
   .search{flex:1;min-width:110px;}
   .icon-btn{border:1px solid var(--border);background:#fff;border-radius:8px;
     padding:6px 10px;font-size:.8rem;cursor:pointer;color:var(--text);}
@@ -118,6 +119,7 @@
   .err-box{background:var(--up-bg);border:1px solid #ffc9c9;color:#c92a2a;
     border-radius:10px;padding:10px 12px;font-size:.75rem;line-height:1.7;margin-bottom:12px;display:none;}
   .err-box b{display:block;margin-bottom:2px;}
+  .err-box.warn{background:#fff9db;border-color:#ffe066;color:#8a6100;display:none;}
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:88px;z-index:99;
     background:#111827;color:#fff;font-size:.78rem;padding:9px 16px;border-radius:999px;
     opacity:0;transition:opacity .25s;pointer-events:none;max-width:88%;text-align:center;}
@@ -127,9 +129,78 @@
   @keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
   @media(max-width:560px){
     .sum-grid{grid-template-columns:repeat(2,1fr);}
-    .col-cum,.col-cumyoy,.col-mkt{display:none;}
+    .col-cum,.col-cumyoy,.col-mkt,.col-ind{display:none;}
   }
   @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+
+  /* ───── 產業頁 ───── */
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;background:#fff;}
+  .seg button{border:none;background:none;font-size:.74rem;padding:6px 10px;color:var(--muted);
+    cursor:pointer;border-right:1px solid var(--border);}
+  .seg button:last-child{border-right:none;}
+  .seg button.on{background:var(--primary);color:#fff;font-weight:700;}
+
+  .ibars{display:flex;align-items:flex-end;gap:5px;height:190px;padding-top:6px;overflow-x:auto;}
+  .ibar{flex:1 0 46px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+    height:100%;cursor:pointer;}
+  .ibar-v{font-size:.68rem;font-variant-numeric:tabular-nums;margin-bottom:3px;white-space:nowrap;}
+  .ibar-r{width:26px;border-radius:3px 3px 0 0;min-height:3px;}
+  .ibar-l{font-size:.62rem;color:var(--muted);margin-top:5px;text-align:center;line-height:1.25;
+    word-break:break-all;}
+  .ibar-n{font-size:.58rem;color:var(--muted);opacity:.8;}
+  .zero-line{height:1px;background:var(--border);margin:0 0 2px;}
+
+  .ind-head,.ind-row{display:grid;
+    grid-template-columns:1.5fr .72fr .8fr .78fr .78fr 1fr .8fr;
+    gap:6px;align-items:center;padding:8px 4px;border-bottom:1px solid #f1f3f5;}
+  .ind-head{font-size:.66rem;color:var(--muted);border-bottom:1px solid var(--border);
+    position:sticky;top:0;background:var(--card);z-index:2;}
+  .ind-head span{cursor:pointer;user-select:none;text-align:right;}
+  .ind-head span:first-child{text-align:left;}
+  .ind-head span.on{color:var(--primary);font-weight:700;}
+  .ind-row{cursor:pointer;font-size:.78rem;}
+  .ind-row:hover{background:var(--b3);}
+  .ind-row.sel{background:var(--b3);box-shadow:inset 3px 0 0 var(--primary);}
+  .ind-row>div{text-align:right;font-variant-numeric:tabular-nums;}
+  .ind-row>div:first-child{text-align:left;}
+  .ind-nm{font-weight:700;}
+  .ind-g{font-size:.62rem;color:var(--muted);display:block;}
+  .ind-cnt{font-size:.64rem;color:var(--muted);}
+  .grp-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+    background:var(--bg);padding:6px 8px;margin:10px 0 2px;border-radius:7px;
+    font-size:.72rem;font-weight:700;}
+  .grp-row small{font-weight:400;color:var(--muted);}
+
+  .stack{display:flex;height:7px;border-radius:4px;overflow:hidden;background:var(--border);}
+  .stack i{display:block;height:100%;}
+  .stack-lg{height:11px;border-radius:6px;}
+  .q-key{display:flex;flex-wrap:wrap;gap:10px;font-size:.66rem;color:var(--muted);margin-top:6px;}
+  .q-key i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;}
+
+  .ind-detail{border:1px solid var(--primary);}
+  .ind-detail .card-title{border-bottom:1px solid var(--border);padding-bottom:8px;}
+  .narr{font-size:.76rem;line-height:1.95;color:var(--text);background:var(--bg);
+    border-radius:9px;padding:10px 12px;margin-bottom:12px;}
+  .narr em{color:var(--muted);font-style:normal;font-size:.68rem;}
+  .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;}
+  .kpi-b{background:var(--bg);border-radius:9px;padding:8px 6px;text-align:center;}
+  .kpi-v{font-size:.98rem;font-weight:700;font-variant-numeric:tabular-nums;}
+  .kpi-l{font-size:.62rem;color:var(--muted);margin-top:2px;line-height:1.3;}
+  .sub-t{font-size:.72rem;font-weight:700;color:var(--muted);margin:14px 0 6px;
+    display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .cb{display:flex;align-items:center;gap:7px;font-size:.74rem;padding:3px 0;cursor:pointer;}
+  .cb-n{width:32%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cb-bar{flex:1;height:8px;background:var(--bg);border-radius:4px;position:relative;overflow:hidden;}
+  .cb-bar i{position:absolute;top:0;bottom:0;border-radius:4px;}
+  .cb-v{width:74px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;font-size:.72rem;}
+  #indTrend{width:100%;height:170px;display:block;}
+  .mini-note{font-size:.66rem;color:var(--muted);line-height:1.7;}
+  @media(max-width:560px){
+    .ind-head,.ind-row{grid-template-columns:1.35fr .68fr .82fr 1fr .7fr;}
+    .ind-c-med,.ind-c-mom{display:none;}
+    .kpi{grid-template-columns:repeat(2,1fr);}
+    .cb-n{width:38%;}
+  }
 </style>
 </head>
 <body>
@@ -153,6 +224,7 @@
         <option value="100000">≥ 1 億</option>
         <option value="1000000">≥ 10 億</option>
       </select>
+      <select id="selInd"><option value="">全部產業</option></select>
       <input type="text" class="search" id="qSearch" placeholder="搜尋代號 / 名稱">
       <button class="icon-btn" id="btnReload" title="重新抓取">↻</button>
     </div>
@@ -161,6 +233,7 @@
   <!-- ───────── 儀表板 ───────── -->
   <div class="page on" id="page-dash">
     <div class="err-box" id="errBox"></div>
+    <div class="err-box warn" id="warnBox"></div>
 
     <div class="card">
       <div class="card-title">當月體檢 <small id="sumMonth"></small></div>
@@ -202,6 +275,7 @@
           <thead><tr>
             <th data-k="code">代號 / 名稱</th>
             <th data-k="market" class="col-mkt">市場</th>
+            <th data-k="ind" class="col-ind">產業</th>
             <th data-k="rev">當月營收</th>
             <th data-k="mom">MoM%</th>
             <th data-k="yoy">YoY%</th>
@@ -217,10 +291,72 @@
     </div>
   </div>
 
+  <!-- ───────── 產業 ───────── -->
+  <div class="page" id="page-ind">
+    <div class="card">
+      <div class="card-title">產業體檢 <small id="indMonth"></small></div>
+      <div class="sum-grid">
+        <div class="sum-box"><div class="sum-v" id="iTotal">—</div><div class="sum-l">產業數</div></div>
+        <div class="sum-box"><div class="sum-v up" id="iGrow">—</div><div class="sum-l">加權年增為正</div></div>
+        <div class="sum-box"><div class="sum-v dn" id="iDrop">—</div><div class="sum-l">加權年增為負</div></div>
+        <div class="sum-box"><div class="sum-v" id="iMkt">—</div><div class="sum-l">全市場加權年增</div></div>
+      </div>
+      <div class="breadth">
+        <div class="breadth-lbl"><span>產業成長廣度</span><span id="iText">—</span></div>
+        <div class="breadth-bar"><i id="iUp" style="width:0;background:var(--up)"></i><i id="iDn" style="width:0;background:var(--dn)"></i></div>
+      </div>
+      <div class="mini-note" id="indCover" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>產業成長排行</span>
+        <span class="seg" id="segMetric">
+          <button data-m="wYoy" class="on">加權年增</button>
+          <button data-m="medYoy">中位年增</button>
+          <button data-m="wMom">月增</button>
+          <button data-m="upRate">成長家數占比</button>
+        </span>
+      </div>
+      <div class="ibars" id="indBars"></div>
+      <div class="zero-line"></div>
+      <div class="mini-note" id="indBarNote"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>產業總表 <small id="indCount"></small></span>
+        <span class="seg" id="segView">
+          <button data-v="flat" class="on">平鋪</button>
+          <button data-v="group">依大分類</button>
+        </span>
+      </div>
+      <div class="ind-head" id="indHead">
+        <span data-k="ind">產業 / 大分類</span>
+        <span data-k="n">家數<br>紅 | 綠</span>
+        <span data-k="wYoy" class="on">加權<br>年增</span>
+        <span data-k="medYoy" class="ind-c-med">中位<br>年增</span>
+        <span data-k="wMom" class="ind-c-mom">加權<br>月增</span>
+        <span data-k="rev">營收合計<br>占比</span>
+        <span data-k="q">動能分布</span>
+      </div>
+      <div id="indTable"></div>
+      <div class="q-key">
+        <span><i style="background:var(--up)"></i>雙軌成長</span>
+        <span><i style="background:#f59e0b"></i>落底回升</span>
+        <span><i style="background:#9ca3af"></i>高檔回落</span>
+        <span><i style="background:var(--dn)"></i>雙軌衰退</span>
+      </div>
+      <div class="btn-row"><button class="btn" id="btnIndCSV">匯出產業總表 CSV</button></div>
+    </div>
+
+    <div id="indDetailWrap"></div>
+  </div>
+
   <!-- ───────── 排行 ───────── -->
   <div class="page" id="page-rank">
     <div class="card">
-      <div class="card-title">營收排行 <small>來源 /revenue/rank</small></div>
+      <div class="card-title">營收排行 <small>來源 /revenue/rank，套用上方市場／營收／產業篩選</small></div>
       <div class="h-ctrl" style="margin:0 0 10px;">
         <select id="rkOrder">
           <option value="yoy">依 YoY 年增率</option>
@@ -271,7 +407,7 @@
         <input type="url" id="cfgProxy" placeholder="https://your-worker.workers.dev">
       </div>
       <div class="field">
-        <label for="cfgPage">每頁筆數（抓全市場時的 limit，API 會被自動分頁翻完）</label>
+        <label for="cfgPage">每頁筆數 limit（預設 2500，API 若有上限會自動分頁或切片）</label>
         <input type="number" id="cfgPage" min="100" max="5000" step="100">
       </div>
       <div class="hint">填了 Proxy 之後，請求會變成 <code>{proxy}?url={編碼後的API網址}</code>。</div>
@@ -284,6 +420,7 @@
     <div class="card">
       <div class="card-title">資料庫狀態 <small>/revenue/stats</small></div>
       <div class="hint" id="statBox">讀取中…</div>
+      <div class="hint" id="fetchBox" style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;"></div>
       <div class="btn-row"><button class="btn" id="btnClearCache">清除本機快取</button></div>
     </div>
 
@@ -291,11 +428,28 @@
       <div class="card-title">使用到的端點</div>
       <div class="hint">
         <code>/revenue/stats</code> 最新期別與資料量<br>
-        <code>/revenue/latest?year=&amp;month=</code> 全市場當期資料<br>
+        <code>/revenue/latest?year=&amp;month=&amp;limit=&amp;offset=</code> 全市場當期資料（自動分頁）<br>
+        <code>/revenue/latest?…&amp;market=&amp;order_by=</code> offset 無效時的切片備援<br>
         <code>/revenue/rank?order_by=&amp;limit=</code> 排行榜<br>
         <code>/revenue/growth?months=</code> 連續成長選股<br>
-        <code>/revenue/history/{代號}?limit=36</code> 個股歷史（展開個股時抓取）
+        <code>/revenue/history/{代號}?limit=36</code> 個股歷史（展開個股、載入產業趨勢時抓取）
       </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">產業對應表 <small>API 沒有 industry 欄位時的備援</small></div>
+      <div class="field">
+        <label for="cfgIndMap">每行一筆「代號,產業別」，例如 2330,半導體</label>
+        <textarea id="cfgIndMap" rows="4" placeholder="2330,半導體&#10;2317,電腦及週邊設備&#10;2603,航運"></textarea>
+      </div>
+      <div class="btn-row"><button class="btn pri" id="btnIndMapSave">套用對應表</button></div>
+      <div class="hint">若 API 回傳的 <code>industry</code> 已是產業名稱或公開資訊觀測站的代碼（例如 <code>24</code>
+        會轉成「半導體」），就不需要自己填。填了以後只會用來補「未分類」的個股。</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">產業大分類規則</div>
+      <div class="hint" id="indRuleBox"></div>
     </div>
 
     <div class="card">
@@ -306,13 +460,21 @@
         <b>累計YoY%</b>：今年累計 ÷ 去年同期累計 − 1，波動較小，代表全年方向。<br>
         <b>連續</b>：API 的 grow_month／decline_month，連續成長或衰退的月數。<br>
         <b>新高</b>：is_new_high 為近 12 月新高，ATH 為歷史新高。<br>
-        <b>營收門檻</b>：小公司基期極低時 YoY 會出現數千％的失真值，建議至少保留 1 千萬門檻。
+        <b>營收門檻</b>：小公司基期極低時 YoY 會出現數千％的失真值，建議至少保留 1 千萬門檻。<br>
+        <b>加權年增</b>：產業當月營收合計 ÷ 去年同月合計 − 1。看得出產業「總量」的變化，但會被龍頭主導。<br>
+        <b>中位年增</b>：產業內個股年增率的中位數，代表典型公司。與加權差距大＝成長集中在少數股。<br>
+        <b>成長家數占比</b>：年增為正的家數 ÷ 有年增數字的家數，衡量成長的廣度。<br>
+        <b>年增貢獻 pp</b>：（個股當月營收 − 去年同月）÷ 產業去年同月合計，單位百分點；
+        全產業加總正好等於加權年增，可看出成長是誰帶起來的。<br>
+        <b>前三大集中度</b>：營收前三大成分股占產業營收比重。<br>
+        <b>產業趨勢</b>：以營收前 10 大成分股的歷史月營收合計而成，非完整產業總額，僅供看方向。
       </div>
     </div>
   </div>
 
   <div class="tabs">
     <div class="tab on" data-p="dash"><span class="ic">📊</span>儀表板</div>
+    <div class="tab" data-p="ind"><span class="ic">🗂️</span>產業</div>
     <div class="tab" data-p="rank"><span class="ic">🏆</span>排行</div>
     <div class="tab" data-p="conf"><span class="ic">⚙️</span>設定</div>
   </div>
@@ -356,9 +518,11 @@ const CFG = Object.assign({ base: DEFAULT_BASE, proxy: '', pageSize: 2500 },
 const STATE = {
   stats: null, ym: null,
   rows: [], view: [],
-  market: '', minRev: 10000, q: '', chip: 'all',
+  market: '', minRev: 10000, q: '', chip: 'all', ind: '',
+  inds: [], indSel: null, indMetric: 'wYoy', indView: 'flat',
+  indSort: { k:'wYoy', d:-1 }, memSort: { k:'rev', d:-1 }, indTrend: {},
   sortKey: 'yoy', sortDir: -1,
-  expanded: null, history: {}, loading: false,
+  expanded: null, history: {}, loading: false, fetch: null,
 };
 
 /* ═══════════ API ═══════════ */
@@ -382,18 +546,12 @@ function showErr(title, detail){
     若是瀏覽器跨域（CORS）被擋，請到「設定」填入 CORS Proxy，或由自家後端轉發。`;
 }
 const hideErr = () => $('errBox').style.display = 'none';
-function showTrunc(got, expect){
-  const box = $('errBox');
-  box.style.display = 'block';
-  box.innerHTML = `<b>目前抓到 ${got} 檔${expect ? `（資料庫收錄 ${expect} 檔）` : ''}，可能還不完整</b>
-    <code>/revenue/latest</code> 有筆數上限，且 <code>offset</code> 參數沒有生效，
-    前端只能用「市場 × 排序」切片去湊，無法保證撈滿。<br>
-    後端請讓 latest 支援 <code>limit</code> + <code>offset</code> 分頁（或把上限提高到 2500），這裡就會一次抓完。`;
-}
+function showWarn(html){ const b = $('warnBox'); b.style.display = 'block'; b.innerHTML = html; }
+const hideWarn = () => $('warnBox').style.display = 'none';
 
 /* API 欄位 → 內部欄位 */
 function normalize(r){
-  return {
+  const o = {
     code: r.symbol, name: r.name || '', market: r.market || '',
     year: r.year, month: r.month, ym: ymKey(r.year, r.month),
     rev: r.revenue, prev: r.last_month_revenue, lastYear: r.last_revenue,
@@ -403,53 +561,11 @@ function normalize(r){
     ma3: r.ma3, ttmYoy: r.ttm_yoy, high12: r.high12, low12: r.low12,
     percentile: r.percentile, rankYoy: r.rank_yoy, industry: r.industry,
   };
+  o.ind = indName(o);
+  o.indGroup = groupOf(o.ind);
+  return o;
 }
 const asArray = d => Array.isArray(d) ? d : (d?.data || d?.items || d?.results || []);
-
-/* /revenue/latest 有筆數上限，而且 offset 可能無效。
-   策略：① 大 limit 一次抓 → ② offset 分頁 → ③ 市場 × 排序切片湊齊 */
-async function fetchAllLatest(y, m){
-  const cap = Math.max(100, Math.min(CFG.pageSize || 2000, 5000));
-  const seen = new Set(), out = [];
-  const push = arr => {
-    let a = 0;
-    arr.forEach(r => { if (r && r.symbol && !seen.has(r.symbol)){ seen.add(r.symbol); out.push(r); a++; } });
-    return a;
-  };
-  const get = q => api(`/revenue/latest?year=${y}&month=${m}${q}`).then(asArray).catch(() => []);
-  const prog = () => setStatus('busy', `抓取中… ${out.length} 檔`);
-
-  // ① 先用大 limit 探一次
-  const probe = await get(`&limit=${cap}`);
-  push(probe);
-  if (probe.length < cap) return { rows: out, truncated: false };   // 沒撞到上限＝已全部
-
-  // ② offset 分頁
-  let offsetWorked = false, done = false;
-  for (let p = 1; p < 20; p++){
-    prog();
-    const b = await get(`&limit=${cap}&offset=${p*cap}`);
-    if (!b.length){ offsetWorked = true; done = true; break; }      // 翻到底
-    if (push(b) === 0) break;                                       // offset 被忽略
-    offsetWorked = true;
-    if (b.length < cap){ done = true; break; }
-  }
-  if (offsetWorked && done) return { rows: out, truncated: false };
-
-  // ③ offset 無效 → 分市場、分排序各取 cap 筆，取聯集
-  let hitCap = false;
-  for (const mk of ['TWSE','TPEX','EMERGING','ROTC']){
-    for (const od of ['yoy','mom','revenue','acc_yoy']){
-      prog();
-      const b = await get(`&limit=${cap}&market=${mk}&order_by=${od}`);
-      if (!b.length) break;                       // 這個市場沒資料，換下一個市場
-      push(b);
-      if (b.length < cap) break;                  // 這個市場一次就拿完了
-      hitCap = true;                              // 撞上限，換排序方式再撈一次
-    }
-  }
-  return { rows: out, truncated: hitCap };
-}
 
 /* ═══════════ 載入流程 ═══════════ */
 async function boot(){
@@ -483,23 +599,130 @@ function buildMonthOptions(){
   $('selMonth').innerHTML = opts.map(k =>
     `<option value="${k}"${k === STATE.ym ? ' selected' : ''}>${ymLabel(k)}${k === latest ? '（最新）' : ''}</option>`).join('');
 }
+/* ═══════════ 全市場抓取（處理 API 的 limit / offset 行為） ═══════════
+   1. 先用 limit=pageSize 探一次：回傳筆數 < limit → 沒撞上限，一個 request 收工
+   2. 撞上限 → 試 offset 分頁
+   3. offset 無效 → 用「市場 × 排序」切片取聯集，依 symbol 去重
+   任一批仍撞上限就標記 truncated，由呼叫端顯示提示，不假裝抓完
+   ═══════════════════════════════════════════════════════════════ */
+const SLICE_MKT = ['TWSE','TPEX','EMERGING'];
+const SLICE_ORDER = ['yoy','mom','revenue','acc_yoy'];
+const MAX_REQ = 40;
+
+async function fetchLatestAll(y, m){
+  const L = Math.max(100, Number(CFG.pageSize) || 2500);
+  const known = Number(STATE.stats && STATE.stats.symbols) || 0;
+  const seen = new Map();
+  const info = { limit:L, cap:null, reqs:0, mode:'single', pages:1, truncated:false, notes:[] };
+
+  /* 抓一批並去重，回傳這批的原始筆數與新增筆數 */
+  const grab = async (extra) => {
+    if (info.reqs >= MAX_REQ){ info.notes.push('達請求上限'); return { n:0, added:0, stop:true, rows:[] }; }
+    info.reqs++;
+    let rows = [];
+    try{ rows = asArray(await api(`/revenue/latest?year=${y}&month=${m}&limit=${L}${extra}`)); }
+    catch(e){ info.notes.push('請求失敗 ' + e.message); return { n:0, added:0, stop:true, rows:[] }; }
+    let added = 0;
+    rows.forEach(r => { if (r && r.symbol != null && !seen.has(String(r.symbol))){ seen.set(String(r.symbol), r); added++; } });
+    if (info.reqs > 1) setStatus('busy', `分頁抓取中… ${seen.size} 檔（第 ${info.reqs} 次請求）`);
+    return { n: rows.length, added, rows };
+  };
+  const done = () => {
+    if (!info.truncated) info.truncated = known ? seen.size < known * 0.95 : false;
+    return { rows:[...seen.values()], info };
+  };
+  /* 已抓齊？沒有 stats 可比時只能看單批是否撞到上限 */
+  const enough = () => known ? seen.size >= known * 0.95 : false;
+  const roundish = n => n >= 100 && n % 100 === 0;   // 100/500/1000… 通常是後端硬上限
+
+  const first = await grab('');
+  if (!first.n) return done();
+  /* 單批實際筆數就是後端的有效上限（可能小於我們要求的 limit） */
+  info.cap = first.n;
+  const suspect = first.n >= L || (known ? !enough() : roundish(first.n));
+  if (!suspect) return done();                       // 一次抓完
+  info.notes.push(`單批上限 ${info.cap} 筆`);
+
+  /* ② offset 分頁：步長用實際單批筆數，不是我們要求的 limit */
+  let offsetWorks = false;
+  for (let p = 1; p < MAX_REQ; p++){
+    const r = await grab(`&offset=${p * info.cap}`);
+    if (r.stop) break;
+    if (!r.added) break;                             // offset 被忽略，或已經沒有下一頁
+    offsetWorks = true; info.pages = p + 1;
+    if (r.n < info.cap || enough()) break;           // 最後一頁
+  }
+  if (offsetWorks){
+    info.mode = 'offset';
+    if (enough() || !known) return done();
+    info.notes.push('offset 有效但仍未抓齊，改用切片補');
+  } else {
+    info.notes.push('offset 未生效');
+  }
+
+  /* ③ 市場 × 排序切片取聯集 */
+  info.mode = offsetWorks ? 'offset+slice' : 'slice';
+  let marketWorks = true, capHit = false;
+  for (const mk of SLICE_MKT){
+    for (const ob of SLICE_ORDER){
+      const r = await grab(`&market=${mk}&order_by=${ob}`);
+      if (r.stop) break;
+      /* 回傳的市場對不上 → market 參數被忽略，別再浪費請求 */
+      if (r.rows.length && r.rows.some(x => x.market && x.market !== mk)){
+        marketWorks = false; info.notes.push('market 參數未生效');
+        break;
+      }
+      info.notes.push(`${mk}/${ob} ${r.n} 筆`);
+      if (!r.n) break;                               // 這個市場沒有資料
+      if (r.n < info.cap) break;                     // 這個市場一次抓完，不用再換排序
+      capHit = true;                                 // 這個市場也被截斷，換排序撈別的切面
+    }
+    if (!marketWorks) break;
+  }
+
+  /* 每個市場都在上限內抓完 → 名單完整 */
+  if (marketWorks && !capHit) return done();
+
+  /* ④ 連 market 都被忽略：改用不同排序（含反向）撈兩端 */
+  if (!enough()){
+    for (const ob of SLICE_ORDER){
+      for (const dir of ['', '&order=asc', '&sort=asc']){
+        if (enough()) return done();
+        const r = await grab(`&order_by=${ob}${dir}`);
+        if (r.stop) break;
+        if (r.n >= info.cap) capHit = true;
+        if (!r.added && dir) break;                  // 方向參數無效，換下一個排序
+      }
+    }
+  }
+  if (capHit && !enough()) info.truncated = true;
+  return done();
+}
+
 async function loadPeriod(ym){
   if (STATE.loading) return;
   STATE.loading = true;
   STATE.ym = ym; STATE.expanded = null;
   setStatus('busy', `讀取 ${ymLabel(ym)} 資料…`);
-  $('tbody').innerHTML = `<tr><td colspan="9">
+  $('tbody').innerHTML = `<tr><td colspan="10">
     <div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:90%"></div>
     <div class="skeleton" style="width:55%"></div></td></tr>`;
   const y = Math.floor(ym/100), m = ym % 100;
   try{
-    const { rows: data, truncated } = await fetchAllLatest(y, m);
-    STATE.rows = data.map(normalize).filter(r => r.code);
-    hideErr();
+    const { rows, info } = await fetchLatestAll(y, m);
+    STATE.fetch = info;
+    STATE.rows = rows.map(normalize).filter(r => r.code);
+    renderFetchInfo();
+    const known = Number(STATE.stats && STATE.stats.symbols) || 0;
     if (!STATE.rows.length) setStatus('err', `${ymLabel(ym)} 沒有資料`);
-    else {
-      setStatus('ok', `${STATE.rows.length} 檔 · ${ymLabel(ym)} · 已更新`);
-      if (truncated) showTrunc(STATE.rows.length, STATE.stats?.symbols);
+    else setStatus('ok', `${STATE.rows.length} 檔 · ${ymLabel(ym)} · ${info.reqs} 次請求`);
+    hideErr(); hideWarn();
+    if (STATE.rows.length && (info.truncated || (known && STATE.rows.length < known * 0.8))){
+      showWarn(`<b>資料可能不完整：抓到 ${STATE.rows.length} 檔${known ? `，資料庫收錄 ${known} 檔` : ''}</b>
+        <code>/revenue/latest</code> 每批最多只回 ${info.cap ?? info.limit} 筆（我們要求 ${info.limit}）${
+          info.mode.includes('slice') ? '，且 offset 沒有生效，已改用市場／排序切片湊名單' : ''}。
+        產業統計會偏向排序在前的個股，請改後端：<code>limit: int = Query(2500, le=5000)</code>
+        並讓查詢加上 <code>.order_by(欄位, symbol).offset(offset).limit(limit)</code>。`);
     }
     saveCache();
   }catch(e){
@@ -540,8 +763,11 @@ const CHIPS = [
   { k:'ath',    label:'歷史新高',    f:r => r.ath },
   { k:'acc',    label:'累計年增為正',  f:r => r.cumYoy > 0 },
 ];
-const baseRows = () => STATE.rows.filter(r =>
+/* 市場 + 營收門檻（產業統計的基底，不含產業篩選） */
+const rowsForInd = () => STATE.rows.filter(r =>
   (!STATE.market || r.market === STATE.market) && (r.rev ?? 0) >= STATE.minRev);
+/* 再套上產業篩選 = 儀表板與排行共用的基底 */
+const baseRows = () => rowsForInd().filter(indFilter);
 
 function applyFilters(){
   const chip = CHIPS.find(c => c.k === STATE.chip) || CHIPS[0];
@@ -551,7 +777,7 @@ function applyFilters(){
   const k = STATE.sortKey, d = STATE.sortDir;
   rows.sort((a,b) => {
     let x = a[k], y = b[k];
-    if (k === 'code' || k === 'market') return String(x).localeCompare(String(y)) * d;
+    if (k === 'code' || k === 'market' || k === 'ind') return String(x).localeCompare(String(y), 'zh-Hant') * d;
     if (k === 'high'){ x = (a.ath?2:0)+(a.high?1:0); y = (b.ath?2:0)+(b.high?1:0); }
     if (x == null) return 1;
     if (y == null) return -1;
@@ -570,6 +796,8 @@ function renderAll(){
   renderQuadrant(rows);
   renderTable(rows);
   renderLocalRanks();
+  renderIndOptions();
+  renderIndustryPage();
 }
 function renderSummary(){
   const rows = baseRows();
@@ -682,9 +910,9 @@ function focusStock(code){
 
 /* 表格 */
 function renderTable(rows){
-  $('listCount').textContent = `${rows.length} 檔`;
+  $('listCount').textContent = `${rows.length} 檔` + (STATE.ind ? ' · ' + indFilterLabel() : '');
   if (!rows.length){
-    $('tbody').innerHTML = `<tr><td colspan="9"><div class="empty"><span class="ic">🗂️</span>
+    $('tbody').innerHTML = `<tr><td colspan="10"><div class="empty"><span class="ic">🗂️</span>
       ${STATE.rows.length ? '這個條件下沒有符合的股票，換個篩選或放寬營收門檻。' : '目前沒有資料，按右上角 ↻ 重新抓取。'}</div></td></tr>`;
     return;
   }
@@ -696,6 +924,7 @@ function renderTable(rows){
     return `<tr class="row" data-code="${esc(r.code)}">
       <td><span class="code">${esc(r.code)}</span><span class="nm">${esc(r.name)}</span></td>
       <td class="col-mkt"><span class="badge">${esc(MKT[r.market] || r.market || '—')}</span></td>
+      <td class="col-ind"><span class="badge" title="${esc(r.indGroup||'')}">${esc(r.ind || '未分類')}</span></td>
       <td class="num">${fmtRev(r.rev)}</td>
       <td class="num ${cls(r.mom)}">${fmtPct(r.mom)}</td>
       <td class="num ${cls(r.yoy)}">${fmtPct(r.yoy)}</td>
@@ -709,11 +938,12 @@ function renderTable(rows){
 }
 function detailRow(r){
   const h = STATE.history[r.code];
-  return `<tr class="detail"><td colspan="9">
+  return `<tr class="detail"><td colspan="10">
     <div class="spark-wrap">
       <canvas class="spark-canvas" id="sp-${esc(r.code)}"></canvas>
       <div class="dl">
-        <b>${esc(r.code)} ${esc(r.name)}</b>　${ymLabel(r.ym)}　${esc(MKT[r.market] || r.market)}<br>
+        <b>${esc(r.code)} ${esc(r.name)}</b>　${ymLabel(r.ym)}　${esc(MKT[r.market] || r.market)}
+        　<span class="badge">${esc(r.ind || '未分類')}</span> ${esc(r.indGroup || '')}<br>
         當月 <b>${fmtRev(r.rev)}</b>　上月 ${fmtRev(r.prev)}　去年同月 ${fmtRev(r.lastYear)}<br>
         月增 <b class="${cls(r.mom)}">${fmtPct(r.mom)}</b>　年增 <b class="${cls(r.yoy)}">${fmtPct(r.yoy)}</b><br>
         累計 ${fmtRev(r.cum)}　累計年增 <b class="${cls(r.cumYoy)}">${fmtPct(r.cumYoy)}</b><br>
@@ -791,7 +1021,7 @@ async function fetchRank(){
   $('rkList').innerHTML = '<div class="skeleton" style="width:80%"></div><div class="skeleton" style="width:60%"></div>';
   try{
     const rows = asArray(await api(`/revenue/rank?order_by=${order}&limit=${limit}`)).map(normalize)
-      .filter(r => (r.rev ?? 0) >= STATE.minRev && (!STATE.market || r.market === STATE.market));
+      .filter(r => (r.rev ?? 0) >= STATE.minRev && (!STATE.market || r.market === STATE.market) && indFilter(r));
     const val = { yoy: r => fmtPct(r.yoy), mom: r => fmtPct(r.mom),
                   revenue: r => fmtRev(r.rev), acc_yoy: r => fmtPct(r.cumYoy) }[order];
     const col = { yoy: r => r.yoy, mom: r => r.mom, revenue: () => 0, acc_yoy: r => r.cumYoy }[order];
@@ -805,7 +1035,7 @@ async function fetchGrowth(){
   $('gwList').innerHTML = '<div class="skeleton" style="width:80%"></div><div class="skeleton" style="width:60%"></div>';
   try{
     const rows = asArray(await api(`/revenue/growth?months=${months}`)).map(normalize)
-      .filter(r => (r.rev ?? 0) >= STATE.minRev && (!STATE.market || r.market === STATE.market))
+      .filter(r => (r.rev ?? 0) >= STATE.minRev && (!STATE.market || r.market === STATE.market) && indFilter(r))
       .sort((a,b) => (b.streak||0) - (a.streak||0) || (b.yoy||0) - (a.yoy||0));
     rankRows('gwList', rows.slice(0,60), r => `${r.streak ?? months}月 / ${fmtPct(r.yoy)}`, r => r.yoy);
   }catch(e){
@@ -821,11 +1051,23 @@ function renderStats(){
     API：<code>${esc(CFG.base)}</code>` : '讀取失敗';
 }
 
+function renderFetchInfo(){
+  const i = STATE.fetch;
+  const MODE = { single:'一次抓完（未被截斷）', offset:'offset 分頁',
+    slice:'市場 × 排序切片（offset 無效）', 'offset+slice':'offset 分頁 + 切片補齊' };
+  $('fetchBox').innerHTML = !i ? '尚未抓取當期資料。' : `
+    抓取方式 <b>${MODE[i.mode] || i.mode}</b>　要求 limit ${i.limit}　實際單批 ${i.cap ?? '—'}　請求 ${i.reqs} 次<br>
+    去重後 <b>${STATE.rows.length}</b> 檔${
+      STATE.stats && STATE.stats.symbols ? `　資料庫收錄 ${Number(STATE.stats.symbols).toLocaleString()} 檔` : ''}
+    ${i.truncated ? '<br><b style="color:var(--up)">仍有批次撞到上限，名單可能不完整。</b>' : ''}
+    ${i.notes.length ? `<br>過程：<code>${esc(i.notes.join(' · '))}</code>` : ''}`;
+}
+
 /* 匯出 */
 function exportCSV(){
   if (!STATE.view.length){ toast('目前清單沒有資料'); return; }
-  const head = ['代號','名稱','市場','年','月','當月營收','上月營收','去年同月','MoM%','YoY%','累計營收','累計YoY%','連續成長月','連續衰退月','近12月新高','歷史新高'];
-  const body = STATE.view.map(r => [r.code, r.name, r.market, r.year, r.month, r.rev, r.prev, r.lastYear,
+  const head = ['代號','名稱','市場','產業','大分類','年','月','當月營收','上月營收','去年同月','MoM%','YoY%','累計營收','累計YoY%','連續成長月','連續衰退月','近12月新高','歷史新高'];
+  const body = STATE.view.map(r => [r.code, r.name, r.market, r.ind, r.indGroup, r.year, r.month, r.rev, r.prev, r.lastYear,
     r.mom != null ? r.mom.toFixed(2) : '', r.yoy != null ? r.yoy.toFixed(2) : '',
     r.cum ?? '', r.cumYoy != null ? r.cumYoy.toFixed(2) : '',
     r.streak ?? '', r.decline ?? '', r.high?'Y':'N', r.ath?'Y':'N']
@@ -837,6 +1079,600 @@ function exportCSV(){
   a.click(); URL.revokeObjectURL(a.href);
   toast('已匯出 ' + STATE.view.length + ' 筆');
 }
+
+/* ═══════════════════════════════════════════════════════════
+   產業分類與產業分析
+   分類來源優先序：API 的 industry 欄位 →（數字則查公開資訊觀測站產業代碼）
+   → 設定頁自訂對應表 → 未分類
+   ═══════════════════════════════════════════════════════════ */
+const IND_CODE = {
+  '01':'水泥','02':'食品','03':'塑膠','04':'紡織纖維','05':'電機機械','06':'電器電纜',
+  '07':'化學生技醫療','08':'玻璃陶瓷','09':'造紙','10':'鋼鐵','11':'橡膠','12':'汽車',
+  '13':'電子工業','14':'建材營造','15':'航運','16':'觀光餐旅','17':'金融保險','18':'貿易百貨',
+  '19':'綜合','20':'其他','21':'化學','22':'生技醫療','23':'油電燃氣','24':'半導體',
+  '25':'電腦及週邊設備','26':'光電','27':'通信網路','28':'電子零組件','29':'電子通路',
+  '30':'資訊服務','31':'其他電子','32':'文化創意','33':'農業科技','34':'電子商務',
+  '35':'綠能環保','36':'數位雲端','37':'運動休閒','38':'居家生活','80':'管理股票','91':'存託憑證','99':'其他'
+};
+const GROUP_SRC = {
+  '電子上游':['半導體'],
+  '電子中游':['光電','電子零組件'],
+  '電子下游':['電腦及週邊設備','通信網路','其他電子','電子工業'],
+  '電子通路':['電子通路'],
+  '軟體服務':['資訊服務','數位雲端','電子商務','文化創意'],
+  '生技醫療':['生技醫療','化學生技醫療'],
+  '金融':['金融保險'],
+  '傳產':['水泥','食品','塑膠','紡織纖維','電機機械','電器電纜','化學','玻璃陶瓷','造紙','鋼鐵',
+          '橡膠','汽車','建材營造','航運','觀光餐旅','貿易百貨','綜合','油電燃氣','綠能環保',
+          '農業科技','運動休閒','居家生活','鋼鐵工業']
+};
+const GROUP_ORDER = ['電子上游','電子中游','電子下游','電子通路','軟體服務','生技醫療','金融','傳產','其他','未分類'];
+const IND_GROUP = {};
+Object.keys(GROUP_SRC).forEach(g => GROUP_SRC[g].forEach(n => {
+  IND_GROUP[n] = g; IND_GROUP[n+'業'] = g; IND_GROUP[n+'工業'] = g;
+}));
+let CODE_IND = parseIndMap(CFG.indMap || '');
+
+/* 「2330,半導體」每行一筆，逗號／空白／Tab 皆可 */
+function parseIndMap(txt){
+  const m = {};
+  String(txt || '').split(/[\r\n]+/).forEach(line => {
+    const p = line.split(/[,\t;:：\s]+/).filter(Boolean);
+    if (p.length >= 2 && /^\d/.test(p[0])) m[p[0].trim()] = p.slice(1).join('');
+  });
+  return m;
+}
+function indName(r){
+  const raw = String(r.industry ?? '').trim();
+  if (raw){
+    if (/^\d{1,2}$/.test(raw)) return IND_CODE[raw.padStart(2,'0')] || ('產業代碼 ' + raw);
+    return raw;
+  }
+  return CODE_IND[r.code] || '未分類';
+}
+function groupOf(name){
+  const n = String(name || '');
+  if (!n || n === '未分類') return '未分類';
+  return IND_GROUP[n] || IND_GROUP[n.replace(/業$/, '')] || '其他';
+}
+function indFilter(r){
+  const f = STATE.ind;
+  if (!f) return true;
+  if (f.slice(0,2) === 'g:') return r.indGroup === f.slice(2);
+  if (f.slice(0,2) === 'i:') return r.ind === f.slice(2);
+  return true;
+}
+const indFilterLabel = () => !STATE.ind ? '全部產業'
+  : STATE.ind.slice(0,2) === 'g:' ? STATE.ind.slice(2) + '（整個大分類）' : STATE.ind.slice(2);
+
+/* ═══════════ 統計 ═══════════ */
+const sum = (arr, f) => arr.reduce((a,r) => a + (f(r) || 0), 0);
+function median(a){
+  if (!a.length) return null;
+  const s = [...a].sort((x,y) => x-y), h = s.length >> 1;
+  return s.length % 2 ? s[h] : (s[h-1] + s[h]) / 2;
+}
+function statInd(name, rs){
+  const o = { ind:name, group:groupOf(name), rows:rs, n:rs.length };
+  o.rev = sum(rs, r => r.rev); o.cum = sum(rs, r => r.cum);
+  /* 加權年增：只納入當月與去年同月都有數字的公司，避免新上市個股扭曲 */
+  const py = rs.filter(r => r.rev != null && r.lastYear > 0);
+  o.yoyBase = sum(py, r => r.lastYear); o.yoyN = py.length;
+  o.wYoy = o.yoyBase ? (sum(py, r => r.rev) / o.yoyBase - 1) * 100 : null;
+  const pm = rs.filter(r => r.rev != null && r.prev > 0);
+  o.momBase = sum(pm, r => r.prev);
+  o.wMom = o.momBase ? (sum(pm, r => r.rev) / o.momBase - 1) * 100 : null;
+  o.medYoy = median(rs.map(r => r.yoy).filter(v => v != null));
+  o.medCumYoy = median(rs.map(r => r.cumYoy).filter(v => v != null));
+  o.up = rs.filter(r => r.yoy > 0).length;
+  o.dn = rs.filter(r => r.yoy < 0).length;
+  o.rated = o.up + o.dn;
+  o.upRate = o.rated ? o.up / o.rated * 100 : null;
+  o.hi = rs.filter(r => r.high || r.ath).length;
+  o.athN = rs.filter(r => r.ath).length;
+  o.st3 = rs.filter(r => (r.streak || 0) >= 3).length;
+  o.de3 = rs.filter(r => (r.decline || 0) >= 3).length;
+  o.q = [
+    rs.filter(r => r.yoy > 0 && r.mom > 0).length,
+    rs.filter(r => r.yoy != null && r.yoy <= 0 && r.mom > 0).length,
+    rs.filter(r => r.yoy > 0 && r.mom < 0).length,
+    rs.filter(r => r.yoy < 0 && r.mom < 0).length
+  ];
+  const desc = [...rs].sort((a,b) => (b.rev||0) - (a.rev||0));
+  o.leader = desc[0] || null;
+  o.cr3 = o.rev ? desc.slice(0,3).reduce((a,r) => a + (r.rev||0), 0) / o.rev * 100 : null;
+  /* 貢獻度（百分點）：個股年增金額 ÷ 產業去年同月合計，加總等於加權年增 */
+  o.contrib = o.yoyBase
+    ? py.map(r => ({ r, pp:(r.rev - r.lastYear) / o.yoyBase * 100 })).sort((a,b) => b.pp - a.pp)
+    : [];
+  return o;
+}
+function buildIndustries(rows){
+  const by = {};
+  rows.forEach(r => { const k = r.ind || '未分類'; (by[k] = by[k] || []).push(r); });
+  return Object.keys(by).map(k => statInd(k, by[k]));
+}
+function sortInds(list){
+  const k = STATE.indSort.k, d = STATE.indSort.d;
+  return [...list].sort((a,b) => {
+    if (k === 'ind') return String(a.ind).localeCompare(String(b.ind), 'zh-Hant') * d;
+    let x = k === 'q' ? (a.q[0]/(a.n||1)) : a[k];
+    let y = k === 'q' ? (b.q[0]/(b.n||1)) : b[k];
+    if (x == null) return 1;
+    if (y == null) return -1;
+    return (x - y) * d;
+  });
+}
+const findInd = name => (STATE.inds || []).find(o => o.ind === name) || null;
+
+/* ═══════════ 產業選單 ═══════════ */
+function renderIndOptions(){
+  const rows = rowsForInd();
+  const inds = buildIndustries(rows);
+  const byG = {};
+  inds.forEach(o => (byG[o.group] = byG[o.group] || []).push(o));
+  let html = `<option value="">全部產業（${rows.length} 檔）</option>`;
+  GROUP_ORDER.filter(g => byG[g]).forEach(g => {
+    const list = byG[g].sort((a,b) => b.n - a.n);
+    const n = list.reduce((a,o) => a + o.n, 0);
+    html += `<optgroup label="${esc(g)}">`;
+    html += `<option value="g:${esc(g)}">整個${esc(g)}（${list.length} 產業 / ${n} 檔）</option>`;
+    list.forEach(o => { html += `<option value="i:${esc(o.ind)}">${esc(o.ind)}（${o.n}）</option>`; });
+    html += '</optgroup>';
+  });
+  if (STATE.ind){
+    const ok = STATE.ind.slice(0,2) === 'g:'
+      ? inds.some(o => o.group === STATE.ind.slice(2))
+      : inds.some(o => o.ind === STATE.ind.slice(2));
+    if (!ok) STATE.ind = '';
+  }
+  const sel = $('selInd');
+  const sig = [STATE.market, STATE.minRev, STATE.ym, inds.length, rows.length].join('|');
+  if (sel.dataset.sig !== sig){ sel.innerHTML = html; sel.dataset.sig = sig; }
+  sel.value = STATE.ind;
+}
+
+/* ═══════════ 產業頁 ═══════════ */
+function renderIndustryPage(){
+  const rows = rowsForInd();
+  STATE.inds = buildIndustries(rows);
+  const all = statInd('全市場', rows);
+  $('indMonth').textContent = (STATE.ym ? ymLabel(STATE.ym) : '') +
+    (STATE.market ? ' · ' + (MKT[STATE.market] || STATE.market) : '') +
+    (STATE.minRev ? ' · 營收 ≥ ' + fmtRev(STATE.minRev) : '');
+
+  const rated = STATE.inds.filter(o => o.wYoy != null);
+  const up = rated.filter(o => o.wYoy > 0).length;
+  const dn = rated.filter(o => o.wYoy < 0).length;
+  $('iTotal').textContent = STATE.inds.length || '—';
+  $('iGrow').textContent = rated.length ? up : '—';
+  $('iDrop').textContent = rated.length ? dn : '—';
+  const mv = $('iMkt');
+  mv.textContent = all.wYoy == null ? '—' : fmtPct(all.wYoy);
+  mv.className = 'sum-v ' + cls(all.wYoy);
+  const tot = up + dn;
+  $('iUp').style.width = tot ? (up/tot*100) + '%' : '0';
+  $('iDn').style.width = tot ? (dn/tot*100) + '%' : '0';
+  $('iText').textContent = tot ? `${(up/tot*100).toFixed(0)}%（${up} / ${tot} 個產業成長）` : '—';
+
+  const un = STATE.inds.find(o => o.ind === '未分類');
+  const known = Number(STATE.stats && STATE.stats.symbols) || 0;
+  const cover = known ? `本頁統計基於已抓取的 ${STATE.rows.length} 檔（資料庫收錄 ${known} 檔${
+    STATE.rows.length < known * 0.9 ? '，<b>尚未抓齊，加權年增會偏向排序在前的個股</b>' : ''}）。<br>` : '';
+  $('indCover').innerHTML = cover + (un && un.n
+    ? `其中 <b>${un.n}</b> 檔沒有產業別（占 ${(un.n/(rows.length||1)*100).toFixed(0)}%）。
+       API 若未提供 <code>industry</code>，可到「設定 → 產業對應表」貼上「代號,產業」自行補齊。`
+    : `目前 ${rows.length} 檔都有產業別，分屬 ${STATE.inds.length} 個產業、${
+        new Set(STATE.inds.map(o => o.group)).size} 個大分類。`);
+
+  renderIndBars();
+  renderIndTable();
+  renderIndDetail();
+}
+
+const METRIC = {
+  wYoy:  { label:'加權年增',      fmt:fmtPct, note:'產業當月營收合計 ÷ 去年同月合計 − 1，等於用營收規模加權，龍頭影響大。' },
+  medYoy:{ label:'中位年增',      fmt:fmtPct, note:'產業內個股年增率的中位數，不受龍頭與極端值影響，代表「典型公司」的狀況。' },
+  wMom:  { label:'加權月增',      fmt:fmtPct, note:'產業當月合計 ÷ 上月合計 − 1，短期動能，淡旺季影響大。' },
+  upRate:{ label:'成長家數占比',  fmt:v => v == null ? '—' : v.toFixed(0) + '%', note:'年增為正的家數 ÷ 有年增數字的家數，衡量成長的廣度而非幅度。' }
+};
+function renderIndBars(){
+  const m = STATE.indMetric, M = METRIC[m];
+  const list = STATE.inds.filter(o => o[m] != null && o.n >= 2 && o.ind !== '未分類');
+  if (!list.length){ $('indBars').innerHTML = '<div class="empty" style="flex:1">沒有足夠資料繪製排行</div>';
+    $('indBarNote').textContent = ''; return; }
+  const sorted = [...list].sort((a,b) => b[m] - a[m]);
+  const top = sorted.slice(0,6), bot = sorted.slice(-6).filter(o => !top.includes(o));
+  const show = [...top, ...bot];
+  const base = m === 'upRate' ? 0 : 0;
+  const maxAbs = Math.max(...show.map(o => Math.abs(o[m] - base)), 1);
+  $('indBars').innerHTML = show.map(o => {
+    const v = o[m], pos = v >= base;
+    const h = Math.max(Math.abs(v - base) / maxAbs * 140, 3);
+    const col = pos ? 'var(--up)' : 'var(--dn)';
+    return `<div class="ibar" data-i="${esc(o.ind)}" title="${esc(o.ind)}">
+      <span class="ibar-v" style="color:${col}">${M.fmt(v)}</span>
+      <div class="ibar-r" style="height:${h}px;background:${col}"></div>
+      <span class="ibar-l">${esc(o.ind)}<span class="ibar-n">${o.n} 檔</span></span></div>`;
+  }).join('');
+  $('indBarNote').innerHTML = `依<b>${M.label}</b>取前 6 強與後 6 弱（僅列成分股 ≥ 2 檔的產業）。${M.note}`;
+}
+function renderIndTable(){
+  const total = sum(STATE.inds, o => o.rev) || 1;
+  $('indCount').textContent = `${STATE.inds.length} 個產業`;
+  document.querySelectorAll('#indHead span').forEach(s =>
+    s.classList.toggle('on', s.dataset.k === STATE.indSort.k));
+
+  const rowHtml = o => {
+    const share = o.rev / total * 100;
+    const qs = o.q, qn = qs.reduce((a,b) => a+b, 0) || 1;
+    const stack = `<div class="stack">
+      <i style="width:${qs[0]/qn*100}%;background:var(--up)"></i>
+      <i style="width:${qs[1]/qn*100}%;background:#f59e0b"></i>
+      <i style="width:${qs[2]/qn*100}%;background:#9ca3af"></i>
+      <i style="width:${qs[3]/qn*100}%;background:var(--dn)"></i></div>`;
+    return `<div class="ind-row${STATE.indSel === o.ind ? ' sel' : ''}" data-i="${esc(o.ind)}">
+      <div><span class="ind-nm">${esc(o.ind)}</span><span class="ind-g">${esc(o.group)}${
+        o.hi ? ` · 新高 ${o.hi}` : ''}</span></div>
+      <div>${o.n}<span class="ind-cnt"><br><span class="up">${o.up}</span> | <span class="dn">${o.dn}</span></span></div>
+      <div class="${cls(o.wYoy)}" style="font-weight:700">${fmtPct(o.wYoy)}</div>
+      <div class="ind-c-med ${cls(o.medYoy)}">${fmtPct(o.medYoy)}</div>
+      <div class="ind-c-mom ${cls(o.wMom)}">${fmtPct(o.wMom)}</div>
+      <div>${fmtRev(o.rev)}<span class="ind-cnt"><br>${share.toFixed(1)}%</span></div>
+      <div>${stack}</div></div>`;
+  };
+
+  if (STATE.indView === 'group'){
+    const byG = {};
+    STATE.inds.forEach(o => (byG[o.group] = byG[o.group] || []).push(o));
+    $('indTable').innerHTML = GROUP_ORDER.filter(g => byG[g]).map(g => {
+      const list = sortInds(byG[g]);
+      const gAgg = statInd(g, list.flatMap(o => o.rows));
+      return `<div class="grp-row"><span>${esc(g)}
+          <small>${list.length} 產業 / ${gAgg.n} 檔</small></span>
+        <span class="${cls(gAgg.wYoy)}">加權年增 ${fmtPct(gAgg.wYoy)}
+          <small>· ${fmtRev(gAgg.rev)}</small></span></div>` + list.map(rowHtml).join('');
+    }).join('');
+  } else {
+    $('indTable').innerHTML = sortInds(STATE.inds).map(rowHtml).join('');
+  }
+}
+
+/* ═══════════ 產業細節報告 ═══════════ */
+function renderIndDetail(){
+  const wrap = $('indDetailWrap');
+  const o = STATE.indSel ? findInd(STATE.indSel) : null;
+  if (!o){
+    wrap.innerHTML = `<div class="card"><div class="empty"><span class="ic">🧭</span>
+      點上方任一產業（條圖或表格），這裡會展開該產業的細節報告：<br>
+      成長廣度、貢獻度拆解、成分股明細與歷史趨勢。</div></div>`;
+    return;
+  }
+  const total = sum(STATE.inds, x => x.rev) || 1;
+  const share = o.rev / total * 100;
+  const qs = o.q, qn = qs.reduce((a,b) => a+b, 0) || 1;
+  const cmax = Math.max(...o.contrib.map(c => Math.abs(c.pp)), 0.01);
+  const bar = c => {
+    const w = Math.abs(c.pp) / cmax * 50, pos = c.pp >= 0;
+    return `<div class="cb" data-code="${esc(c.r.code)}">
+      <span class="cb-n"><span class="code">${esc(c.r.code)}</span><span class="nm">${esc(c.r.name)}</span></span>
+      <span class="cb-bar"><i style="${pos ? 'left:50%' : 'right:50%'};width:${w}%;
+        background:${pos ? 'var(--up)' : 'var(--dn)'}"></i></span>
+      <span class="cb-v ${cls(c.pp)}">${(c.pp >= 0 ? '+' : '') + c.pp.toFixed(1)}pp</span></div>`;
+  };
+  const pos = o.contrib.filter(c => c.pp > 0).slice(0,6);
+  const neg = o.contrib.filter(c => c.pp < 0).slice(-6).reverse();
+  const trend = STATE.indTrend[o.ind];
+
+  wrap.innerHTML = `<div class="card ind-detail" id="indDetail">
+    <div class="card-title">
+      <span>${esc(o.ind)} <small>${esc(o.group)} · ${o.n} 檔 · ${STATE.ym ? ymLabel(STATE.ym) : ''}</small></span>
+      <span class="icon-btn" id="indClose">✕</span>
+    </div>
+    <div class="narr">${indNarrative(o, share)}</div>
+
+    <div class="kpi">
+      <div class="kpi-b"><div class="kpi-v ${cls(o.wYoy)}">${fmtPct(o.wYoy)}</div><div class="kpi-l">加權年增<br>(${o.yoyN} 檔可比)</div></div>
+      <div class="kpi-b"><div class="kpi-v ${cls(o.medYoy)}">${fmtPct(o.medYoy)}</div><div class="kpi-l">中位年增</div></div>
+      <div class="kpi-b"><div class="kpi-v ${cls(o.wMom)}">${fmtPct(o.wMom)}</div><div class="kpi-l">加權月增</div></div>
+      <div class="kpi-b"><div class="kpi-v ${cls(o.medCumYoy)}">${fmtPct(o.medCumYoy)}</div><div class="kpi-l">累計年增<br>中位數</div></div>
+      <div class="kpi-b"><div class="kpi-v">${fmtRev(o.rev)}</div><div class="kpi-l">營收合計<br>占全體 ${share.toFixed(1)}%</div></div>
+      <div class="kpi-b"><div class="kpi-v ${o.upRate >= 50 ? 'up' : 'dn'}">${o.upRate == null ? '—' : o.upRate.toFixed(0) + '%'}</div><div class="kpi-l">成長家數占比<br>${o.up} / ${o.rated}</div></div>
+      <div class="kpi-b"><div class="kpi-v">${o.hi}<span style="font-size:.7rem"> 檔</span></div><div class="kpi-l">營收新高<br>含歷史新高 ${o.athN}</div></div>
+      <div class="kpi-b"><div class="kpi-v">${o.cr3 == null ? '—' : o.cr3.toFixed(0) + '%'}</div><div class="kpi-l">前三大集中度<br>龍頭 ${o.leader ? esc(o.leader.name || o.leader.code) : '—'}</div></div>
+    </div>
+
+    <div class="sub-t"><span>動能分布</span><span style="font-weight:400">連 3 月成長 ${o.st3} 檔 · 連 3 月衰退 ${o.de3} 檔</span></div>
+    <div class="stack stack-lg">
+      <i style="width:${qs[0]/qn*100}%;background:var(--up)"></i>
+      <i style="width:${qs[1]/qn*100}%;background:#f59e0b"></i>
+      <i style="width:${qs[2]/qn*100}%;background:#9ca3af"></i>
+      <i style="width:${qs[3]/qn*100}%;background:var(--dn)"></i></div>
+    <div class="q-key">
+      <span><i style="background:var(--up)"></i>雙軌成長 ${qs[0]}</span>
+      <span><i style="background:#f59e0b"></i>落底回升 ${qs[1]}</span>
+      <span><i style="background:#9ca3af"></i>高檔回落 ${qs[2]}</span>
+      <span><i style="background:var(--dn)"></i>雙軌衰退 ${qs[3]}</span></div>
+
+    <div class="sub-t"><span>年增貢獻拆解</span><span style="font-weight:400">單位：百分點，全部加總＝加權年增 ${fmtPct(o.wYoy)}</span></div>
+    ${pos.length ? pos.map(bar).join('') : '<div class="mini-note">沒有正貢獻的成分股。</div>'}
+    ${neg.length ? `<div class="mini-note" style="margin:6px 0 2px">主要拖累</div>` + neg.map(bar).join('') : ''}
+
+    <div class="sub-t"><span>產業營收趨勢</span>
+      <button class="btn" id="btnIndTrend" style="padding:5px 10px;font-size:.72rem">${
+        trend ? '重新載入' : '載入近 36 期'}</button></div>
+    <canvas id="indTrend"></canvas>
+    <div class="mini-note" id="indTrendNote">${trend
+      ? `以營收前 ${trend.members.length} 大成分股合計（${trend.members.map(m => esc(m.name || m.code)).join('、')}），柱為合計營收、線為年增率。`
+      : '按上方按鈕，會抓取此產業營收前 10 大成分股的歷史月營收並合併成產業趨勢（每檔一次 API 請求）。'}</div>
+
+    <div class="sub-t"><span>成分股明細</span><span style="font-weight:400">點一列跳到個股歷史</span></div>
+    <div class="tbl-scroll"><table id="memTable"><thead><tr>
+      <th data-k="code">代號 / 名稱</th>
+      <th data-k="rev">當月營收</th>
+      <th data-k="share">占產業</th>
+      <th data-k="mom">MoM%</th>
+      <th data-k="yoy">YoY%</th>
+      <th data-k="cumYoy" class="col-cumyoy">累計YoY%</th>
+      <th data-k="pp">貢獻pp</th>
+      <th data-k="streak">連續</th>
+      <th data-k="high">新高</th>
+    </tr></thead><tbody id="memBody"></tbody></table></div>
+    <div class="btn-row">
+      <button class="btn" id="btnIndOnly">在儀表板只看此產業</button>
+      <button class="btn" id="btnMemCSV">匯出成分股 CSV</button>
+    </div></div>`;
+
+  renderMembers(o);
+  drawIndTrend(o);
+}
+function indNarrative(o, share){
+  const s = [];
+  const gap = (o.wYoy != null && o.medYoy != null) ? o.wYoy - o.medYoy : null;
+  s.push(`<b>${esc(o.ind)}</b>（${esc(o.group)}）本期共 ${o.n} 檔，營收合計 ${fmtRev(o.rev)}，占目前篩選範圍 ${share.toFixed(1)}%。`);
+  if (o.rated) s.push(`年增為正 ${o.up} 檔、為負 ${o.dn} 檔，成長家數占比 ${o.upRate.toFixed(0)}%${
+    o.upRate >= 70 ? '，屬全面回溫' : o.upRate <= 30 ? '，多數公司仍在衰退' : '，強弱分歧'}。`);
+  if (o.wYoy != null && o.medYoy != null){
+    s.push(`營收加權年增 ${fmtPct(o.wYoy)}、中位數 ${fmtPct(o.medYoy)}，${
+      Math.abs(gap) >= 15
+        ? (gap > 0 ? '加權明顯高於中位，成長集中在少數大型股，別把它當成整個產業都在成長'
+                   : '加權明顯低於中位，龍頭拖累了整體，多數中小型股其實比表面數字好')
+        : '兩者接近，強弱分布相對均勻'}。`);
+  }
+  if (o.contrib.length){
+    const t = o.contrib.slice(0,3).filter(c => c.pp > 0);
+    if (t.length) s.push(`主要動能來自 ${t.map(c =>
+      `${esc(c.r.name || c.r.code)}（+${c.pp.toFixed(1)}pp）`).join('、')}，合計貢獻 ${
+      t.reduce((a,c) => a+c.pp, 0).toFixed(1)} 個百分點。`);
+    const b = o.contrib.slice(-2).filter(c => c.pp < -0.5).reverse();
+    if (b.length) s.push(`拖累最深的是 ${b.map(c =>
+      `${esc(c.r.name || c.r.code)}（${c.pp.toFixed(1)}pp）`).join('、')}。`);
+  }
+  if (o.cr3 != null && o.n >= 4) s.push(`前三大占產業營收 ${o.cr3.toFixed(0)}%${
+    o.cr3 >= 70 ? '，加權數字幾乎由龍頭決定，建議同時看中位數' : ''}。`);
+  if (o.q[0] || o.q[3]) s.push(`動能上，年增月增同時為正 ${o.q[0]} 檔、同時為負 ${o.q[3]} 檔，另有 ${o.q[1]} 檔落底回升、${o.q[2]} 檔高檔回落。`);
+  if (o.hi) s.push(`${o.hi} 檔營收創近 12 月新高${o.athN ? `（其中 ${o.athN} 檔為歷史新高）` : ''}。`);
+  return s.join(' ') + '<br><em>以上為公開月營收數據的統計描述，不含股價與獲利資訊，非投資建議。</em>';
+}
+function renderMembers(o){
+  const total = o.rev || 1;
+  const ppOf = r => (o.yoyBase && r.rev != null && r.lastYear > 0)
+    ? (r.rev - r.lastYear) / o.yoyBase * 100 : null;
+  const k = STATE.memSort.k, d = STATE.memSort.d;
+  const rows = [...o.rows].sort((a,b) => {
+    if (k === 'code') return String(a.code).localeCompare(String(b.code)) * d;
+    let x, y;
+    if (k === 'share'){ x = a.rev; y = b.rev; }
+    else if (k === 'pp'){ x = ppOf(a); y = ppOf(b); }
+    else if (k === 'high'){ x = (a.ath?2:0)+(a.high?1:0); y = (b.ath?2:0)+(b.high?1:0); }
+    else { x = a[k]; y = b[k]; }
+    if (x == null) return 1;
+    if (y == null) return -1;
+    return (x - y) * d;
+  });
+  document.querySelectorAll('#memTable th').forEach(th => th.classList.toggle('on', th.dataset.k === k));
+  $('memBody').innerHTML = rows.map(r => {
+    const pp = ppOf(r);
+    const st = r.streak > 0 ? `<span class="badge st">${r.streak}月</span>`
+      : r.decline > 0 ? `<span class="badge de">-${r.decline}月</span>` : '—';
+    const hi = r.ath ? '<span class="badge ath">ATH</span>' : r.high ? '<span class="badge hi">高</span>' : '—';
+    return `<tr class="row" data-code="${esc(r.code)}">
+      <td><span class="code">${esc(r.code)}</span><span class="nm">${esc(r.name)}</span></td>
+      <td class="num">${fmtRev(r.rev)}</td>
+      <td class="num">${((r.rev||0)/total*100).toFixed(1)}%</td>
+      <td class="num ${cls(r.mom)}">${fmtPct(r.mom)}</td>
+      <td class="num ${cls(r.yoy)}">${fmtPct(r.yoy)}</td>
+      <td class="num col-cumyoy ${cls(r.cumYoy)}">${fmtPct(r.cumYoy)}</td>
+      <td class="num ${cls(pp)}">${pp == null ? '—' : (pp >= 0 ? '+' : '') + pp.toFixed(2)}</td>
+      <td>${st}</td><td>${hi}</td></tr>`;
+  }).join('');
+}
+
+/* 產業趨勢：合併前 N 大成分股的歷史月營收 */
+async function loadIndTrend(o){
+  const members = [...o.rows].filter(r => r.code).sort((a,b) => (b.rev||0) - (a.rev||0)).slice(0,10);
+  if (!members.length){ toast('此產業沒有可查詢的成分股'); return; }
+  $('indTrendNote').textContent = `讀取 ${members.length} 檔歷史資料…`;
+  const need = members.filter(m => !STATE.history[m.code]);
+  const pool = 4;
+  for (let i = 0; i < need.length; i += pool){
+    await Promise.all(need.slice(i, i+pool).map(async m => {
+      try{
+        const data = asArray(await api(`/revenue/history/${encodeURIComponent(m.code)}?limit=36`));
+        STATE.history[m.code] = data.map(normalize).sort((a,b) => a.ym - b.ym);
+      }catch(e){ STATE.history[m.code] = []; }
+    }));
+  }
+  const acc = {};
+  members.forEach(m => (STATE.history[m.code] || []).forEach(h => {
+    if (h.rev == null) return;
+    const a = acc[h.ym] = acc[h.ym] || { rev:0, n:0 };
+    a.rev += h.rev; a.n++;
+  }));
+  const yms = Object.keys(acc).map(Number).sort((a,b) => a-b);
+  if (!yms.length){ $('indTrendNote').textContent = '沒有取得歷史資料。'; return; }
+  STATE.indTrend[o.ind] = {
+    members,
+    pts: yms.map(ym => ({ ym, rev:acc[ym].rev, n:acc[ym].n,
+      yoy: acc[ym-100] ? (acc[ym].rev / acc[ym-100].rev - 1) * 100 : null }))
+  };
+  renderIndDetail();
+}
+function drawIndTrend(o){
+  const cv = $('indTrend'); if (!cv) return;
+  const t = STATE.indTrend[o.ind];
+  const ctx = cv.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.clientWidth, H = cv.clientHeight;
+  if (!W) return;
+  cv.width = W*dpr; cv.height = H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  if (!t){
+    ctx.fillStyle = '#9ca3af'; ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText('尚未載入產業趨勢', W/2, H/2); return;
+  }
+  const pts = t.pts.slice(-24);
+  const top = 16, bot = H-20;
+  const maxRev = Math.max(...pts.map(p => p.rev), 1);
+  const bw = (W-10) / pts.length;
+  pts.forEach((p,i) => {
+    const h = p.rev / maxRev * (bot-top);
+    const x = 5 + i*bw;
+    ctx.fillStyle = p.ym === STATE.ym ? '#2563eb'
+      : (p.yoy != null && p.yoy > 0) ? 'rgba(224,49,49,.55)' : 'rgba(73,80,87,.25)';
+    ctx.fillRect(x, bot-h, Math.max(bw-2.5, 2), h);
+    if (i % 3 === 0 || i === pts.length-1){
+      ctx.fillStyle = '#9ca3af'; ctx.font = '9px system-ui'; ctx.textAlign = 'center';
+      ctx.fillText(ymLabel(p.ym).slice(2), x + bw/2, H-6);
+    }
+  });
+  const ys = pts.map(p => p.yoy).filter(v => v != null);
+  if (ys.length > 1){
+    const mn = Math.min(...ys, 0), mx = Math.max(...ys, 0);
+    const sy = v => bot - (v-mn)/((mx-mn)||1)*(bot-top);
+    ctx.strokeStyle = '#9ca3af'; ctx.setLineDash([3,3]); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(5, sy(0)); ctx.lineTo(W-5, sy(0)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 1.8; ctx.beginPath();
+    let started = false;
+    pts.forEach((p,i) => {
+      if (p.yoy == null) return;
+      const x = 5 + i*bw + bw/2, y = sy(p.yoy);
+      started ? ctx.lineTo(x,y) : (ctx.moveTo(x,y), started = true);
+    });
+    ctx.stroke();
+    ctx.fillStyle = '#2563eb'; ctx.font = '9px system-ui'; ctx.textAlign = 'left';
+    ctx.fillText(`年增率 ${fmtPct(ys[ys.length-1])}（線，${mn.toFixed(0)}% ~ ${mx.toFixed(0)}%）`, 5, 9);
+  }
+}
+
+/* ═══════════ 匯出 ═══════════ */
+function csvDownload(name, head, body){
+  const rows = body.map(r => r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(','));
+  const blob = new Blob(['\ufeff' + [head.join(','), ...rows].join('\n')], { type:'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  URL.revokeObjectURL(a.href);
+  toast('已匯出 ' + body.length + ' 筆');
+}
+function exportIndCSV(){
+  if (!STATE.inds || !STATE.inds.length){ toast('目前沒有產業資料'); return; }
+  const total = sum(STATE.inds, o => o.rev) || 1;
+  csvDownload(`industry_${STATE.ym}.csv`,
+    ['產業','大分類','家數','年增為正','年增為負','成長家數占比%','加權年增%','中位年增%','加權月增%',
+     '累計年增中位%','營收合計(千元)','占比%','前三大集中度%','龍頭','新高家數','歷史新高','連3月成長','連3月衰退',
+     '雙軌成長','落底回升','高檔回落','雙軌衰退'],
+    sortInds(STATE.inds).map(o => [o.ind, o.group, o.n, o.up, o.dn,
+      o.upRate?.toFixed(1) ?? '', o.wYoy?.toFixed(2) ?? '', o.medYoy?.toFixed(2) ?? '',
+      o.wMom?.toFixed(2) ?? '', o.medCumYoy?.toFixed(2) ?? '', o.rev,
+      (o.rev/total*100).toFixed(2), o.cr3?.toFixed(1) ?? '',
+      o.leader ? `${o.leader.code} ${o.leader.name}` : '', o.hi, o.athN, o.st3, o.de3,
+      o.q[0], o.q[1], o.q[2], o.q[3]]));
+}
+function exportMemCSV(){
+  const o = findInd(STATE.indSel); if (!o) return;
+  const total = o.rev || 1;
+  csvDownload(`industry_${o.ind}_${STATE.ym}.csv`,
+    ['代號','名稱','市場','產業','大分類','當月營收','占產業%','上月','去年同月','MoM%','YoY%',
+     '累計營收','累計YoY%','年增貢獻pp','連續成長月','連續衰退月','近12月新高','歷史新高'],
+    o.rows.map(r => [r.code, r.name, MKT[r.market] || r.market, r.ind, r.indGroup, r.rev,
+      ((r.rev||0)/total*100).toFixed(2), r.prev, r.lastYear,
+      r.mom?.toFixed(2) ?? '', r.yoy?.toFixed(2) ?? '', r.cum ?? '', r.cumYoy?.toFixed(2) ?? '',
+      (o.yoyBase && r.lastYear > 0) ? ((r.rev-r.lastYear)/o.yoyBase*100).toFixed(3) : '',
+      r.streak ?? '', r.decline ?? '', r.high?'Y':'N', r.ath?'Y':'N']));
+}
+function selectInd(name){
+  STATE.indSel = STATE.indSel === name ? null : name;
+  renderIndTable(); renderIndDetail();
+  const el = $('indDetail');
+  if (STATE.indSel && el && el.scrollIntoView) el.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+/* ═══════════ 產業頁事件 ═══════════ */
+$('selInd').onchange = e => { STATE.ind = e.target.value; STATE.expanded = null; renderAll(); };
+$('segMetric').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  STATE.indMetric = b.dataset.m;
+  document.querySelectorAll('#segMetric button').forEach(x => x.classList.toggle('on', x === b));
+  renderIndBars();
+};
+$('segView').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  STATE.indView = b.dataset.v;
+  document.querySelectorAll('#segView button').forEach(x => x.classList.toggle('on', x === b));
+  renderIndTable();
+};
+$('indBars').onclick = e => {
+  const b = e.target.closest('.ibar'); if (b) selectInd(b.dataset.i);
+};
+$('indTable').onclick = e => {
+  const r = e.target.closest('.ind-row'); if (r) selectInd(r.dataset.i);
+};
+$('indHead').onclick = e => {
+  const s = e.target.closest('span[data-k]'); if (!s) return;
+  const k = s.dataset.k;
+  if (STATE.indSort.k === k) STATE.indSort.d *= -1;
+  else STATE.indSort = { k, d: k === 'ind' ? 1 : -1 };
+  renderIndTable();
+};
+$('indDetailWrap').onclick = e => {
+  if (e.target.closest('#indClose')){ STATE.indSel = null; renderIndTable(); renderIndDetail(); return; }
+  if (e.target.closest('#btnIndTrend')){
+    const o = findInd(STATE.indSel); if (o) loadIndTrend(o);
+    return;
+  }
+  if (e.target.closest('#btnIndOnly')){
+    STATE.ind = 'i:' + STATE.indSel;
+    renderAll();
+    document.querySelector('.tab[data-p="dash"]').click();
+    toast('儀表板已篩選：' + STATE.indSel);
+    return;
+  }
+  if (e.target.closest('#btnMemCSV')){ exportMemCSV(); return; }
+  const th = e.target.closest('#memTable th');
+  if (th){
+    const k = th.dataset.k;
+    if (STATE.memSort.k === k) STATE.memSort.d *= -1;
+    else STATE.memSort = { k, d: k === 'code' ? 1 : -1 };
+    const o = findInd(STATE.indSel); if (o) renderMembers(o);
+    return;
+  }
+  const tr = e.target.closest('#memBody tr.row') || e.target.closest('.cb');
+  if (tr) focusStock(tr.dataset.code);
+};
+$('btnIndCSV').onclick = exportIndCSV;
+$('cfgIndMap').value = CFG.indMap || '';
+$('btnIndMapSave').onclick = () => {
+  CFG.indMap = $('cfgIndMap').value;
+  localStorage.setItem(CFG_KEY, JSON.stringify(CFG));
+  CODE_IND = parseIndMap(CFG.indMap);
+  STATE.rows = STATE.rows.map(r => Object.assign(r, { ind:indName(r), indGroup:groupOf(indName(r)) }));
+  toast(`已套用 ${Object.keys(CODE_IND).length} 筆自訂產業`);
+  renderAll();
+};
+$('indRuleBox').innerHTML = GROUP_ORDER.filter(g => GROUP_SRC[g]).map(g =>
+  `<b>${g}</b>：${GROUP_SRC[g].join('、')}`).join('<br>') +
+  '<br><b>其他 / 未分類</b>：不在上表的產業別，或 API 沒給產業別的個股。';
 
 /* ═══════════ 事件 ═══════════ */
 $('selMonth').onchange = e => loadPeriod(+e.target.value);
@@ -872,6 +1708,7 @@ document.querySelectorAll('.tab').forEach(t => {
     document.querySelectorAll('.page').forEach(x => x.classList.remove('on'));
     t.classList.add('on'); $('page-' + t.dataset.p).classList.add('on');
     if (t.dataset.p === 'dash'){ renderQuadrant(STATE.view); if (STATE.expanded) drawHistory(STATE.expanded); }
+    if (t.dataset.p === 'ind' && STATE.indSel){ const o = findInd(STATE.indSel); if (o) drawIndTrend(o); }
     window.scrollTo({ top:0 });
   };
 });
@@ -883,15 +1720,17 @@ $('gwGo').onclick = fetchGrowth;
 $('cfgSave').onclick = () => {
   CFG.base = ($('cfgBase').value.trim() || DEFAULT_BASE).replace(/\/$/,'');
   CFG.proxy = $('cfgProxy').value.trim();
-  CFG.pageSize = Math.max(100, Math.min(5000, +$('cfgPage').value || 1000));
+  CFG.indMap = $('cfgIndMap').value;
+  CFG.pageSize = Math.min(5000, Math.max(100, Number($('cfgPage').value) || 2500));
+  CODE_IND = parseIndMap(CFG.indMap);
   localStorage.setItem(CFG_KEY, JSON.stringify(CFG));
   STATE.history = {}; STATE.ym = null;
   toast('已儲存，重新載入'); boot();
 };
 $('cfgReset').onclick = () => {
-  CFG.base = DEFAULT_BASE; CFG.proxy = '';
+  CFG.base = DEFAULT_BASE; CFG.proxy = ''; CFG.pageSize = 2500;
   localStorage.setItem(CFG_KEY, JSON.stringify(CFG));
-  $('cfgBase').value = CFG.base; $('cfgProxy').value = '';
+  $('cfgBase').value = CFG.base; $('cfgProxy').value = ''; $('cfgPage').value = CFG.pageSize;
   STATE.ym = null; boot();
 };
 $('btnClearCache').onclick = () => {
@@ -902,6 +1741,7 @@ let rz; window.addEventListener('resize', () => {
   clearTimeout(rz); rz = setTimeout(() => {
     renderQuadrant(STATE.view);
     if (STATE.expanded) drawHistory(STATE.expanded);
+    if (STATE.indSel){ const o = findInd(STATE.indSel); if (o) drawIndTrend(o); }
   }, 150);
 });
 
