@@ -108,7 +108,7 @@
     background:#fff;color:var(--text);cursor:pointer;font-weight:600;}
   .btn.pri{background:var(--primary);border-color:var(--primary);color:#fff;}
   .btn:active{transform:translateY(1px);}
-  .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;}
   .field{margin-bottom:12px;}
   .field label{display:block;font-size:.72rem;color:var(--muted);margin-bottom:4px;}
   .field input,.field select{width:100%;}
@@ -195,6 +195,29 @@
   .cb-v{width:74px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;font-size:.72rem;}
   #indTrend{width:100%;height:170px;display:block;}
   .mini-note{font-size:.66rem;color:var(--muted);line-height:1.7;}
+  .src-tag{display:inline-block;font-size:.64rem;padding:1px 7px;border-radius:999px;
+    background:var(--bg);color:var(--muted);border:1px solid var(--border);}
+  .src-tag.live{background:var(--b3);color:var(--primary);border-color:#bfdbfe;font-weight:600;}
+  .src-tag.stale{background:#fff9db;color:#8a6100;border-color:#ffe066;}
+
+  /* ───── 新增產業資訊彈窗 ───── */
+  .modal{position:fixed;inset:0;z-index:60;background:#0f172a80;
+    display:none;align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto;}
+  .modal.on{display:flex;}
+  .modal-box{background:var(--card);border-radius:14px;width:100%;max-width:560px;
+    padding:16px 16px 14px;box-shadow:0 12px 40px #0f172a33;}
+  .modal-h{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px;}
+  .modal-h b{font-size:.92rem;}
+  .modal-sub{font-size:.7rem;color:var(--muted);line-height:1.7;margin-bottom:12px;}
+  .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .mgrid .wide{grid-column:1 / -1;}
+  .mfield label{display:block;font-size:.7rem;color:var(--muted);margin-bottom:3px;}
+  .mfield label span{color:var(--up);}
+  .mfield input,.mfield select{width:100%;}
+  .modal-msg{font-size:.72rem;line-height:1.7;margin-top:10px;min-height:1.2em;}
+  .modal-msg.err{color:var(--up);}
+  .modal-msg.ok{color:var(--dn);}
+  @media(max-width:560px){ .mgrid{grid-template-columns:1fr;} }
   @media(max-width:560px){
     .ind-head,.ind-row{grid-template-columns:1.35fr .68fr .82fr 1fr .7fr;}
     .ind-c-med,.ind-c-mom{display:none;}
@@ -436,6 +459,31 @@
       </div>
     </div>
 
+    <!-- ───── 產業來源 ───── -->
+    <div class="card">
+      <div class="card-title">產業分類來源 <small>Google Sheet + Apps Script</small></div>
+      <div class="field">
+        <label for="cfgIndApi">產業 API 位址（Apps Script Web App，留空則只用下方手動對應表）</label>
+        <input type="url" id="cfgIndApi" placeholder="https://script.google.com/macros/s/AKfy.../exec">
+      </div>
+      <div class="field">
+        <label for="cfgIndToken">寫入權杖 token（選填，Apps Script 有設 WRITE_TOKEN 時才需要）</label>
+        <input type="text" id="cfgIndToken" placeholder="留空代表 Apps Script 未設定權杖">
+      </div>
+      <div class="btn-row">
+        <button class="btn pri" id="btnIndSync">立即同步產業</button>
+        <button class="btn" id="btnIndAdd">新增產業資訊</button>
+        <button class="btn" id="btnIndForget">清掉同步結果</button>
+      </div>
+      <div class="hint" id="indSyncInfo" style="margin-top:8px;"></div>
+      <div class="hint" style="margin-top:8px;">
+        會呼叫 <code>?action=bootstrap&amp;format=map</code> 一次取回「代號→產業」對照與大分類規則，
+        並用 <code>?action=meta</code> 的 <code>version</code> 做版本比對，版本沒變就直接用本機快取。
+        「新增產業資訊」會寫入 <code>industry_map</code>，同一個代號會覆蓋既有那一列。
+        Apps Script 部署時請選「任何人（含匿名）可存取」，不需要 CORS Proxy。
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-title">產業對應表 <small>API 沒有 industry 欄位時的備援</small></div>
       <div class="field">
@@ -443,8 +491,8 @@
         <textarea id="cfgIndMap" rows="4" placeholder="2330,半導體&#10;2317,電腦及週邊設備&#10;2603,航運"></textarea>
       </div>
       <div class="btn-row"><button class="btn pri" id="btnIndMapSave">套用對應表</button></div>
-      <div class="hint">若 API 回傳的 <code>industry</code> 已是產業名稱或公開資訊觀測站的代碼（例如 <code>24</code>
-        會轉成「半導體」），就不需要自己填。填了以後只會用來補「未分類」的個股。</div>
+      <div class="hint">產業別的判斷順序是：營收 API 的 <code>industry</code> 欄位 → 產業 API 同步下來的對照
+        → 這裡手動貼上的對應表 → 未分類。</div>
     </div>
 
     <div class="card">
@@ -477,6 +525,73 @@
     <div class="tab" data-p="ind"><span class="ic">🗂️</span>產業</div>
     <div class="tab" data-p="rank"><span class="ic">🏆</span>排行</div>
     <div class="tab" data-p="conf"><span class="ic">⚙️</span>設定</div>
+  </div>
+</div>
+<div class="modal" id="indModal">
+  <div class="modal-box">
+    <div class="modal-h">
+      <b id="mTitle">新增產業資訊</b>
+      <span class="icon-btn" id="mClose">✕</span>
+    </div>
+    <div class="modal-sub">寫入 Google Sheet 的 <code>industry_map</code>。
+      代號已存在時會覆蓋那一列，<code>updated_at</code> 由伺服器自動填。</div>
+
+    <div class="mgrid">
+      <div class="mfield">
+        <label for="mSymbol">symbol 代號 <span>*</span></label>
+        <input type="text" id="mSymbol" placeholder="2330" autocomplete="off">
+      </div>
+      <div class="mfield">
+        <label for="mName">name 名稱</label>
+        <input type="text" id="mName" placeholder="台積電" autocomplete="off">
+      </div>
+      <div class="mfield">
+        <label for="mIndustry">industry 產業 <span>*</span></label>
+        <input type="text" id="mIndustry" list="dlIndustry" placeholder="半導體" autocomplete="off">
+        <datalist id="dlIndustry"></datalist>
+      </div>
+      <div class="mfield">
+        <label for="mIndCode">industry_code 產業代碼</label>
+        <input type="text" id="mIndCode" list="dlIndCode" placeholder="24" autocomplete="off">
+        <datalist id="dlIndCode"></datalist>
+      </div>
+      <div class="mfield">
+        <label for="mGroup">group 大分類（留空由 industry_group 表推導）</label>
+        <input type="text" id="mGroup" list="dlGroup" placeholder="電子上游" autocomplete="off">
+        <datalist id="dlGroup"></datalist>
+      </div>
+      <div class="mfield">
+        <label for="mMarket">market 市場</label>
+        <select id="mMarket">
+          <option value="">未指定</option>
+          <option value="TWSE">TWSE 上市</option>
+          <option value="TPEX">TPEX 上櫃</option>
+          <option value="EMERGING">EMERGING 興櫃</option>
+        </select>
+      </div>
+      <div class="mfield wide">
+        <label for="mTags">tags 題材標籤（逗號分隔）</label>
+        <input type="text" id="mTags" placeholder="AI伺服器,CoWoS" autocomplete="off">
+      </div>
+      <div class="mfield">
+        <label for="mActive">active 啟用</label>
+        <select id="mActive">
+          <option value="Y">Y 啟用</option>
+          <option value="N">N 停用（API 會略過）</option>
+        </select>
+      </div>
+      <div class="mfield">
+        <label for="mNote">note 備註</label>
+        <input type="text" id="mNote" placeholder="人工備註" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="modal-msg" id="mMsg"></div>
+    <div class="btn-row">
+      <button class="btn pri" id="mSave">寫入 Sheet</button>
+      <button class="btn" id="mSaveNext">寫入並繼續新增</button>
+      <button class="btn" id="mCancel">取消</button>
+    </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -512,8 +627,11 @@ const ymLabel = k => Math.floor(k/100) + '/' + String(k%100).padStart(2,'0');
 const MKT = { TWSE:'上市', TPEX:'上櫃', EMERGING:'興櫃', ROTC:'興櫃' };
 
 /* ═══════════ 設定 / 狀態 ═══════════ */
-const CFG = Object.assign({ base: DEFAULT_BASE, proxy: '', pageSize: 2500 },
-  JSON.parse(localStorage.getItem(CFG_KEY) || '{}'));
+const CFG = Object.assign({
+  base: DEFAULT_BASE, proxy: '', pageSize: 2500,
+  indMap: '', indApi: '', indToken: '', indRemote: null, groupRules: null, indVersion: ''
+}, JSON.parse(localStorage.getItem(CFG_KEY) || '{}'));
+const saveCfg = () => localStorage.setItem(CFG_KEY, JSON.stringify(CFG));
 
 const STATE = {
   stats: null, ym: null,
@@ -1081,11 +1199,13 @@ function exportCSV(){
 }
 
 /* ═══════════════════════════════════════════════════════════
-   產業分類與產業分析
-   分類來源優先序：API 的 industry 欄位 →（數字則查公開資訊觀測站產業代碼）
-   → 設定頁自訂對應表 → 未分類
+   產業分類規則
+   規則來源優先序：產業 API（Apps Script）→ 本機快取 → 內建預設
+   個股分類優先序：營收 API 的 industry → 產業 API 對照 → 手動對應表 → 未分類
    ═══════════════════════════════════════════════════════════ */
-const IND_CODE = {
+
+/* ── 內建預設：API 沒設定或掛掉時的備援 ── */
+const DEFAULT_IND_CODE = {
   '01':'水泥','02':'食品','03':'塑膠','04':'紡織纖維','05':'電機機械','06':'電器電纜',
   '07':'化學生技醫療','08':'玻璃陶瓷','09':'造紙','10':'鋼鐵','11':'橡膠','12':'汽車',
   '13':'電子工業','14':'建材營造','15':'航運','16':'觀光餐旅','17':'金融保險','18':'貿易百貨',
@@ -1094,24 +1214,60 @@ const IND_CODE = {
   '30':'資訊服務','31':'其他電子','32':'文化創意','33':'農業科技','34':'電子商務',
   '35':'綠能環保','36':'數位雲端','37':'運動休閒','38':'居家生活','80':'管理股票','91':'存託憑證','99':'其他'
 };
-const GROUP_SRC = {
-  '電子上游':['半導體'],
-  '電子中游':['光電','電子零組件'],
-  '電子下游':['電腦及週邊設備','通信網路','其他電子','電子工業'],
-  '電子通路':['電子通路'],
-  '軟體服務':['資訊服務','數位雲端','電子商務','文化創意'],
-  '生技醫療':['生技醫療','化學生技醫療'],
-  '金融':['金融保險'],
-  '傳產':['水泥','食品','塑膠','紡織纖維','電機機械','電器電纜','化學','玻璃陶瓷','造紙','鋼鐵',
-          '橡膠','汽車','建材營造','航運','觀光餐旅','貿易百貨','綜合','油電燃氣','綠能環保',
-          '農業科技','運動休閒','居家生活','鋼鐵工業']
-};
-const GROUP_ORDER = ['電子上游','電子中游','電子下游','電子通路','軟體服務','生技醫療','金融','傳產','其他','未分類'];
-const IND_GROUP = {};
-Object.keys(GROUP_SRC).forEach(g => GROUP_SRC[g].forEach(n => {
-  IND_GROUP[n] = g; IND_GROUP[n+'業'] = g; IND_GROUP[n+'工業'] = g;
-}));
+const DEFAULT_GROUPS = [
+  { group:'電子上游', order:1, industries:['半導體'] },
+  { group:'電子中游', order:2, industries:['光電','電子零組件'] },
+  { group:'電子下游', order:3, industries:['電腦及週邊設備','通信網路','其他電子','電子工業'] },
+  { group:'電子通路', order:4, industries:['電子通路'] },
+  { group:'軟體服務', order:5, industries:['資訊服務','數位雲端','電子商務','文化創意'] },
+  { group:'生技醫療', order:6, industries:['生技醫療','化學生技醫療'] },
+  { group:'金融',     order:7, industries:['金融保險'] },
+  { group:'傳產',     order:8, industries:['水泥','食品','塑膠','紡織纖維','電機機械','電器電纜',
+      '化學','玻璃陶瓷','造紙','鋼鐵','橡膠','汽車','建材營造','航運','觀光餐旅','貿易百貨',
+      '綜合','油電燃氣','綠能環保','農業科技','運動休閒','居家生活'] }
+];
+const TAIL_GROUPS = ['其他','未分類'];   // 永遠排在最後，不由 API 決定
+
+/* ── 執行期變數：全部由 applyGroupRules() 重建 ── */
+let IND_CODE = {}, IND_ALIAS = {}, IND_GROUP = {},
+    GROUP_ORDER = [], GROUP_SRC = {}, GROUP_SOURCE = '內建', GROUP_SOURCE_KIND = 'default';
 let CODE_IND = parseIndMap(CFG.indMap || '');
+
+/**
+ * 套用大分類規則
+ * rules: { data:[{group,order,industries}], codes:{代碼:產業}, alias:{別名:產業} } 或 null（用內建預設）
+ */
+function applyGroupRules(rules, sourceLabel, kind){
+  const list = (rules && Array.isArray(rules.data) && rules.data.length)
+    ? [...rules.data].sort((a,b) => (a.order ?? 99) - (b.order ?? 99))
+    : DEFAULT_GROUPS;
+
+  GROUP_SRC = {}; IND_GROUP = {};
+  list.forEach(g => {
+    const name = String(g.group || '').trim();
+    if (!name || TAIL_GROUPS.includes(name)) return;
+    const inds = (g.industries || []).map(s => String(s).trim()).filter(Boolean);
+    GROUP_SRC[name] = (GROUP_SRC[name] || []).concat(inds);
+    inds.forEach(n => {
+      IND_GROUP[n] = name;
+      IND_GROUP[n + '業'] = name;        // 字尾容錯
+      IND_GROUP[n + '工業'] = name;
+    });
+  });
+  GROUP_ORDER = [...Object.keys(GROUP_SRC), ...TAIL_GROUPS];
+
+  IND_CODE  = Object.assign({}, DEFAULT_IND_CODE, (rules && rules.codes) || {});
+  IND_ALIAS = {};
+  Object.entries((rules && rules.alias) || {}).forEach(([a, canon]) => {
+    if (!a || !canon || a === canon) return;          // 別名等於本名就跳過，避免自我對應
+    IND_ALIAS[a] = canon;
+    if (IND_GROUP[canon]) IND_GROUP[a] = IND_GROUP[canon];
+  });
+
+  GROUP_SOURCE = sourceLabel || '內建';
+  GROUP_SOURCE_KIND = kind || 'default';
+  renderIndRuleBox();
+}
 
 /* 「2330,半導體」每行一筆，逗號／空白／Tab 皆可 */
 function parseIndMap(txt){
@@ -1122,18 +1278,25 @@ function parseIndMap(txt){
   });
   return m;
 }
+/* 別名 → 正式產業名 */
+function canonInd(name){
+  const n = String(name || '').trim();
+  return IND_ALIAS[n] || n;
+}
 function indName(r){
   const raw = String(r.industry ?? '').trim();
   if (raw){
     if (/^\d{1,2}$/.test(raw)) return IND_CODE[raw.padStart(2,'0')] || ('產業代碼 ' + raw);
-    return raw;
+    return canonInd(raw);
   }
-  return CODE_IND[r.code] || '未分類';
+  return (CFG.indRemote && CFG.indRemote[r.code])   // 產業 API 同步下來的對照
+      || CODE_IND[r.code]                            // 設定頁手動貼上的對應表
+      || '未分類';
 }
 function groupOf(name){
-  const n = String(name || '');
+  const n = canonInd(name);
   if (!n || n === '未分類') return '未分類';
-  return IND_GROUP[n] || IND_GROUP[n.replace(/業$/, '')] || '其他';
+  return IND_GROUP[n] || IND_GROUP[n.replace(/(工業|業)$/, '')] || '其他';
 }
 function indFilter(r){
   const f = STATE.ind;
@@ -1144,6 +1307,96 @@ function indFilter(r){
 }
 const indFilterLabel = () => !STATE.ind ? '全部產業'
   : STATE.ind.slice(0,2) === 'g:' ? STATE.ind.slice(2) + '（整個大分類）' : STATE.ind.slice(2);
+
+function renderIndRuleBox(){
+  const box = $('indRuleBox'); if (!box) return;
+  const tagCls = GROUP_SOURCE_KIND === 'api' ? 'live'
+    : GROUP_SOURCE_KIND === 'stale' ? 'stale' : '';
+  box.innerHTML =
+    `<div style="margin-bottom:8px;">
+       規則來源 <span class="src-tag ${tagCls}">${esc(GROUP_SOURCE)}</span>　
+       大分類 ${Object.keys(GROUP_SRC).length} 組　產業代碼 ${Object.keys(IND_CODE).length} 筆${
+       Object.keys(IND_ALIAS).length ? `　別名 ${Object.keys(IND_ALIAS).length} 筆` : ''}
+     </div>` +
+    GROUP_ORDER.filter(g => GROUP_SRC[g]).map(g =>
+      `<b>${esc(g)}</b>：${GROUP_SRC[g].map(esc).join('、')}`).join('<br>') +
+    '<br><b>其他 / 未分類</b>：不在上表的產業別，或沒有產業別的個股。';
+}
+
+/* ═══════════ 產業 API 同步 ═══════════ */
+async function fetchIndApi(action, extra){
+  const url = CFG.indApi.replace(/\/$/,'') + '?action=' + action + (extra || '');
+  const res = await fetch(url, { headers:{ 'Accept':'application/json' } });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const j = await res.json();
+  if (j && j.ok === false) throw new Error((j.error && j.error.message) || '產業 API 回報錯誤');
+  return j;
+}
+function setSyncInfo(text){ const el = $('indSyncInfo'); if (el) el.textContent = text; }
+
+/**
+ * force=false：先比對 version，沒變就直接用快取（省 Apps Script 配額）
+ * force=true ：無條件重抓
+ */
+async function syncIndustryApi(force){
+  if (!CFG.indApi){
+    applyGroupRules(CFG.groupRules || null,
+      CFG.groupRules ? '本機快取' : '內建預設', CFG.groupRules ? 'cache' : 'default');
+    setSyncInfo(CFG.groupRules ? '未設定 API，使用上次同步的快取。' : '未設定 API，使用內建規則。');
+    return;
+  }
+  setSyncInfo('同步中…');
+  try{
+    if (!force && CFG.indVersion && CFG.groupRules){
+      const m = await fetchIndApi('meta');
+      if (m.version === CFG.indVersion){
+        applyGroupRules(CFG.groupRules, 'API 快取 · ' + String(m.version).slice(0,10), 'api');
+        setSyncInfo(`已是最新版（${String(m.version).slice(0,10)}），共 ${
+          Object.keys(CFG.indRemote || {}).length} 檔對照。`);
+        refreshIndOnRows();
+        return;
+      }
+    }
+    const b = await fetchIndApi('bootstrap', '&format=map');
+    CFG.groupRules = b.groups || null;
+    CFG.indRemote  = (b.industry && b.industry.map) || {};
+    CFG.indVersion = b.version || '';
+    saveCfg();
+
+    applyGroupRules(CFG.groupRules, 'API · ' + String(CFG.indVersion).slice(0,10), 'api');
+    setSyncInfo(`已同步 ${Object.keys(CFG.indRemote).length} 檔對照 / ${
+      (CFG.groupRules && CFG.groupRules.data ? CFG.groupRules.data.length : 0)} 組大分類 · ${
+      String(CFG.indVersion).slice(0,10)}`);
+    refreshIndOnRows();
+    toast('產業規則已更新');
+  }catch(e){
+    applyGroupRules(CFG.groupRules || null,
+      CFG.groupRules ? '本機快取（同步失敗）' : '內建預設（同步失敗）',
+      CFG.groupRules ? 'stale' : 'default');
+    setSyncInfo('同步失敗：' + e.message + '（已改用上次結果）');
+    refreshIndOnRows();
+  }
+}
+
+/* 規則變動後把已載入的資料重新貼標，不用重抓營收 */
+function refreshIndOnRows(){
+  const relabel = r => {
+    const ind = indName(r);
+    return Object.assign(r, { ind, indGroup: groupOf(ind) });
+  };
+  if (STATE.rows.length) STATE.rows = STATE.rows.map(relabel);
+  Object.keys(STATE.history).forEach(k => {
+    if (Array.isArray(STATE.history[k])) STATE.history[k] = STATE.history[k].map(relabel);
+  });
+  STATE.indTrend = {};                                   // 產業趨勢快取失效
+  if (STATE.ind){                                        // 篩選條件可能已不存在
+    const key = STATE.ind.slice(2), isG = STATE.ind.slice(0,2) === 'g:';
+    const ok = STATE.rows.some(r => isG ? r.indGroup === key : r.ind === key);
+    if (!ok) STATE.ind = '';
+  }
+  if (STATE.rows.length) renderAll();
+  else { renderIndOptions(); renderIndustryPage(); }
+}
 
 /* ═══════════ 統計 ═══════════ */
 const sum = (arr, f) => arr.reduce((a,r) => a + (f(r) || 0), 0);
@@ -1227,7 +1480,7 @@ function renderIndOptions(){
     if (!ok) STATE.ind = '';
   }
   const sel = $('selInd');
-  const sig = [STATE.market, STATE.minRev, STATE.ym, inds.length, rows.length].join('|');
+  const sig = [STATE.market, STATE.minRev, STATE.ym, inds.length, rows.length, CFG.indVersion].join('|');
   if (sel.dataset.sig !== sig){ sel.innerHTML = html; sel.dataset.sig = sig; }
   sel.value = STATE.ind;
 }
@@ -1261,9 +1514,11 @@ function renderIndustryPage(){
     STATE.rows.length < known * 0.9 ? '，<b>尚未抓齊，加權年增會偏向排序在前的個股</b>' : ''}）。<br>` : '';
   $('indCover').innerHTML = cover + (un && un.n
     ? `其中 <b>${un.n}</b> 檔沒有產業別（占 ${(un.n/(rows.length||1)*100).toFixed(0)}%）。
-       API 若未提供 <code>industry</code>，可到「設定 → 產業對應表」貼上「代號,產業」自行補齊。`
+       可到「設定 → 產業分類來源」同步 Google Sheet，或在「產業對應表」手動補上。`
     : `目前 ${rows.length} 檔都有產業別，分屬 ${STATE.inds.length} 個產業、${
-        new Set(STATE.inds.map(o => o.group)).size} 個大分類。`);
+        new Set(STATE.inds.map(o => o.group)).size} 個大分類。`)
+    + `<br>分類規則來源：<span class="src-tag ${GROUP_SOURCE_KIND === 'api' ? 'live'
+        : GROUP_SOURCE_KIND === 'stale' ? 'stale' : ''}">${esc(GROUP_SOURCE)}</span>`;
 
   renderIndBars();
   renderIndTable();
@@ -1284,7 +1539,7 @@ function renderIndBars(){
   const sorted = [...list].sort((a,b) => b[m] - a[m]);
   const top = sorted.slice(0,6), bot = sorted.slice(-6).filter(o => !top.includes(o));
   const show = [...top, ...bot];
-  const base = m === 'upRate' ? 0 : 0;
+  const base = 0;
   const maxAbs = Math.max(...show.map(o => Math.abs(o[m] - base)), 1);
   $('indBars').innerHTML = show.map(o => {
     const v = o[m], pos = v >= base;
@@ -1661,18 +1916,137 @@ $('indDetailWrap').onclick = e => {
   if (tr) focusStock(tr.dataset.code);
 };
 $('btnIndCSV').onclick = exportIndCSV;
+
+/* 產業來源設定 */
+$('cfgIndApi').value = CFG.indApi || '';
+$('cfgIndToken').value = CFG.indToken || '';
 $('cfgIndMap').value = CFG.indMap || '';
+$('btnIndSync').onclick = () => {
+  CFG.indApi = $('cfgIndApi').value.trim();
+  CFG.indToken = $('cfgIndToken').value.trim();
+  saveCfg();
+  syncIndustryApi(true);
+};
+$('btnIndForget').onclick = () => {
+  CFG.indRemote = null; CFG.groupRules = null; CFG.indVersion = '';
+  saveCfg();
+  applyGroupRules(null, '內建預設', 'default');
+  setSyncInfo('已清掉同步結果，改用內建規則。');
+  refreshIndOnRows();
+  toast('已清掉產業同步結果');
+};
 $('btnIndMapSave').onclick = () => {
   CFG.indMap = $('cfgIndMap').value;
-  localStorage.setItem(CFG_KEY, JSON.stringify(CFG));
+  saveCfg();
   CODE_IND = parseIndMap(CFG.indMap);
-  STATE.rows = STATE.rows.map(r => Object.assign(r, { ind:indName(r), indGroup:groupOf(indName(r)) }));
   toast(`已套用 ${Object.keys(CODE_IND).length} 筆自訂產業`);
-  renderAll();
+  refreshIndOnRows();
 };
-$('indRuleBox').innerHTML = GROUP_ORDER.filter(g => GROUP_SRC[g]).map(g =>
-  `<b>${g}</b>：${GROUP_SRC[g].join('、')}`).join('<br>') +
-  '<br><b>其他 / 未分類</b>：不在上表的產業別，或 API 沒給產業別的個股。';
+
+/* ═══════════ 新增產業資訊（寫入 industry_map） ═══════════ */
+const MF = { symbol:'mSymbol', name:'mName', industry:'mIndustry', industry_code:'mIndCode',
+             group:'mGroup', market:'mMarket', tags:'mTags', active:'mActive', note:'mNote' };
+
+function fillIndDatalists(){
+  const inds = new Set(), groups = new Set();
+  Object.keys(GROUP_SRC).forEach(g => {
+    groups.add(g);
+    GROUP_SRC[g].forEach(n => inds.add(n));
+  });
+  (STATE.inds || []).forEach(o => { if (o.ind && o.ind !== '未分類') inds.add(o.ind); });
+  Object.values(IND_CODE).forEach(n => inds.add(n));
+  $('dlIndustry').innerHTML = [...inds].sort((a,b) => a.localeCompare(b,'zh-Hant'))
+    .map(n => `<option value="${esc(n)}">`).join('');
+  $('dlGroup').innerHTML = [...groups].map(g => `<option value="${esc(g)}">`).join('');
+  $('dlIndCode').innerHTML = Object.keys(IND_CODE).sort()
+    .map(c => `<option value="${esc(c)}">${esc(IND_CODE[c])}</option>`).join('');
+}
+function setMsg(text, kind){
+  const el = $('mMsg');
+  el.textContent = text || '';
+  el.className = 'modal-msg' + (kind ? ' ' + kind : '');
+}
+function openIndModal(prefill){
+  if (!CFG.indApi){
+    toast('請先在上方填入產業 API 位址');
+    $('cfgIndApi').focus();
+    return;
+  }
+  fillIndDatalists();
+  const p = prefill || {};
+  Object.keys(MF).forEach(k => { $(MF[k]).value = p[k] != null ? p[k] : ''; });
+  if (!$('mActive').value) $('mActive').value = 'Y';
+  setMsg('');
+  $('indModal').classList.add('on');
+  setTimeout(() => $('mSymbol').focus(), 30);
+}
+const closeIndModal = () => { $('indModal').classList.remove('on'); setMsg(''); };
+
+/* 打了代號就從已載入的營收資料帶出名稱、市場與現有產業 */
+function autofillFromRows(){
+  const code = $('mSymbol').value.trim();
+  if (!code) return;
+  const hit = STATE.rows.find(r => r.code === code);
+  if (!hit) return;
+  if (!$('mName').value) $('mName').value = hit.name || '';
+  if (!$('mMarket').value) $('mMarket').value = hit.market || '';
+  if (!$('mIndustry').value && hit.ind && hit.ind !== '未分類') $('mIndustry').value = hit.ind;
+}
+
+async function saveIndRow(keepOpen){
+  const data = {};
+  Object.keys(MF).forEach(k => { data[k] = $(MF[k]).value.trim(); });
+  if (!data.symbol){ setMsg('代號是必填的。', 'err'); $('mSymbol').focus(); return; }
+  if (!data.industry){ setMsg('產業是必填的，不然這一列寫進去也用不到。', 'err'); $('mIndustry').focus(); return; }
+
+  const btns = ['mSave','mSaveNext','mCancel'].map($);
+  btns.forEach(b => b.disabled = true);
+  setMsg('寫入中…');
+  try{
+    const qs = Object.keys(data).map(k => k + '=' + encodeURIComponent(data[k])).join('&');
+    const token = (CFG.indToken || '').trim();
+    const j = await fetchIndApi('upsert', '&' + qs + (token ? '&token=' + encodeURIComponent(token) : ''));
+
+    // 本機對照先更新，畫面立刻反映，不必等下一次同步
+    CFG.indRemote = CFG.indRemote || {};
+    CFG.indRemote[data.symbol] = data.industry;
+    CFG.indVersion = j.version || CFG.indVersion;
+    saveCfg();
+    refreshIndOnRows();
+
+    const verb = j.mode === 'update' ? '已更新' : '已新增';
+    toast(`${verb} ${data.symbol} ${data.industry}`);
+    if (keepOpen){
+      openIndModal({ industry:data.industry, industry_code:data.industry_code,
+                     group:data.group, market:data.market, active:data.active });
+      setMsg(`${verb} ${data.symbol}（第 ${j.row || '?'} 列），可以繼續輸入下一檔。`, 'ok');
+    } else {
+      closeIndModal();
+    }
+  }catch(e){
+    setMsg('寫入失敗：' + e.message, 'err');
+  }finally{
+    btns.forEach(b => b.disabled = false);
+  }
+}
+
+$('btnIndAdd').onclick = () => {
+  CFG.indApi = $('cfgIndApi').value.trim();
+  CFG.indToken = $('cfgIndToken').value.trim();
+  saveCfg();
+  openIndModal(null);
+};
+$('mClose').onclick = closeIndModal;
+$('mCancel').onclick = closeIndModal;
+$('mSave').onclick = () => saveIndRow(false);
+$('mSaveNext').onclick = () => saveIndRow(true);
+$('mSymbol').onblur = autofillFromRows;
+$('indModal').onclick = e => { if (e.target === $('indModal')) closeIndModal(); };
+document.addEventListener('keydown', e => {
+  if (!$('indModal').classList.contains('on')) return;
+  if (e.key === 'Escape') closeIndModal();
+  if (e.key === 'Enter' && e.target.tagName === 'INPUT') saveIndRow(false);
+});
 
 /* ═══════════ 事件 ═══════════ */
 $('selMonth').onchange = e => loadPeriod(+e.target.value);
@@ -1718,18 +2092,23 @@ $('page-rank').onclick = e => {
 $('rkGo').onclick = fetchRank;
 $('gwGo').onclick = fetchGrowth;
 $('cfgSave').onclick = () => {
+  const prevIndApi = CFG.indApi;
   CFG.base = ($('cfgBase').value.trim() || DEFAULT_BASE).replace(/\/$/,'');
   CFG.proxy = $('cfgProxy').value.trim();
   CFG.indMap = $('cfgIndMap').value;
+  CFG.indApi = $('cfgIndApi').value.trim();
+  CFG.indToken = $('cfgIndToken').value.trim();
   CFG.pageSize = Math.min(5000, Math.max(100, Number($('cfgPage').value) || 2500));
   CODE_IND = parseIndMap(CFG.indMap);
-  localStorage.setItem(CFG_KEY, JSON.stringify(CFG));
+  saveCfg();
   STATE.history = {}; STATE.ym = null;
-  toast('已儲存，重新載入'); boot();
+  toast('已儲存，重新載入');
+  boot();
+  syncIndustryApi(CFG.indApi !== prevIndApi);   // 換了網址就強制重抓
 };
 $('cfgReset').onclick = () => {
   CFG.base = DEFAULT_BASE; CFG.proxy = ''; CFG.pageSize = 2500;
-  localStorage.setItem(CFG_KEY, JSON.stringify(CFG));
+  saveCfg();
   $('cfgBase').value = CFG.base; $('cfgProxy').value = ''; $('cfgPage').value = CFG.pageSize;
   STATE.ym = null; boot();
 };
@@ -1747,8 +2126,12 @@ let rz; window.addEventListener('resize', () => {
 
 /* ═══════════ 啟動 ═══════════ */
 bindQuad();
+/* 先用快取或內建規則畫，不必等網路；normalize() 需要 IND_CODE / IND_GROUP 已就緒 */
+applyGroupRules(CFG.groupRules || null,
+  CFG.groupRules ? '本機快取' : '內建預設', CFG.groupRules ? 'cache' : 'default');
 document.querySelector('#mainTable th[data-k="yoy"]').classList.add('on');
 boot();
+syncIndustryApi(false);   // 背景比對版本並更新
 </script>
 </body>
 </html>
