@@ -164,27 +164,60 @@
 
 <script>
 // PDF：改用 PDFium（ClawPDF）而非 PDF.js。
-// ClawPDF 目前提供瀏覽器 ESM 入口，底層使用 PDFium WebAssembly。
-// 首次使用需下載約 5MB 的 PDFium WASM，因此在背景預先載入並追蹤狀態，
-// 讓 UI 能在轉檔前提示「正在載入 PDF 引擎」。
-let clawPdfReady = false;
-const clawPdfPromise = import('https://esm.unpkg.com/clawpdf@0.3.1/browser')
-  .then(mod => { clawPdfReady = true; return mod; });
-// 靜默附掛一個處理器，避免使用者從未轉 PDF 時，載入失敗變成
-// unhandledrejection 警告；真正的錯誤仍由 ensurePdfEngine 的 await 拋出。
+// ClawPDF 提供瀏覽器 ESM 入口，底層使用 PDFium WebAssembly。
+const clawPdfPromise = import('https://esm.unpkg.com/clawpdf@0.3.1/browser');
+// 靜默附掛處理器，避免使用者從未轉 PDF 時，載入失敗變成 unhandledrejection。
 clawPdfPromise.catch(() => {});
 
-// 首次呼叫時若引擎尚未載入完成，顯示提示；載入好後把狀態文字清掉。
+// ⚠️ clawpdf 內建會用相對路徑從 esm.unpkg.com 抓 PDFium 的 .wasm，
+// 但該 beta CDN 不會正確回傳 wasm 位元組，會出現
+// 「Aborted(both async and sync fetching of the wasm failed)」。
+// 解法：自行從穩定且附 CORS 標頭的 CDN 下載 wasm 位元組，
+// 再以 createEngine({ wasmBinary }) 直接注入，完全略過內建抓取路徑。
+const PDFIUM_WASM_URLS = [
+  'https://cdn.jsdelivr.net/npm/clawpdf@0.3.1/dist/vendor/pdfium.esm.wasm',
+  'https://unpkg.com/clawpdf@0.3.1/dist/vendor/pdfium.esm.wasm'
+];
+
+let pdfEnginePromise = null;   // 共用的 PDFium engine（整個 session 只建立一次）
+let pdfEngineLoaded = false;
+
+function loadPdfEngine(){
+  if (pdfEnginePromise) return pdfEnginePromise;
+  pdfEnginePromise = (async () => {
+    const { createEngine } = await clawPdfPromise;
+    let wasmBinary = null, lastErr = null;
+    for (const url of PDFIUM_WASM_URLS){
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        wasmBinary = await resp.arrayBuffer();
+        break;
+      } catch (e) { lastErr = e; }
+    }
+    if (!wasmBinary) {
+      throw new Error('PDFium WASM 下載失敗（' + ((lastErr && lastErr.message) || '未知錯誤') + '）');
+    }
+    const engine = await createEngine({ wasmBinary });
+    pdfEngineLoaded = true;
+    return engine;
+  })();
+  // 若載入失敗，清掉 cache 讓使用者下次可重試。
+  pdfEnginePromise.catch(() => { pdfEnginePromise = null; });
+  return pdfEnginePromise;
+}
+
+// 首次轉 PDF 時顯示載入提示，回傳共用 engine；載入好後把狀態文字還原。
 async function ensurePdfEngine(){
-  if (clawPdfReady) return clawPdfPromise;
+  if (pdfEngineLoaded) return loadPdfEngine();
   const prev = statusEl.textContent;
   statusEl.className = 'status';
   statusEl.textContent = '首次使用 PDF：正在載入 PDF 引擎（PDFium，約 5MB）…';
   try {
-    const mod = await clawPdfPromise;
-    return mod;
+    return await loadPdfEngine();
   } catch (err) {
-    throw new Error('PDF 引擎載入失敗，請確認網路連線後重試');
+    const m = String(err && err.message || err);
+    throw new Error(m.startsWith('PDFium') ? m : ('PDF 引擎載入失敗：' + m));
   } finally {
     // 只有當狀態仍是我們設定的提示時才還原，避免蓋掉後續的轉檔進度訊息。
     if (statusEl.textContent.startsWith('首次使用 PDF')) statusEl.textContent = prev;
@@ -312,18 +345,20 @@ async function convertPdfFile(item, scale, singleFile){
   // PDFium 直接把 PDF 頁面 rasterize 成 PNG，避免 PDF.js Canvas renderer
   // 對 Illustrator / InDesign 類 PDF 的 clipping path、vector object
   // 發生遺失或錯誤裁切。
-  const { openPdf } = await ensurePdfEngine();
+  // 取得共用的 PDFium engine（首次會顯示載入提示並下載 wasm）。
+  const engine = await ensurePdfEngine();
   const arrayBuffer = await item.file.arrayBuffer();
 
   let pdf;
   try {
-    pdf = await openPdf(arrayBuffer);
+    pdf = await engine.open(arrayBuffer);
   } catch (err) {
     // PDFium 的密碼錯誤可能因版本而有不同 error name，
     // 因此同時檢查常見訊息。
     const msg = String(err?.message || err || '');
     const passwordRelated =
       err?.name === 'PdfPasswordError' ||
+      err?.code === 'password' ||
       /password|密碼|encrypted|encrypt/i.test(msg);
 
     if (!passwordRelated) throw err;
@@ -331,7 +366,7 @@ async function convertPdfFile(item, scale, singleFile){
     const pw = prompt(`「${item.file.name}」需要密碼才能開啟，請輸入密碼：`);
     if (pw === null) throw new Error('使用者取消輸入密碼');
 
-    pdf = await openPdf(arrayBuffer, { password: pw });
+    pdf = await engine.open(arrayBuffer, { password: pw });
   }
 
   try {
