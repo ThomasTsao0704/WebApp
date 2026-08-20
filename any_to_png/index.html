@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>萬用轉圖檔工具</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -88,9 +87,9 @@
 <body>
 <div class="wrap">
   <h1>萬用轉圖檔工具 <span class="badge">Any → PNG</span></h1>
-  <p class="sub">上傳幾乎任何常見格式的檔案，自動轉成 PNG／JPG／WebP 圖片。全部在瀏覽器本機處理，檔案不會上傳到伺服器。</p>
+  <p class="sub">上傳幾乎任何常見格式的檔案，自動轉成 PNG／JPG／WebP 圖片。PDF 使用 PDFium WebAssembly 渲染；檔案本身不會上傳到你的伺服器。</p>
   <div class="formats">
-    <span class="fmt-tag">PDF</span>
+    <span class="fmt-tag">PDF · PDFium</span>
     <span class="fmt-tag">JPG / PNG / GIF / BMP / WebP / SVG / ICO</span>
     <span class="fmt-tag">Word (.docx)</span>
     <span class="fmt-tag">Excel (.xlsx/.xls/.csv)</span>
@@ -150,7 +149,11 @@
     <button class="secondary" id="resetBtn">清空重新開始</button>
   </div>
 
-  <p style="color:var(--muted);font-size:12px;margin-top:30px;">
+  <p style="color:var(--muted);font-size:12px;margin-top:12px;">
+  PDF 轉圖使用 PDFium（ClawPDF），針對向量、透明度、裁切路徑與複雜印刷型 PDF 提供較完整的原生 PDF 渲染。
+</p>
+
+<p style="color:var(--muted);font-size:12px;margin-top:30px;">
     † PowerPoint 為簡化版轉換：會擷取每張投影片的文字與圖片重新排版成畫面，版面配置不會與原始簡報完全一致。<br>
     不支援：舊版二進位格式 (.doc/.ppt/.xls)、影片、音訊、壓縮檔等需要專用解碼器的格式。
   </p>
@@ -160,7 +163,9 @@
 <div id="renderSandbox"></div>
 
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+// PDF：改用 PDFium（ClawPDF）而非 PDF.js。
+// ClawPDF 目前提供瀏覽器 ESM 入口，底層使用 PDFium WebAssembly。
+const clawPdfPromise = import('https://esm.unpkg.com/clawpdf@0.3.1/browser');
 
 const dropzone = document.getElementById('dropzone');
 const fileInput = document.getElementById('fileInput');
@@ -279,28 +284,77 @@ function downloadBlob(blob, name){
 // ---------- Converters: each returns array of {label, canvas} ----------
 
 async function convertPdfFile(item, scale, singleFile){
+  // 1x / 2x / 3x 對應 72 / 144 / 216 DPI。
+  // PDFium 直接把 PDF 頁面 rasterize 成 PNG，避免 PDF.js Canvas renderer
+  // 對 Illustrator / InDesign 類 PDF 的 clipping path、vector object
+  // 發生遺失或錯誤裁切。
+  const { openPdf } = await clawPdfPromise;
   const arrayBuffer = await item.file.arrayBuffer();
+
   let pdf;
   try {
-    pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    pdf = await openPdf(arrayBuffer);
   } catch (err) {
-    if (err.name === 'PasswordException') {
-      const pw = prompt(`「${item.file.name}」需要密碼才能開啟，請輸入密碼：`);
-      if (pw === null) throw new Error('使用者取消輸入密碼');
-      pdf = await pdfjsLib.getDocument({ data: arrayBuffer, password: pw }).promise;
-    } else throw err;
+    // PDFium 的密碼錯誤可能因版本而有不同 error name，
+    // 因此同時檢查常見訊息。
+    const msg = String(err?.message || err || '');
+    const passwordRelated =
+      err?.name === 'PdfPasswordError' ||
+      /password|密碼|encrypted|encrypt/i.test(msg);
+
+    if (!passwordRelated) throw err;
+
+    const pw = prompt(`「${item.file.name}」需要密碼才能開啟，請輸入密碼：`);
+    if (pw === null) throw new Error('使用者取消輸入密碼');
+
+    pdf = await openPdf(arrayBuffer, { password: pw });
   }
-  const range = singleFile ? parseRange(rangeInput.value, pdf.numPages) : Array.from({length: pdf.numPages}, (_,i)=>i+1);
-  const out = [];
-  for (const pageNum of range) {
-    const page = await pdf.getPage(pageNum);
-    const viewport = page.getViewport({ scale });
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width; canvas.height = viewport.height;
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-    out.push({ label: `第 ${pageNum} 頁`, canvas });
+
+  try {
+    const range = singleFile
+      ? parseRange(rangeInput.value, pdf.pageCount)
+      : Array.from({length: pdf.pageCount}, (_, i) => i + 1);
+
+    const dpi = Math.round(72 * scale);
+    const out = [];
+
+    for (const pageNum of range) {
+      const page = pdf.page(pageNum);
+
+      // PDFium 直接輸出 PNG bytes。
+      // forms:true 保留 PDF 表單元件；white background 避免 JPG/PNG
+      // 後續處理時出現透明底。
+      const pngBytes = await page.png({
+        dpi,
+        forms: true,
+        background: 'white'
+      });
+
+      // 將 PDFium 產生的 PNG bytes 解碼成 Canvas，
+      // 以便沿用目前 UI 的縮圖、Lightbox、ZIP 與輸出流程。
+      const blob = new Blob([pngBytes], { type: 'image/png' });
+      const bitmap = await createImageBitmap(blob);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+
+      const ctx = canvas.getContext('2d', { alpha: false });
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bitmap, 0, 0);
+      bitmap.close();
+
+      out.push({ label: `第 ${pageNum} 頁`, canvas });
+    }
+
+    return out;
+  } finally {
+    // PDFium 文件必須主動釋放 WASM memory。
+    if (pdf && typeof pdf.destroy === 'function') {
+      pdf.destroy();
+    }
   }
-  return out;
 }
 
 function convertImageFile(item, scale){
