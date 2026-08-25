@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我的部落格</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Noto Sans TC", sans-serif;
+         max-width: 720px; margin: 0 auto; padding: 20px;
+         background: #f5f5f7; color: #1d1d1f; }
+  h1 { font-size: 24px; }
+  .card { background: #fff; border-radius: 12px; padding: 20px;
+          margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .post-date { color: #888; font-size: 13px; }
+  .post-title { font-size: 18px; font-weight: 600; margin: 4px 0; }
+  .post-content { line-height: 1.6; }
+  .status { color: #888; text-align: center; padding: 20px; }
+
+  /* Markdown 渲染樣式 */
+  .post-content h1, .post-content h2, .post-content h3 { margin: 12px 0 6px; }
+  .post-content a { color: #0071e3; }
+  .post-content code { background: #f0f0f0; padding: 2px 6px;
+          border-radius: 4px; font-size: 90%; }
+  .post-content pre { background: #f0f0f0; padding: 12px;
+          border-radius: 8px; overflow-x: auto; }
+  .post-content blockquote { border-left: 3px solid #ddd;
+          margin: 8px 0; padding-left: 12px; color: #666; }
+  .post-content img { max-width: 100%; border-radius: 8px; }
+</style>
+</head>
+<body>
+  <h1>📝 我的每日部落格</h1>
+  <div id="posts"><div class="status">載入中…</div></div>
+
+<script>
+  // ← 換成你的 API endpoint(結尾是 /exec)
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwaGFzDidbqtCw7QBzqPHVBsZo-4hA-OVduHRY5uV-w6XFTMNy6hmG0_41ehJGGB_mOtQ/exec';
+
+  async function loadPosts() {
+    const box = document.getElementById('posts');
+    try {
+      const res = await fetch(API_URL);
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || '讀取失敗');
+      render(data.posts);
+    } catch (err) {
+      box.innerHTML = `<div class="status">載入失敗:${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  function render(posts) {
+    const box = document.getElementById('posts');
+    if (!posts.length) {
+      box.innerHTML = '<div class="status">還沒有文章。</div>';
+      return;
+    }
+    box.innerHTML = posts.map(p => `
+      <div class="card">
+        <div class="post-date">${escapeHtml(p.date)}</div>
+        <div class="post-title">${escapeHtml(p.title)}</div>
+        <div class="post-content">${renderMarkdown(p.content)}</div>
+      </div>`).join('');
+  }
+
+  function renderMarkdown(str) {
+    const rawHtml = marked.parse(String(str || ''));
+    return DOMPurify.sanitize(rawHtml);
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  loadPosts();
+</script>
+</body>
+</html>
