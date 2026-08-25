@@ -1444,7 +1444,56 @@ function esc(s){
   }[c]));
 }
 
+/* =========================================================
+   Google Drive 圖片處理
+   Posts.cover 可以直接貼：
+   1. https://drive.google.com/file/d/FILE_ID/view
+   2. https://drive.google.com/open?id=FILE_ID
+   3. https://drive.google.com/uc?id=FILE_ID
+   4. 直接圖片 URL
+   ========================================================= */
+
+function extractDriveFileId(url){
+  const value=String(url || '').trim();
+  if(!value) return '';
+
+  let match=value.match(/drive\.google\.com\/file\/d\/([^/?#]+)/i);
+  if(match) return match[1];
+
+  match=value.match(/[?&]id=([^&#]+)/i);
+  if(match && /drive\.google\.com/i.test(value)) return match[1];
+
+  match=value.match(/drive\.google\.com\/thumbnail\?id=([^&#]+)/i);
+  if(match) return match[1];
+
+  return '';
+}
+
+function normalizeDriveImageUrl(url, size='w1600'){
+  const value=String(url || '').trim();
+  if(!value) return '';
+
+  const fileId=extractDriveFileId(value);
+
+  if(fileId){
+    // thumbnail 比 /uc?export=view 更適合網站圖片預覽，
+    // 並保留一個 fallback URL 供載入失敗時切換。
+    return `https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=${size}`;
+  }
+
+  return value;
+}
+
+function getDriveImageFallback(url){
+  const fileId=extractDriveFileId(url);
+  if(!fileId) return '';
+
+  return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(fileId)}`;
+}
+
 function normalizeBlogPost(raw,index){
+  const originalCover=String(raw?.cover || '').trim();
+
   return {
     id: raw?.id ?? index + 1,
     date: raw?.date || '',
@@ -1452,7 +1501,8 @@ function normalizeBlogPost(raw,index){
     summary: String(raw?.summary || '').trim(),
     content: String(raw?.content || '').trim(),
     category: String(raw?.category || '其他').trim() || '其他',
-    cover: String(raw?.cover || '').trim(),
+    cover: normalizeDriveImageUrl(originalCover),
+    coverOriginal: originalCover,
     status: String(raw?.status || 'published').trim().toLowerCase()
   };
 }
@@ -1493,21 +1543,37 @@ function renderBlogCover(container,cover,title){
   container.innerHTML='';
   container.classList.remove('placeholder');
 
-  if(cover){
-    const img=document.createElement('img');
-    img.src=cover;
-    img.alt=title || '文章封面';
-    img.loading='eager';
-    img.decoding='async';
-    img.addEventListener('error',()=>{
-      container.innerHTML='✦';
-      container.classList.add('placeholder');
-    },{once:true});
-    container.appendChild(img);
-  }else{
+  if(!cover){
     container.textContent='✦';
     container.classList.add('placeholder');
+    return;
   }
+
+  const img=document.createElement('img');
+  img.src=cover;
+  img.alt=title || '文章封面';
+  img.loading='eager';
+  img.decoding='async';
+
+  let fallbackTried=false;
+
+  img.addEventListener('error',()=>{
+    // Google Drive thumbnail 失敗時，再嘗試 /uc?export=view。
+    const fallback=getDriveImageFallback(cover);
+
+    if(fallback && !fallbackTried && fallback!==cover){
+      fallbackTried=true;
+      img.src=fallback;
+      return;
+    }
+
+    // 最後才顯示預設封面。
+    img.remove();
+    container.textContent='✦';
+    container.classList.add('placeholder');
+  });
+
+  container.appendChild(img);
 }
 
 function buildBlogCategories(posts){
@@ -1586,13 +1652,26 @@ function renderBlogCards(posts){
       img.alt=post.title || '文章封面';
       img.loading='lazy';
       img.decoding='async';
+
+      let fallbackTried=false;
+
       img.addEventListener('error',()=>{
+        const fallback=getDriveImageFallback(post.cover);
+
+        if(fallback && !fallbackTried && fallback!==post.cover){
+          fallbackTried=true;
+          img.src=fallback;
+          return;
+        }
+
         img.remove();
+
         const placeholder=document.createElement('div');
         placeholder.className='post-cover-placeholder';
         placeholder.textContent='✦';
         cover.appendChild(placeholder);
-      },{once:true});
+      });
+
       cover.appendChild(img);
     }else{
       const placeholder=document.createElement('div');
