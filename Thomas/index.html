@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Latest on Instagram</title>
+<style>
+  /* ---------- 設計 token ---------- */
+  :root{
+    --ink:        #16181d;   /* 主文字 */
+    --ink-soft:   #5b6068;   /* 次要文字 */
+    --paper:      #fbfbf9;   /* 底 */
+    --line:       #e4e3de;   /* 髮絲線 */
+    --tile:       #ecebe6;   /* 圖片載入前底色 */
+    --signal:     #2f4b7c;   /* 唯一強調色，只用在 follow */
+    --shadow:     0 1px 2px rgba(20,24,29,.04);
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Helvetica Neue", "Inter", -apple-system, "PingFang TC", sans-serif;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+  }
+
+  .ig-section{
+    max-width:960px;
+    margin:0 auto;
+    padding:88px 24px 96px;
+  }
+
+  /* ---------- 標題區 ---------- */
+  .ig-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:24px;
+    padding-bottom:20px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:28px;
+  }
+  .ig-eyebrow{
+    font-size:11px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    font-weight:600;
+  }
+  .ig-title{
+    font-size:clamp(26px, 4vw, 40px);
+    font-weight:500;
+    letter-spacing:-.02em;
+    line-height:1.05;
+    margin-top:6px;
+  }
+  .ig-handle{
+    font-size:14px;
+    color:var(--ink-soft);
+    white-space:nowrap;
+    text-decoration:none;
+    border-bottom:1px solid transparent;
+    transition:color .2s, border-color .2s;
+  }
+  .ig-handle:hover{ color:var(--ink); border-color:var(--ink); }
+
+  /* ---------- 九宮格 ---------- */
+  .ig-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:10px;
+  }
+
+  .ig-tile{
+    position:relative;
+    display:block;
+    aspect-ratio:1 / 1;
+    overflow:hidden;
+    background:var(--tile);
+    border-radius:4px;
+    text-decoration:none;
+    box-shadow:var(--shadow);
+  }
+  .ig-tile img{
+    width:100%; height:100%;
+    object-fit:cover;
+    display:block;
+    transition:transform .55s cubic-bezier(.2,.7,.2,1), filter .35s;
+  }
+  .ig-tile:hover img{ transform:scale(1.05); filter:brightness(.72); }
+
+  /* hover 時浮出標題 */
+  .ig-caption{
+    position:absolute;
+    left:0; right:0; bottom:0;
+    padding:14px 14px 12px;
+    color:#fff;
+    font-size:13px;
+    letter-spacing:.01em;
+    background:linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0));
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity .3s, transform .3s;
+  }
+  .ig-tile:hover .ig-caption{ opacity:1; transform:translateY(0); }
+
+  /* Reels / 影片標記 */
+  .ig-badge{
+    position:absolute;
+    top:10px; right:10px;
+    width:26px; height:26px;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.35);
+    backdrop-filter:blur(2px);
+    border-radius:6px;
+  }
+  .ig-badge svg{ width:15px; height:15px; fill:#fff; }
+
+  /* 空/載入狀態 */
+  .ig-tile.is-empty{ animation:pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.55} }
+
+  /* ---------- CTA ---------- */
+  .ig-foot{
+    margin-top:36px;
+    display:flex;
+    justify-content:center;
+  }
+  .ig-follow{
+    display:inline-flex;
+    align-items:center;
+    gap:9px;
+    padding:12px 22px;
+    border:1px solid var(--signal);
+    border-radius:999px;
+    color:var(--signal);
+    font-size:14px;
+    font-weight:500;
+    letter-spacing:.01em;
+    text-decoration:none;
+    transition:background .2s, color .2s, transform .2s;
+  }
+  .ig-follow svg{ width:17px; height:17px; }
+  .ig-follow:hover{ background:var(--signal); color:#fff; transform:translateY(-1px); }
+  .ig-follow:hover svg path{ stroke:#fff; }
+  .ig-follow .arrow{ transition:transform .2s; }
+  .ig-follow:hover .arrow{ transform:translateX(3px); }
+
+  .ig-error{
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:14px;
+    padding:40px 0;
+  }
+
+  /* ---------- 響應式 ---------- */
+  @media (max-width:640px){
+    .ig-section{ padding:56px 18px 64px; }
+    .ig-head{ flex-direction:column; align-items:flex-start; gap:12px; }
+    .ig-grid{ grid-template-columns:repeat(2, 1fr); gap:8px; }
+    .ig-caption{ opacity:1; transform:none; } /* 手機沒有 hover，標題常駐 */
+    .ig-tile:hover img{ transform:none; filter:none; }
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *{ animation:none !important; transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+  <section class="ig-section">
+    <div class="ig-head">
+      <div>
+        <div class="ig-eyebrow">Personal</div>
+        <h2 class="ig-title">Latest on Instagram</h2>
+      </div>
+      <a class="ig-handle" id="ig-handle-top" href="#" target="_blank" rel="noopener">@thomas</a>
+    </div>
+
+    <div class="ig-grid" id="ig-grid" aria-live="polite">
+      <!-- JS 產生 -->
+    </div>
+
+    <div class="ig-foot">
+      <a class="ig-follow" id="ig-follow" href="#" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="currentColor" stroke-width="1.6"/>
+          <circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.6"/>
+          <circle cx="17.4" cy="6.6" r="1.2" fill="currentColor"/>
+        </svg>
+        Follow on Instagram
+        <span class="arrow">→</span>
+      </a>
+    </div>
+  </section>
+
+<script>
+/* =========================================================
+   自管 IG Gallery
+   - 資料來源：/data/instagram.json
+   - 每篇：{ image, title, url, type? }  type 可為 "reels" / "video"
+   - 點圖直接開對應貼文
+   ========================================================= */
+
+// 你的 IG 帳號設定（follow 按鈕 + 右上 handle 用）
+const IG_PROFILE = "https://www.instagram.com/thomas/";
+const IG_HANDLE  = "@thomas";
+
+// 如果讀不到 /data/instagram.json（例如本機直接開檔），用這份 fallback 展示
+const FALLBACK = [
+  { image:"https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80", title:"最近的生活紀錄", url:"https://www.instagram.com/p/XXXXXXXX/" },
+  { image:"https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600&q=80", title:"台北的一天", url:"https://www.instagram.com/p/YYYYYYYY/", type:"reels" },
+  { image:"https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=600&q=80", title:"最近的思考", url:"https://www.instagram.com/p/ZZZZZZZZ/" },
+  { image:"https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&q=80", title:"山與霧", url:"https://www.instagram.com/p/AAAAAAAA/" },
+  { image:"https://images.unsplash.com/photo-1500534623283-312aade485b7?w=600&q=80", title:"路上", url:"https://www.instagram.com/p/BBBBBBBB/", type:"reels" },
+  { image:"https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600&q=80", title:"週末", url:"https://www.instagram.com/p/CCCCCCCC/" }
+];
+
+const grid = document.getElementById("ig-grid");
+
+// 播放圖示（reels / video 用）
+const PLAY_ICON = '<span class="ig-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>';
+
+function render(posts){
+  grid.innerHTML = "";
+  // 只取前 6 篇
+  posts.slice(0, 6).forEach(post => {
+    const a = document.createElement("a");
+    a.className = "ig-tile";
+    a.href = post.url || IG_PROFILE;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.setAttribute("aria-label", post.title || "Instagram 貼文");
+
+    const isVideo = post.type === "reels" || post.type === "video";
+
+    a.innerHTML = `
+      <img src="${post.image}" alt="${post.title || ""}" loading="lazy"
+           onerror="this.parentElement.classList.add('is-empty'); this.remove();">
+      ${isVideo ? PLAY_ICON : ""}
+      ${post.title ? `<span class="ig-caption">${post.title}</span>` : ""}
+    `;
+    grid.appendChild(a);
+  });
+}
+
+function setProfileLinks(){
+  document.getElementById("ig-follow").href = IG_PROFILE;
+  const top = document.getElementById("ig-handle-top");
+  top.href = IG_PROFILE;
+  top.textContent = IG_HANDLE;
+}
+
+// 讀取 JSON → 失敗就用 fallback
+async function load(){
+  setProfileLinks();
+  try{
+    const res = await fetch("/data/instagram.json", { cache:"no-store" });
+    if(!res.ok) throw new Error("no file");
+    const data = await res.json();
+    if(!Array.isArray(data) || data.length === 0) throw new Error("empty");
+    render(data);
+  }catch(e){
+    // 本機直接開檔 / 還沒放 JSON 時，用示範資料
+    render(FALLBACK);
+  }
+}
+
+load();
+</script>
+</body>
+</html>
