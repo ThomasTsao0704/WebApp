@@ -478,13 +478,74 @@ table.cal tbody th{font-family:var(--f-label);font-size:.78rem;color:var(--ink-s
 
 /* ---------- Blog ---------- */
 .posts{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:2.6rem}
-.post{background:var(--cream-2);border:1px solid var(--line);border-radius:18px;padding:28px 26px;display:flex;flex-direction:column;gap:.9rem;transition:.25s}
-.post:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
-.post .date{font-family:var(--f-label);font-size:.72rem;letter-spacing:.14em;color:var(--gold);text-transform:uppercase}
-.post h3{font-family:var(--f-serif);font-weight:600;font-size:1.24rem;line-height:1.4}
-.post p{color:var(--ink-soft);font-size:.94rem;flex:1;
-  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.post .more{font-family:var(--f-label);font-size:.78rem;letter-spacing:.1em;color:var(--wine)}
+.post{position:relative;background:var(--cream-2);border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;min-height:390px;cursor:pointer;transition:transform .3s cubic-bezier(.2,.7,.2,1),box-shadow .3s ease,border-color .3s ease}
+.post:hover{transform:translateY(-6px);box-shadow:var(--shadow);border-color:rgba(109,46,70,.25)}
+.post-cover{position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,#eee6df,#dfd0c8);overflow:hidden}
+.post-cover img{width:100%;height:100%;object-fit:cover;transition:transform .7s cubic-bezier(.2,.7,.2,1);display:block}
+.post:hover .post-cover img{transform:scale(1.045)}
+.post-cover::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.02),transparent 48%,rgba(0,0,0,.18));pointer-events:none}
+.post-cover-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--f-disp);font-size:2rem;color:rgba(109,46,70,.45);background:radial-gradient(100% 80% at 30% 20%,rgba(255,255,255,.75),transparent 48%),linear-gradient(135deg,#eadbd5,#d8c2bd)}
+.post-category{position:absolute;z-index:2;top:14px;left:14px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);padding:5px 9px;font-family:var(--f-label);font-size:.62rem;letter-spacing:.08em;font-weight:500;color:var(--ink)}
+.post-body{display:flex;flex-direction:column;flex:1;padding:20px 20px 21px}
+.post .date{font-family:var(--f-label);font-size:.68rem;letter-spacing:.14em;color:var(--gold);text-transform:uppercase;margin-bottom:8px}
+.post h3{font-family:var(--f-serif);font-weight:600;font-size:1.2rem;line-height:1.45;margin-bottom:8px}
+.post p{color:var(--ink-soft);font-size:.9rem;line-height:1.7;flex:1;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.post .more{display:flex;align-items:center;gap:7px;margin-top:16px;font-family:var(--f-label);font-size:.72rem;letter-spacing:.1em;color:var(--wine)}
+.post .more::after{content:"→";transition:transform .2s}
+.post:hover .more::after{transform:translateX(5px)}
+
+.blog-toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:2.4rem;flex-wrap:wrap}
+.blog-filters{display:flex;gap:8px;flex-wrap:wrap}
+.blog-filter{border:1px solid var(--line);background:var(--cream);color:var(--ink-soft);border-radius:999px;padding:8px 14px;font-family:var(--f-label);font-size:.7rem;letter-spacing:.06em;cursor:pointer;transition:.2s}
+.blog-filter:hover,.blog-filter.active{background:var(--wine);border-color:var(--wine);color:#fff}
+.blog-toolbar-right{display:flex;align-items:center;gap:10px;flex:1;justify-content:flex-end}
+.blog-search{position:relative;min-width:min(320px,100%)}
+.blog-search input{width:100%;border:1px solid var(--line);background:var(--cream);border-radius:999px;padding:11px 16px 11px 40px;outline:none;font:300 .82rem var(--f-body);color:var(--ink);transition:.2s}
+.blog-search input:focus{border-color:var(--rose);box-shadow:0 0 0 3px rgba(201,139,155,.12)}
+.blog-search::before{content:"⌕";position:absolute;left:16px;top:50%;transform:translateY(-52%);color:var(--ink-soft);font-size:1rem;z-index:2}
+.blog-result-count{font-family:var(--f-label);font-size:.7rem;letter-spacing:.08em;color:var(--ink-soft);margin-top:14px}
+
+.blog-empty{grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--ink-soft);border:1px dashed var(--line);border-radius:18px}
+
+/* ---------- Blog Reader ---------- */
+.blog-reader{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center}
+.blog-reader.open{display:flex}
+.blog-reader-backdrop{position:absolute;inset:0;background:rgba(43,33,38,.62);backdrop-filter:blur(10px);opacity:0;transition:opacity .35s ease}
+.blog-reader.open .blog-reader-backdrop{opacity:1}
+.blog-reader-panel{position:relative;z-index:2;width:min(980px,calc(100vw - 32px));max-height:calc(100vh - 40px);background:var(--cream);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:0 40px 100px rgba(43,33,38,.28);transform:translateY(30px) scale(.97);opacity:0;transition:transform .4s cubic-bezier(.2,.7,.2,1),opacity .3s ease}
+.blog-reader.open .blog-reader-panel{transform:none;opacity:1}
+.blog-reader-inner{max-height:calc(100vh - 40px);overflow-y:auto;padding:clamp(48px,7vw,84px) clamp(24px,7vw,90px) 50px}
+.blog-reader-close{position:absolute;top:18px;right:18px;z-index:5;width:42px;height:42px;border:1px solid var(--line);border-radius:50%;background:rgba(250,244,239,.92);color:var(--ink);font-size:25px;line-height:1;cursor:pointer;transition:.2s}
+.blog-reader-close:hover{background:var(--wine);color:#fff;border-color:var(--wine)}
+.blog-reader-hero{max-width:820px;margin:0 auto 34px}
+.blog-reader-cover{position:relative;width:100%;aspect-ratio:16/8.5;border-radius:18px;overflow:hidden;background:linear-gradient(135deg,#eee6df,#dfd0c8);margin:22px 0 30px}
+.blog-reader-cover img{width:100%;height:100%;object-fit:cover}
+.blog-reader-cover.placeholder{display:flex;align-items:center;justify-content:center;font-family:var(--f-disp);font-size:3rem;color:rgba(109,46,70,.42);background:radial-gradient(100% 80% at 30% 20%,rgba(255,255,255,.75),transparent 48%),linear-gradient(135deg,#eadbd5,#d8c2bd)}
+.blog-reader-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.blog-reader-category{font-family:var(--f-label);font-size:.65rem;letter-spacing:.08em;padding:5px 9px;border-radius:999px;background:var(--cream-2);color:var(--wine)}
+.blog-reader-date{font-family:var(--f-label);font-size:.7rem;letter-spacing:.15em;color:var(--gold)}
+.blog-reader-header h1{margin-top:12px;font-family:var(--f-serif);font-weight:600;font-size:clamp(1.8rem,4vw,3rem);line-height:1.35}
+.blog-reader-summary{margin-top:16px;color:var(--ink-soft);font-size:1rem;line-height:1.8}
+.blog-reader-content{max-width:720px;margin:0 auto;color:var(--ink);font-family:var(--f-serif);font-size:1.06rem;line-height:2.05;overflow-wrap:anywhere}
+.blog-reader-content p{margin:0 0 1.55em}
+.blog-reader-content h2,.blog-reader-content h3{font-family:var(--f-serif);line-height:1.45;margin:1.8em 0 .65em}
+.blog-reader-content h2{font-size:1.45rem}.blog-reader-content h3{font-size:1.2rem}
+.blog-reader-content ul,.blog-reader-content ol{margin:0 0 1.5em;padding-left:1.5em}
+.blog-reader-footer{max-width:720px;margin:56px auto 0;padding-top:28px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px}
+.blog-reader-nav{border:0;background:none;color:var(--wine);font-family:var(--f-label);font-size:.76rem;letter-spacing:.08em;cursor:pointer;display:flex;align-items:center;gap:9px;transition:.2s}
+.blog-reader-nav:hover{color:var(--wine-2)}
+.blog-reader-nav.prev:hover{transform:translateX(-3px)}.blog-reader-nav.next:hover{transform:translateX(3px)}
+.blog-reader-nav:disabled{opacity:.25;cursor:default;transform:none!important}
+
+@media(max-width:900px){.posts{grid-template-columns:1fr}.blog-toolbar{align-items:stretch}.blog-toolbar-right{width:100%;justify-content:stretch}.blog-search{min-width:0;flex:1}}
+@media(max-width:640px){.blog-toolbar-right{flex-direction:column;align-items:stretch}.blog-view-all{width:100%}}
+@media(max-width:640px){
+  .blog-reader-panel{width:100%;height:100%;max-height:none;border-radius:0;border:0}
+  .blog-reader-inner{max-height:none;height:100%;padding:64px 22px 36px}
+  .blog-reader-content{font-size:1rem;line-height:1.95}
+  .blog-reader-cover{aspect-ratio:16/10;border-radius:14px}
+  .blog-reader-footer{margin-top:42px}.blog-reader-nav span{display:none}
+}
 
 /* ---------- 預約 CTA ---------- */
 .book{background:var(--wine);color:#F7EBE4;text-align:center;position:relative;overflow:hidden}
@@ -689,9 +750,52 @@ footer{padding:56px 0 40px;border-top:1px solid var(--line)}
     <span class="eyebrow reveal">Journal</span>
     <h2 class="title reveal">最新日誌</h2>
     <p class="lead reveal">色系靈感、保養小知識，以及工作室的日常。</p>
-    <div class="posts reveal" id="posts"><div class="loading">載入文章中…</div></div>
+
+    <div class="blog-toolbar reveal">
+      <div class="blog-filters" id="blogFilters" aria-label="文章分類"></div>
+      <div class="blog-toolbar-right">
+        <button class="blog-filter blog-view-all" id="blogViewAll" type="button">查看全部文章</button>
+        <label class="blog-search">
+          <input id="blogSearch" type="search" placeholder="搜尋文章標題、摘要或內容…" autocomplete="off">
+        </label>
+      </div>
+    </div>
+
+    <div class="blog-result-count reveal" id="blogResultCount"></div>
+
+    <div class="posts reveal" id="posts">
+      <div class="loading">載入文章中…</div>
+    </div>
   </div>
 </section>
+
+<!-- ===== Blog Article Reader ===== -->
+<div class="blog-reader" id="blogReader" aria-hidden="true">
+  <div class="blog-reader-backdrop" id="blogReaderBackdrop"></div>
+  <article class="blog-reader-panel" role="dialog" aria-modal="true" aria-labelledby="readerTitle">
+    <button class="blog-reader-close" id="blogReaderClose" type="button" aria-label="關閉文章">×</button>
+
+    <div class="blog-reader-inner">
+      <header class="blog-reader-hero">
+        <div class="blog-reader-meta">
+          <span class="eyebrow">Journal</span>
+          <span class="blog-reader-category" id="readerCategory"></span>
+          <span class="blog-reader-date" id="readerDate"></span>
+        </div>
+        <h1 id="readerTitle"></h1>
+        <p class="blog-reader-summary" id="readerSummary"></p>
+        <div class="blog-reader-cover" id="readerCover"></div>
+      </header>
+
+      <div class="blog-reader-content" id="readerContent"></div>
+
+      <footer class="blog-reader-footer">
+        <button class="blog-reader-nav prev" id="readerPrev" type="button">← <span>上一篇</span></button>
+        <button class="blog-reader-nav next" id="readerNext" type="button"><span>下一篇</span> →</button>
+      </footer>
+    </div>
+  </article>
+</div>
 
 <!-- ===== 預約 CTA ===== -->
 <section class="section book" id="book">
@@ -744,9 +848,9 @@ function call(fn){
 const MOCK = {
   getUrls: ()=>[],   // 空陣列 → 顯示色卡示範磚
   getPosts: ()=>[
-    {id:1,date:'2026-08-24 11:20',title:'夏末的裸粉：一款百搭到底的指彩',content:'裸粉是我們一年四季的常客。它不張揚，卻能讓手指看起來乾淨、修長。這次示範三種不同底調的裸粉，從偏白到偏奶茶，找到最適合你膚色的那一支。'},
-    {id:2,date:'2026-08-19 15:40',title:'光療前的指緣保養，其實比你想的重要',content:'很多人以為做光療只看顏色，其實指緣的狀態才是耐看與否的關鍵。分享我們在每次服務前一定會做的三個保養步驟。'},
-    {id:3,date:'2026-08-12 10:05',title:'秋季色卡搶先看：酒紅、霧紫與焦糖',content:'天氣一轉涼，指尖也想換上更有份量的顏色。這次挑了三個我們私心最愛的秋季色，附上搭配建議。'}
+    {id:1,date:'2026-08-24 11:20',title:'夏末的裸粉：一款百搭到底的指彩',summary:'裸粉是我們一年四季的常客，從偏白到奶茶色，找到最適合你膚色的那一支。',content:'裸粉是我們一年四季的常客。\n\n它不張揚，卻能讓手指看起來乾淨、修長。這次示範三種不同底調的裸粉，從偏白到偏奶茶，找到最適合你膚色的那一支。\n\n如果平常穿搭以米色、白色、灰色為主，低飽和裸粉通常會是最不容易出錯的選擇。',category:'色彩靈感',cover:'',status:'published'},
+    {id:2,date:'2026-08-19 15:40',title:'光療前的指緣保養，其實比你想的重要',summary:'很多人只看顏色，其實指緣狀態才是耐看與否的關鍵。',content:'很多人以為做光療只看顏色，其實指緣的狀態才是耐看與否的關鍵。\n\n分享我們在每次服務前一定會做的三個保養步驟，讓後續上色更乾淨，也讓整體完成度更高。',category:'保養知識',cover:'',status:'published'},
+    {id:3,date:'2026-08-12 10:05',title:'秋季色卡搶先看：酒紅、霧紫與焦糖',summary:'天氣一轉涼，指尖也想換上更有份量的顏色。',content:'天氣一轉涼，指尖也想換上更有份量的顏色。\n\n這次挑了三個我們私心最愛的秋季色：酒紅、霧紫與焦糖，附上日常穿搭與膚色搭配建議。',category:'季節色卡',cover:'',status:'published'}
   ],
   getBookings: ()=>{
     const today=new Date(); today.setHours(0,0,0,0);
@@ -1318,18 +1422,296 @@ function renderCal(data){
 }
 
 /* =========================================================
-   日誌 Blog（首頁只顯示最新 3 篇）
+   日誌 Blog
+   - 首頁：最新 3 篇
+   - 分類篩選
+   - 關鍵字搜尋
+   - 完整文章 Reader
+   - 封面圖 / 摘要 / 分類
+   - 上一篇 / 下一篇
    ========================================================= */
-function esc(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-function renderPosts(posts){
-  const box=document.getElementById('posts'); box.innerHTML='';
-  if(!posts || !posts.length){ box.innerHTML='<div class="loading">目前還沒有文章，敬請期待。</div>'; return; }
-  posts.slice(0,3).forEach(p=>{
-    const day=String(p.date||'').slice(0,10);
-    const el=document.createElement('article'); el.className='post';
-    el.innerHTML='<span class="date">'+esc(day)+'</span><h3>'+esc(p.title)+'</h3><p>'+esc(p.content)+'</p><span class="more">閱讀更多 →</span>';
+
+let blogPosts = [];
+let blogFilteredPosts = [];
+let blogCurrentIndex = -1;
+let blogActiveCategory = '全部';
+let blogSearchKeyword = '';
+let blogShowAll = false;
+
+function esc(s){
+  return String(s || '').replace(/[&<>"']/g,c=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+function normalizeBlogPost(raw,index){
+  return {
+    id: raw?.id ?? index + 1,
+    date: raw?.date || '',
+    title: String(raw?.title || '').trim(),
+    summary: String(raw?.summary || '').trim(),
+    content: String(raw?.content || '').trim(),
+    category: String(raw?.category || '其他').trim() || '其他',
+    cover: String(raw?.cover || '').trim(),
+    status: String(raw?.status || 'published').trim().toLowerCase()
+  };
+}
+
+function formatBlogDate(value){
+  const s=String(value || '');
+  if(!s) return '';
+  return s.slice(0,10).replaceAll('-','.');
+}
+
+function formatPostContent(content){
+  const source=String(content || '').trim();
+  if(!source) return '<p>這篇文章目前還沒有內容。</p>';
+
+  // 支援簡單 Markdown 標題與條列；其餘文字安全 Escape。
+  return source.split(/\n\s*\n/).map(block=>{
+    const lines=block.split('\n').map(x=>x.trim()).filter(Boolean);
+    if(!lines.length) return '';
+
+    const first=lines[0];
+    if(/^###\s+/.test(first)){
+      return '<h3>'+esc(first.replace(/^###\s+/,''))+'</h3>';
+    }
+    if(/^##\s+/.test(first)){
+      return '<h2>'+esc(first.replace(/^##\s+/,''))+'</h2>';
+    }
+    if(lines.every(x=>/^[-*]\s+/.test(x))){
+      return '<ul>'+lines.map(x=>'<li>'+esc(x.replace(/^[-*]\s+/,''))+'</li>').join('')+'</ul>';
+    }
+    if(lines.every(x=>/^\d+\.\s+/.test(x))){
+      return '<ol>'+lines.map(x=>'<li>'+esc(x.replace(/^\d+\.\s+/,''))+'</li>').join('')+'</ol>';
+    }
+    return '<p>'+lines.map(esc).join('<br>')+'</p>';
+  }).join('');
+}
+
+function renderBlogCover(container,cover,title){
+  container.innerHTML='';
+  container.classList.remove('placeholder');
+
+  if(cover){
+    const img=document.createElement('img');
+    img.src=cover;
+    img.alt=title || '文章封面';
+    img.loading='eager';
+    img.decoding='async';
+    img.addEventListener('error',()=>{
+      container.innerHTML='✦';
+      container.classList.add('placeholder');
+    },{once:true});
+    container.appendChild(img);
+  }else{
+    container.textContent='✦';
+    container.classList.add('placeholder');
+  }
+}
+
+function buildBlogCategories(posts){
+  const box=document.getElementById('blogFilters');
+  box.innerHTML='';
+
+  const categories=['全部',...new Set(posts.map(p=>p.category).filter(Boolean))];
+
+  categories.forEach(category=>{
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='blog-filter'+(category===blogActiveCategory?' active':'');
+    btn.textContent=category;
+    btn.addEventListener('click',()=>{
+      blogActiveCategory=category;
+      renderBlogCategoriesState();
+      applyBlogFilters();
+    });
+    box.appendChild(btn);
+  });
+}
+
+function renderBlogCategoriesState(){
+  document.querySelectorAll('#blogFilters .blog-filter').forEach(btn=>{
+    btn.classList.toggle('active',btn.textContent===blogActiveCategory);
+  });
+}
+
+function applyBlogFilters(){
+  const keyword=blogSearchKeyword.toLowerCase();
+
+  blogFilteredPosts=blogPosts.filter(post=>{
+    const categoryOK=blogActiveCategory==='全部' || post.category===blogActiveCategory;
+    const haystack=[post.title,post.summary,post.content,post.category].join(' ').toLowerCase();
+    const keywordOK=!keyword || haystack.includes(keyword);
+    return categoryOK && keywordOK;
+  });
+
+  renderBlogCards(blogFilteredPosts);
+}
+
+function renderBlogCards(posts){
+  const box=document.getElementById('posts');
+  const count=document.getElementById('blogResultCount');
+  box.innerHTML='';
+
+  const visibleCount=blogShowAll || blogSearchKeyword || blogActiveCategory!=='全部' ? posts.length : Math.min(posts.length,3);
+  count.textContent=posts.length ? `顯示 ${visibleCount} / ${posts.length} 篇文章` : '找不到符合條件的文章';
+
+  const viewAll=document.getElementById('blogViewAll');
+  if(viewAll){
+    viewAll.textContent=blogShowAll ? '只看最新 3 篇' : '查看全部文章';
+    viewAll.style.display=posts.length>3 ? 'inline-flex' : 'none';
+  }
+
+  if(!posts.length){
+    box.innerHTML='<div class="blog-empty">沒有找到符合條件的文章。<br>可以換個關鍵字或分類試試看。</div>';
+    return;
+  }
+
+  const visiblePosts = blogShowAll || blogSearchKeyword || blogActiveCategory!=='全部' ? posts : posts.slice(0,3);
+
+  visiblePosts.forEach(post=>{
+    const el=document.createElement('article');
+    el.className='post';
+    el.tabIndex=0;
+    el.setAttribute('role','button');
+    el.setAttribute('aria-label',`閱讀文章：${post.title}`);
+
+    const cover=document.createElement('div');
+    cover.className='post-cover';
+
+    if(post.cover){
+      const img=document.createElement('img');
+      img.src=post.cover;
+      img.alt=post.title || '文章封面';
+      img.loading='lazy';
+      img.decoding='async';
+      img.addEventListener('error',()=>{
+        img.remove();
+        const placeholder=document.createElement('div');
+        placeholder.className='post-cover-placeholder';
+        placeholder.textContent='✦';
+        cover.appendChild(placeholder);
+      },{once:true});
+      cover.appendChild(img);
+    }else{
+      const placeholder=document.createElement('div');
+      placeholder.className='post-cover-placeholder';
+      placeholder.textContent='✦';
+      cover.appendChild(placeholder);
+    }
+
+    if(post.category){
+      const category=document.createElement('span');
+      category.className='post-category';
+      category.textContent=post.category;
+      cover.appendChild(category);
+    }
+
+    const body=document.createElement('div');
+    body.className='post-body';
+    body.innerHTML=`
+      <span class="date">${esc(formatBlogDate(post.date))}</span>
+      <h3>${esc(post.title)}</h3>
+      <p>${esc(post.summary || post.content)}</p>
+      <span class="more">閱讀文章</span>
+    `;
+
+    el.appendChild(cover);
+    el.appendChild(body);
+
+    el.addEventListener('click',()=>openPost(post.id));
+    el.addEventListener('keydown',e=>{
+      if(e.key==='Enter' || e.key===' '){
+        e.preventDefault();
+        openPost(post.id);
+      }
+    });
+
     box.appendChild(el);
   });
+}
+
+function openPost(id){
+  const index=blogFilteredPosts.findIndex(p=>String(p.id)===String(id));
+  if(index<0) return;
+
+  blogCurrentIndex=index;
+  const post=blogFilteredPosts[index];
+  const reader=document.getElementById('blogReader');
+
+  document.getElementById('readerCategory').textContent=post.category || '';
+  document.getElementById('readerDate').textContent=formatBlogDate(post.date);
+  document.getElementById('readerTitle').textContent=post.title || '';
+  document.getElementById('readerSummary').textContent=post.summary || '';
+  document.getElementById('readerContent').innerHTML=formatPostContent(post.content);
+  renderBlogCover(document.getElementById('readerCover'),post.cover,post.title);
+
+  updatePostNavigation();
+
+  reader.classList.add('open');
+  reader.setAttribute('aria-hidden','false');
+  document.body.style.overflow='hidden';
+
+  document.querySelector('.blog-reader-inner').scrollTo({top:0,behavior:'auto'});
+}
+
+function closePost(){
+  const reader=document.getElementById('blogReader');
+  reader.classList.remove('open');
+  reader.setAttribute('aria-hidden','true');
+  document.body.style.overflow='';
+}
+
+function updatePostNavigation(){
+  const prev=document.getElementById('readerPrev');
+  const next=document.getElementById('readerNext');
+
+  // filtered array：index 越大代表越舊
+  prev.disabled=blogCurrentIndex>=blogFilteredPosts.length-1;
+  next.disabled=blogCurrentIndex<=0;
+}
+
+function previousPost(){
+  if(blogCurrentIndex>=blogFilteredPosts.length-1) return;
+  openPost(blogFilteredPosts[blogCurrentIndex+1].id);
+}
+
+function nextPost(){
+  if(blogCurrentIndex<=0) return;
+  openPost(blogFilteredPosts[blogCurrentIndex-1].id);
+}
+
+function initBlogReader(){
+  const reader=document.getElementById('blogReader');
+  document.getElementById('blogReaderClose').addEventListener('click',closePost);
+  document.getElementById('blogReaderBackdrop').addEventListener('click',closePost);
+  document.getElementById('readerPrev').addEventListener('click',previousPost);
+  document.getElementById('readerNext').addEventListener('click',nextPost);
+
+  document.addEventListener('keydown',e=>{
+    if(!reader.classList.contains('open')) return;
+    if(e.key==='Escape') closePost();
+    if(e.key==='ArrowLeft') previousPost();
+    if(e.key==='ArrowRight') nextPost();
+  });
+}
+
+function renderPosts(posts){
+  blogPosts=(posts||[])
+    .map(normalizeBlogPost)
+    .filter(p=>p.status==='published' || p.status==='');
+
+  blogFilteredPosts=blogPosts.slice();
+  blogActiveCategory='全部';
+  blogSearchKeyword='';
+  blogShowAll=false;
+
+  const search=document.getElementById('blogSearch');
+  if(search) search.value='';
+
+  buildBlogCategories(blogPosts);
+  applyBlogFilters();
 }
 
 /* =========================================================
@@ -1342,6 +1724,20 @@ function initUI(){
   const menu=document.getElementById('menu'), tg=document.getElementById('navToggle');
   tg.onclick=()=>menu.classList.toggle('open');
   menu.querySelectorAll('a').forEach(a=>a.onclick=()=>menu.classList.remove('open'));
+
+  initBlogReader();
+
+  const blogSearch=document.getElementById('blogSearch');
+  blogSearch.addEventListener('input',e=>{
+    blogSearchKeyword=e.target.value.trim();
+    applyBlogFilters();
+  });
+
+  const blogViewAll=document.getElementById('blogViewAll');
+  blogViewAll.addEventListener('click',()=>{
+    blogShowAll=!blogShowAll;
+    applyBlogFilters();
+  });
 
   const io=new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.12});
   document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
