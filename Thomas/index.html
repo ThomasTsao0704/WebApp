@@ -1,275 +1,580 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Latest on Instagram</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lueur · 美甲工作室</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500&family=Noto+Serif+TC:wght@400;500;600&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  /* ---------- 設計 token ---------- */
-  :root{
-    --ink:        #16181d;   /* 主文字 */
-    --ink-soft:   #5b6068;   /* 次要文字 */
-    --paper:      #fbfbf9;   /* 底 */
-    --line:       #e4e3de;   /* 髮絲線 */
-    --tile:       #ecebe6;   /* 圖片載入前底色 */
-    --signal:     #2f4b7c;   /* 唯一強調色，只用在 follow */
-    --shadow:     0 1px 2px rgba(20,24,29,.04);
-  }
+:root{
+  --cream:#FAF4EF;        /* 背景 */
+  --cream-2:#F2E7DF;      /* 面板 */
+  --ink:#2B2126;          /* 主文字 */
+  --ink-soft:#6E5B61;     /* 次文字 */
+  --wine:#6D2E46;         /* 招牌深酒紅 */
+  --wine-2:#8A3D5B;
+  --rose:#C98B9B;         /* 霧玫瑰 */
+  --gold:#B08D57;         /* 香檳金 */
+  --line:#E6D7CE;         /* 分隔線 */
+  --shadow:0 24px 60px -24px rgba(90,45,60,.28);
 
-  *{ box-sizing:border-box; margin:0; padding:0; }
+  --f-disp:'Cormorant Garamond','Noto Serif TC',serif;
+  --f-serif:'Noto Serif TC',serif;
+  --f-body:'Noto Sans TC','Jost',sans-serif;
+  --f-label:'Jost','Noto Sans TC',sans-serif;
 
-  body{
-    background:var(--paper);
-    color:var(--ink);
-    font-family:"Helvetica Neue", "Inter", -apple-system, "PingFang TC", sans-serif;
-    -webkit-font-smoothing:antialiased;
-    line-height:1.5;
-  }
+  --wrap:1180px;
+}
 
-  .ig-section{
-    max-width:960px;
-    margin:0 auto;
-    padding:88px 24px 96px;
-  }
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--cream);
+  color:var(--ink);
+  font-family:var(--f-body);
+  font-weight:300;
+  line-height:1.85;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
 
-  /* ---------- 標題區 ---------- */
-  .ig-head{
-    display:flex;
-    align-items:baseline;
-    justify-content:space-between;
-    gap:24px;
-    padding-bottom:20px;
-    border-bottom:1px solid var(--line);
-    margin-bottom:28px;
-  }
-  .ig-eyebrow{
-    font-size:11px;
-    letter-spacing:.22em;
-    text-transform:uppercase;
-    color:var(--ink-soft);
-    font-weight:600;
-  }
-  .ig-title{
-    font-size:clamp(26px, 4vw, 40px);
-    font-weight:500;
-    letter-spacing:-.02em;
-    line-height:1.05;
-    margin-top:6px;
-  }
-  .ig-handle{
-    font-size:14px;
-    color:var(--ink-soft);
-    white-space:nowrap;
-    text-decoration:none;
-    border-bottom:1px solid transparent;
-    transition:color .2s, border-color .2s;
-  }
-  .ig-handle:hover{ color:var(--ink); border-color:var(--ink); }
+.wrap{max-width:var(--wrap);margin:0 auto;padding:0 28px}
+.eyebrow{
+  font-family:var(--f-label);
+  text-transform:uppercase;
+  letter-spacing:.32em;
+  font-size:.72rem;
+  color:var(--gold);
+  display:inline-flex;align-items:center;gap:.7em;
+}
+.eyebrow::before{content:"";width:22px;height:1px;background:var(--gold);display:inline-block}
+h2.title{
+  font-family:var(--f-disp);
+  font-weight:500;
+  font-size:clamp(2.1rem,5vw,3.4rem);
+  line-height:1.1;
+  letter-spacing:.01em;
+  margin:.35em 0 .2em;
+}
+.section{padding:clamp(72px,11vw,132px) 0}
+.lead{color:var(--ink-soft);max-width:46ch;font-size:1.02rem}
 
-  /* ---------- 九宮格 ---------- */
-  .ig-grid{
-    display:grid;
-    grid-template-columns:repeat(3, 1fr);
-    gap:10px;
-  }
+/* ---------- 招牌元素：漆光色點 ---------- */
+.swatch-row{display:flex;gap:10px;align-items:center}
+.swatch{
+  width:16px;height:16px;border-radius:50%;
+  position:relative;flex:none;
+  box-shadow:inset 0 -2px 4px rgba(0,0,0,.18);
+}
+.swatch::after{
+  content:"";position:absolute;top:2px;left:3px;width:5px;height:4px;border-radius:50%;
+  background:rgba(255,255,255,.75);filter:blur(.4px);
+}
+.s-wine{background:#6D2E46}.s-rose{background:#E7C3C0}.s-coral{background:#E08A76}
+.s-champ{background:#D9BE93}.s-mauve{background:#9B8AA6}.s-milk{background:#C7A98B}
 
-  .ig-tile{
-    position:relative;
-    display:block;
-    aspect-ratio:1 / 1;
-    overflow:hidden;
-    background:var(--tile);
-    border-radius:4px;
-    text-decoration:none;
-    box-shadow:var(--shadow);
-  }
-  .ig-tile img{
-    width:100%; height:100%;
-    object-fit:cover;
-    display:block;
-    transition:transform .55s cubic-bezier(.2,.7,.2,1), filter .35s;
-  }
-  .ig-tile:hover img{ transform:scale(1.05); filter:brightness(.72); }
+/* ---------- 導覽列 ---------- */
+header.nav{
+  position:sticky;top:0;z-index:50;
+  background:rgba(250,244,239,.82);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid transparent;
+  transition:border-color .3s, background .3s;
+}
+header.nav.scrolled{border-color:var(--line)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;height:76px}
+.brand{display:flex;align-items:baseline;gap:.55rem}
+.brand .mark{font-family:var(--f-disp);font-weight:600;font-size:1.7rem;letter-spacing:.02em}
+.brand .sub{font-family:var(--f-label);font-size:.62rem;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-soft)}
+.nav-links{display:flex;gap:2.1rem;align-items:center}
+.nav-links a{font-family:var(--f-label);font-size:.82rem;letter-spacing:.08em;color:var(--ink-soft);transition:color .2s}
+.nav-links a:hover{color:var(--wine)}
+.btn{
+  font-family:var(--f-label);font-size:.82rem;letter-spacing:.1em;
+  padding:.72em 1.5em;border-radius:999px;border:1px solid var(--wine);
+  color:var(--wine);background:transparent;cursor:pointer;transition:all .25s;
+  display:inline-flex;align-items:center;gap:.5em;white-space:nowrap;
+}
+.btn:hover{background:var(--wine);color:#fff}
+.btn.solid{background:var(--wine);color:#fff}
+.btn.solid:hover{background:var(--wine-2);border-color:var(--wine-2)}
+.btn.light{border-color:var(--line);color:var(--ink)}
+.btn.light:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+.nav-toggle{display:none;background:none;border:0;cursor:pointer;padding:8px}
+.nav-toggle span{display:block;width:24px;height:1.5px;background:var(--ink);margin:5px 0;transition:.3s}
 
-  /* hover 時浮出標題 */
-  .ig-caption{
-    position:absolute;
-    left:0; right:0; bottom:0;
-    padding:14px 14px 12px;
-    color:#fff;
-    font-size:13px;
-    letter-spacing:.01em;
-    background:linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0));
-    opacity:0;
-    transform:translateY(6px);
-    transition:opacity .3s, transform .3s;
-  }
-  .ig-tile:hover .ig-caption{ opacity:1; transform:translateY(0); }
+/* ---------- HERO ---------- */
+.hero{position:relative;overflow:hidden;padding:clamp(56px,9vw,104px) 0 clamp(72px,11vw,120px)}
+.hero .blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:.5;z-index:0}
+.blob.a{width:420px;height:420px;background:#E7C3C0;top:-90px;right:-60px}
+.blob.b{width:360px;height:360px;background:#D9BE93;bottom:-120px;left:-80px;opacity:.4}
+.blob.c{width:300px;height:300px;background:#C98B9B;top:40%;right:22%;opacity:.28}
+.hero-grid{position:relative;z-index:2;display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center}
+.hero h1{
+  font-family:var(--f-disp);font-weight:500;
+  font-size:clamp(2.9rem,7.4vw,5.4rem);line-height:1.02;letter-spacing:.005em;margin:.28em 0 .1em;
+}
+.hero h1 em{font-style:italic;color:var(--wine)}
+.hero .zh{font-family:var(--f-serif);font-weight:500;font-size:clamp(1.5rem,3.6vw,2.15rem);letter-spacing:.06em;color:var(--ink);margin-bottom:.9rem}
+.hero p.lead{margin:1.4rem 0 2.2rem;font-size:1.06rem}
+.hero-cta{display:flex;gap:.9rem;flex-wrap:wrap}
+.hero-meta{display:flex;gap:2.4rem;margin-top:2.8rem;padding-top:1.8rem;border-top:1px solid var(--line)}
+.hero-meta div span{display:block}
+.hero-meta .n{font-family:var(--f-disp);font-size:1.9rem;color:var(--wine);line-height:1}
+.hero-meta .l{font-family:var(--f-label);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin-top:.4rem}
 
-  /* Reels / 影片標記 */
-  .ig-badge{
-    position:absolute;
-    top:10px; right:10px;
-    width:26px; height:26px;
-    display:flex; align-items:center; justify-content:center;
-    background:rgba(0,0,0,.35);
-    backdrop-filter:blur(2px);
-    border-radius:6px;
-  }
-  .ig-badge svg{ width:15px; height:15px; fill:#fff; }
+/* 右側：漆光瓶滴造型 */
+.gloss{position:relative;aspect-ratio:4/5;border-radius:200px 200px 190px 190px;
+  background:
+    radial-gradient(120% 90% at 35% 22%, rgba(255,255,255,.9), rgba(255,255,255,0) 40%),
+    linear-gradient(160deg,#8A3D5B 0%,#6D2E46 55%,#4E2035 100%);
+  box-shadow:var(--shadow), inset 0 -30px 60px rgba(0,0,0,.25);
+  overflow:hidden;
+}
+.gloss::before{content:"";position:absolute;top:8%;left:14%;width:26%;height:52%;border-radius:50%;
+  background:linear-gradient(180deg,rgba(255,255,255,.65),rgba(255,255,255,0));filter:blur(2px);transform:rotate(-8deg)}
+.gloss .cap{position:absolute;left:0;right:0;bottom:26px;text-align:center;color:#F6E7DD;
+  font-family:var(--f-disp);font-size:1.5rem;letter-spacing:.14em}
+.gloss .cap small{display:block;font-family:var(--f-label);font-size:.62rem;letter-spacing:.3em;opacity:.75;margin-top:.3rem}
 
-  /* 空/載入狀態 */
-  .ig-tile.is-empty{ animation:pulse 1.4s ease-in-out infinite; }
-  @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.55} }
+/* ---------- 關於 ---------- */
+.about{background:var(--cream-2)}
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(36px,6vw,84px);align-items:center}
+.about .stack{display:flex;flex-direction:column;gap:1.2rem}
+.about p{color:var(--ink-soft)}
+.tech-list{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:.5rem}
+.tech-card{background:var(--cream);border:1px solid var(--line);border-radius:16px;padding:22px 20px}
+.tech-card .av{width:44px;height:44px;border-radius:50%;margin-bottom:12px;
+  background:linear-gradient(150deg,var(--rose),var(--wine));box-shadow:inset 0 -4px 8px rgba(0,0,0,.2)}
+.tech-card h4{font-family:var(--f-serif);font-weight:600;font-size:1.1rem;margin-bottom:.15rem}
+.tech-card span{font-family:var(--f-label);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
 
-  /* ---------- CTA ---------- */
-  .ig-foot{
-    margin-top:36px;
-    display:flex;
-    justify-content:center;
-  }
-  .ig-follow{
-    display:inline-flex;
-    align-items:center;
-    gap:9px;
-    padding:12px 22px;
-    border:1px solid var(--signal);
-    border-radius:999px;
-    color:var(--signal);
-    font-size:14px;
-    font-weight:500;
-    letter-spacing:.01em;
-    text-decoration:none;
-    transition:background .2s, color .2s, transform .2s;
-  }
-  .ig-follow svg{ width:17px; height:17px; }
-  .ig-follow:hover{ background:var(--signal); color:#fff; transform:translateY(-1px); }
-  .ig-follow:hover svg path{ stroke:#fff; }
-  .ig-follow .arrow{ transition:transform .2s; }
-  .ig-follow:hover .arrow{ transform:translateX(3px); }
+/* ---------- 作品 Instagram ---------- */
+.works-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:2.4rem}
+.gallery{display:flex;gap:20px;overflow-x:auto;padding-bottom:14px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.gallery::-webkit-scrollbar{height:6px}
+.gallery::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px}
+.gallery > *{scroll-snap-align:start;flex:0 0 300px}
+.ig-embed{min-width:300px}
+.ig-embed blockquote{margin:0!important;min-width:auto!important;width:100%!important}
+/* 示範 / 空資料時的色卡作品磚 */
+.work-tile{aspect-ratio:4/5;border-radius:18px;position:relative;overflow:hidden;box-shadow:var(--shadow);
+  display:flex;align-items:flex-end;padding:20px;color:#fff}
+.work-tile::before{content:"";position:absolute;inset:0;
+  background:radial-gradient(130% 80% at 30% 20%,rgba(255,255,255,.55),rgba(255,255,255,0) 45%),var(--g,#6D2E46)}
+.work-tile::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.32))}
+.work-tile span{position:relative;z-index:2}
+.work-tile .shade{font-family:var(--f-disp);font-size:1.5rem;letter-spacing:.06em}
+.work-tile .code{position:relative;z-index:2;font-family:var(--f-label);font-size:.66rem;letter-spacing:.2em;opacity:.85;position:absolute;top:18px;left:20px}
 
-  .ig-error{
-    text-align:center;
-    color:var(--ink-soft);
-    font-size:14px;
-    padding:40px 0;
-  }
+/* ---------- 行事曆 ---------- */
+.cal-wrap{background:var(--cream-2);border:1px solid var(--line);border-radius:24px;padding:clamp(22px,4vw,40px);margin-top:2.4rem}
+.cal-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;margin-bottom:22px}
+.cal-tab{flex:none;border:1px solid var(--line);background:var(--cream);border-radius:14px;padding:12px 16px;cursor:pointer;text-align:center;min-width:78px;transition:.2s}
+.cal-tab .wd{font-family:var(--f-label);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+.cal-tab .dd{font-family:var(--f-disp);font-size:1.5rem;line-height:1.1}
+.cal-tab .free{font-family:var(--f-label);font-size:.64rem;color:var(--gold);margin-top:2px}
+.cal-tab.active{background:var(--wine);border-color:var(--wine);color:#fff}
+.cal-tab.active .wd,.cal-tab.active .free{color:rgba(255,255,255,.8)}
+.grid-scroll{overflow-x:auto}
+table.cal{border-collapse:collapse;width:100%;min-width:420px}
+table.cal th,table.cal td{text-align:center;padding:9px 6px;font-size:.9rem}
+table.cal thead th{font-family:var(--f-serif);font-weight:600;color:var(--wine);border-bottom:1px solid var(--line)}
+table.cal tbody th{font-family:var(--f-label);font-size:.78rem;color:var(--ink-soft);font-weight:400;white-space:nowrap;text-align:right;padding-right:16px}
+.dot{display:inline-block;width:15px;height:15px;border-radius:50%}
+.dot.free{border:1.5px solid var(--rose);background:transparent}
+.dot.busy{background:var(--wine)}
+.cell-busy{cursor:default}
+.cell-busy:hover .tip{opacity:1;transform:translateY(0)}
+.cell-busy{position:relative}
+.tip{position:absolute;left:50%;bottom:130%;transform:translate(-50%,6px);opacity:0;pointer-events:none;transition:.2s;
+  background:var(--ink);color:#fff;font-family:var(--f-label);font-size:.68rem;letter-spacing:.04em;padding:6px 10px;border-radius:8px;white-space:nowrap;z-index:5}
+.cal-legend{display:flex;gap:22px;justify-content:center;margin-top:20px;font-family:var(--f-label);font-size:.76rem;color:var(--ink-soft)}
+.cal-legend span{display:inline-flex;align-items:center;gap:8px}
 
-  /* ---------- 響應式 ---------- */
-  @media (max-width:640px){
-    .ig-section{ padding:56px 18px 64px; }
-    .ig-head{ flex-direction:column; align-items:flex-start; gap:12px; }
-    .ig-grid{ grid-template-columns:repeat(2, 1fr); gap:8px; }
-    .ig-caption{ opacity:1; transform:none; } /* 手機沒有 hover，標題常駐 */
-    .ig-tile:hover img{ transform:none; filter:none; }
-  }
+/* ---------- Blog ---------- */
+.posts{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:2.6rem}
+.post{background:var(--cream-2);border:1px solid var(--line);border-radius:18px;padding:28px 26px;display:flex;flex-direction:column;gap:.9rem;transition:.25s}
+.post:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+.post .date{font-family:var(--f-label);font-size:.72rem;letter-spacing:.14em;color:var(--gold);text-transform:uppercase}
+.post h3{font-family:var(--f-serif);font-weight:600;font-size:1.24rem;line-height:1.4}
+.post p{color:var(--ink-soft);font-size:.94rem;flex:1;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.post .more{font-family:var(--f-label);font-size:.78rem;letter-spacing:.1em;color:var(--wine)}
 
-  @media (prefers-reduced-motion:reduce){
-    *{ animation:none !important; transition:none !important; }
-  }
+/* ---------- 預約 CTA ---------- */
+.book{background:var(--wine);color:#F7EBE4;text-align:center;position:relative;overflow:hidden}
+.book .blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:.35}
+.book .b1{width:340px;height:340px;background:#C98B9B;top:-100px;left:-60px}
+.book .b2{width:300px;height:300px;background:#D9BE93;bottom:-120px;right:-60px;opacity:.3}
+.book .eyebrow{color:#E9C9A5}.book .eyebrow::before{background:#E9C9A5}
+.book h2.title{color:#fff}
+.book p{color:rgba(247,235,228,.8);max-width:44ch;margin:1rem auto 2.2rem}
+.book .cta{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;position:relative;z-index:2}
+.btn.line{background:#F7EBE4;color:var(--wine);border-color:#F7EBE4}
+.btn.line:hover{background:#fff;border-color:#fff}
+.btn.ghost{border-color:rgba(247,235,228,.5);color:#F7EBE4}
+.btn.ghost:hover{background:rgba(247,235,228,.12)}
+
+/* ---------- Footer ---------- */
+footer{padding:56px 0 40px;border-top:1px solid var(--line)}
+.foot-in{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:center}
+.foot-in .brand .mark{font-size:1.4rem}
+.foot-links{display:flex;gap:1.6rem;font-family:var(--f-label);font-size:.8rem;color:var(--ink-soft)}
+.foot-copy{width:100%;margin-top:28px;padding-top:20px;border-top:1px solid var(--line);
+  font-family:var(--f-label);font-size:.72rem;letter-spacing:.08em;color:var(--ink-soft);text-align:center}
+
+/* ---------- 進場動畫 ---------- */
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .8s ease, transform .8s ease}
+.reveal.in{opacity:1;transform:none}
+
+.loading{color:var(--ink-soft);font-family:var(--f-label);letter-spacing:.1em;padding:20px 0}
+
+/* ---------- RWD ---------- */
+@media(max-width:900px){
+  .hero-grid{grid-template-columns:1fr}
+  .gloss{max-width:360px;margin:8px auto 0}
+  .about-grid{grid-template-columns:1fr}
+  .posts{grid-template-columns:1fr}
+  .nav-links{position:fixed;inset:76px 0 auto 0;background:var(--cream);flex-direction:column;
+    padding:24px 28px 32px;gap:1.3rem;border-bottom:1px solid var(--line);
+    transform:translateY(-120%);transition:transform .35s;box-shadow:var(--shadow)}
+  .nav-links.open{transform:none}
+  .nav-toggle{display:block}
+  .nav-links .btn{align-self:flex-start}
+}
+@media(prefers-reduced-motion:reduce){
+  *{scroll-behavior:auto}
+  .reveal{opacity:1;transform:none;transition:none}
+}
 </style>
 </head>
 <body>
 
-  <section class="ig-section">
-    <div class="ig-head">
-      <div>
-        <div class="ig-eyebrow">Personal</div>
-        <h2 class="ig-title">Latest on Instagram</h2>
+<!-- ===== 導覽列 ===== -->
+<header class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a href="#top" class="brand">
+      <span class="mark">Lueur</span>
+      <span class="sub">Nail Atelier</span>
+    </a>
+    <nav class="nav-links" id="menu">
+      <a href="#about">關於</a>
+      <a href="#works">作品</a>
+      <a href="#calendar">預約時段</a>
+      <a href="#journal">日誌</a>
+      <a href="#book" class="btn solid">立即預約</a>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="選單"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<span id="top"></span>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="blob a"></div><div class="blob b"></div><div class="blob c"></div>
+  <div class="wrap hero-grid">
+    <div class="reveal">
+      <span class="eyebrow">Taipei · 手作美甲</span>
+      <h1>A quiet <em>gloss</em><br>on every fingertip.</h1>
+      <div class="zh">為你的指尖，調一抹剛好的光</div>
+      <p class="lead">Lueur 是一間預約制的小型美甲工作室。我們相信最好的指彩不是最搶眼的，而是最貼近你日常的那一種——溫潤、耐看、屬於你。</p>
+      <div class="hero-cta">
+        <a href="#book" class="btn solid">立即預約</a>
+        <a href="#works" class="btn light">先看作品</a>
       </div>
-      <a class="ig-handle" id="ig-handle-top" href="#" target="_blank" rel="noopener">@thomas</a>
+      <div class="hero-meta">
+        <div><span class="n">3</span><span class="l">位美甲師</span></div>
+        <div><span class="n">預約制</span><span class="l">一對一服務</span></div>
+        <div><span class="n">10–19</span><span class="l">每日營業</span></div>
+      </div>
     </div>
+    <div class="reveal">
+      <div class="gloss">
+        <div class="cap">Signature<small>Wine Nude</small></div>
+      </div>
+    </div>
+  </div>
+</section>
 
-    <div class="ig-grid" id="ig-grid" aria-live="polite">
-      <!-- JS 產生 -->
+<!-- ===== 關於 ===== -->
+<section class="section about" id="about">
+  <div class="wrap about-grid">
+    <div class="stack reveal">
+      <span class="eyebrow">About Lueur</span>
+      <h2 class="title">安靜、細緻，<br>剛剛好的美</h2>
+      <p>我們把每一次美甲都當成一段獨處的時間。從修甲、保養到上色，一次只服務一位客人，讓你能真正放鬆下來，離開時帶走的不只是漂亮的指尖，還有被好好照顧的感覺。</p>
+      <div class="swatch-row" aria-hidden="true">
+        <span class="swatch s-wine"></span><span class="swatch s-rose"></span><span class="swatch s-coral"></span>
+        <span class="swatch s-champ"></span><span class="swatch s-mauve"></span><span class="swatch s-milk"></span>
+      </div>
     </div>
+    <div class="reveal">
+      <div class="tech-list">
+        <div class="tech-card"><div class="av"></div><h4>小美</h4><span>Gel · Art</span></div>
+        <div class="tech-card"><div class="av"></div><h4>小芳</h4><span>Care · Nude</span></div>
+        <div class="tech-card"><div class="av"></div><h4>小婷</h4><span>Design · Detail</span></div>
+        <div class="tech-card" style="display:flex;flex-direction:column;justify-content:center">
+          <p style="font-family:var(--f-serif);color:var(--ink)">「把日常穿在指尖上。」</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
-    <div class="ig-foot">
-      <a class="ig-follow" id="ig-follow" href="#" target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="currentColor" stroke-width="1.6"/>
-          <circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.6"/>
-          <circle cx="17.4" cy="6.6" r="1.2" fill="currentColor"/>
-        </svg>
-        Follow on Instagram
-        <span class="arrow">→</span>
-      </a>
+<!-- ===== 作品 Instagram ===== -->
+<section class="section" id="works">
+  <div class="wrap">
+    <div class="works-head reveal">
+      <div>
+        <span class="eyebrow">Latest Works</span>
+        <h2 class="title">最新作品</h2>
+      </div>
+      <a href="https://www.instagram.com/" target="_blank" rel="noopener" class="btn light">前往 Instagram</a>
     </div>
-  </section>
+    <div class="gallery reveal" id="gallery"><div class="loading">載入作品中…</div></div>
+  </div>
+</section>
+
+<!-- ===== 預約時段 ===== -->
+<section class="section about" id="calendar">
+  <div class="wrap">
+    <span class="eyebrow reveal">Availability</span>
+    <h2 class="title reveal">美甲師可預約時段</h2>
+    <p class="lead reveal">以下為即時檔期，實際預約請透過 LINE 或 Instagram 私訊確認。</p>
+    <div class="cal-wrap reveal" id="cal"><div class="loading">載入行事曆中…</div></div>
+  </div>
+</section>
+
+<!-- ===== 日誌 Blog ===== -->
+<section class="section" id="journal">
+  <div class="wrap">
+    <span class="eyebrow reveal">Journal</span>
+    <h2 class="title reveal">最新日誌</h2>
+    <p class="lead reveal">色系靈感、保養小知識，以及工作室的日常。</p>
+    <div class="posts reveal" id="posts"><div class="loading">載入文章中…</div></div>
+  </div>
+</section>
+
+<!-- ===== 預約 CTA ===== -->
+<section class="section book" id="book">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="wrap">
+    <span class="eyebrow reveal">Booking</span>
+    <h2 class="title reveal">準備好寵愛你的指尖了嗎</h2>
+    <p class="reveal">預約制工作室，名額有限。透過 LINE 或 Instagram 告訴我們你想要的風格與日期，我們會盡快回覆你。</p>
+    <div class="cta reveal">
+      <a href="https://line.me/" target="_blank" rel="noopener" class="btn line">LINE 預約</a>
+      <a href="https://www.instagram.com/" target="_blank" rel="noopener" class="btn ghost">Instagram 私訊</a>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Footer ===== -->
+<footer>
+  <div class="wrap">
+    <div class="foot-in">
+      <a href="#top" class="brand"><span class="mark">Lueur</span><span class="sub">Nail Atelier</span></a>
+      <nav class="foot-links">
+        <a href="#about">關於</a><a href="#works">作品</a><a href="#calendar">預約時段</a><a href="#journal">日誌</a>
+      </nav>
+    </div>
+    <div class="foot-copy">© <span id="yr"></span> Lueur Nail Atelier · Taipei ｜ 預約制美甲工作室</div>
+  </div>
+</footer>
 
 <script>
 /* =========================================================
-   自管 IG Gallery
-   - 資料來源：/data/instagram.json
-   - 每篇：{ image, title, url, type? }  type 可為 "reels" / "video"
-   - 點圖直接開對應貼文
+   資料層：在 Apps Script 內用 google.script.run 讀真實資料；
+   直接用瀏覽器開啟（沒有 google.script）時，改用示範資料。
    ========================================================= */
+const API_URL = 'https://script.google.com/macros/s/AKfycbxskPNJm7JmAYKap2vwSKq-DrPwdaQW5QI0Um3ovlBE1JVue0zw_ANG3408mDw4L6o0/exec'; // ← 換成你的 /exec
 
-// 你的 IG 帳號設定（follow 按鈕 + 右上 handle 用）
-const IG_PROFILE = "https://www.instagram.com/thomas/";
-const IG_HANDLE  = "@thomas";
+const READ_MAP = {
+  getPosts:    { resource:'posts',     pick:j=>j.posts },
+  getUrls:     { resource:'instagram', pick:j=>j.urls  },
+  getBookings: { resource:'calendar',  pick:j=>j.data  }
+};
 
-// 如果讀不到 /data/instagram.json（例如本機直接開檔），用這份 fallback 展示
-//const FALLBACK = [
-//  { image:"https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80", title:"最近的生活紀錄", url:"https://www.instagram.com/p/XXXXXXXX/" },
-//  { image:"https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600&q=80", title:"台北的一天", url:"https://www.instagram.com/p/YYYYYYYY/", type:"reels" },
-//  { image:"https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=600&q=80", title:"最近的思考", url:"https://www.instagram.com/p/ZZZZZZZZ/" },
-//  { image:"https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&q=80", title:"山與霧", url:"https://www.instagram.com/p/AAAAAAAA/" },
-//  { image:"https://images.unsplash.com/photo-1500534623283-312aade485b7?w=600&q=80", title:"路上", url:"https://www.instagram.com/p/BBBBBBBB/", type:"reels" },
-//  { image:"https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600&q=80", title:"週末", url:"https://www.instagram.com/p/CCCCCCCC/" }
-//];
+function call(fn){
+  const m = READ_MAP[fn];
+  return fetch(`${API_URL}?resource=${m.resource}`)
+    .then(r => r.json())
+    .then(j => { if(!j.ok) throw new Error(j.error || 'API error'); return m.pick(j); });
+}
 
-const grid = document.getElementById("ig-grid");
+/* ---- 示範資料（僅在瀏覽器直接預覽時使用） ---- */
+const MOCK = {
+  getUrls: ()=>[],   // 空陣列 → 顯示色卡示範磚
+  getPosts: ()=>[
+    {id:1,date:'2026-08-24 11:20',title:'夏末的裸粉：一款百搭到底的指彩',content:'裸粉是我們一年四季的常客。它不張揚，卻能讓手指看起來乾淨、修長。這次示範三種不同底調的裸粉，從偏白到偏奶茶，找到最適合你膚色的那一支。'},
+    {id:2,date:'2026-08-19 15:40',title:'光療前的指緣保養，其實比你想的重要',content:'很多人以為做光療只看顏色，其實指緣的狀態才是耐看與否的關鍵。分享我們在每次服務前一定會做的三個保養步驟。'},
+    {id:3,date:'2026-08-12 10:05',title:'秋季色卡搶先看：酒紅、霧紫與焦糖',content:'天氣一轉涼，指尖也想換上更有份量的顏色。這次挑了三個我們私心最愛的秋季色，附上搭配建議。'}
+  ],
+  getBookings: ()=>{
+    const today=new Date(); today.setHours(0,0,0,0);
+    const d=n=>{const x=new Date(today);x.setDate(x.getDate()+n);return fmtDate(x);};
+    return {
+      technicians:['小美','小芳','小婷'],
+      openHour:10, closeHour:19, slotMinutes:30, days:14,
+      today:fmtDate(today),
+      bookings:[
+        {date:d(0),tech:'小美',start:'11:00',end:'12:30',name:'王小姐',service:'光療'},
+        {date:d(0),tech:'小芳',start:'14:00',end:'15:30',name:'李小姐',service:'單色'},
+        {date:d(0),tech:'小婷',start:'16:00',end:'18:00',name:'陳小姐',service:'手繪'},
+        {date:d(1),tech:'小美',start:'10:00',end:'11:30',name:'林小姐',service:'保養'},
+        {date:d(1),tech:'小婷',start:'13:00',end:'14:30',name:'吳小姐',service:'光療'},
+        {date:d(2),tech:'小芳',start:'15:00',end:'17:00',name:'張小姐',service:'手繪'},
+        {date:d(3),tech:'小美',start:'12:00',end:'13:30',name:'黃小姐',service:'單色'}
+      ]
+    };
+  }
+};
 
-// 播放圖示（reels / video 用）
-const PLAY_ICON = '<span class="ig-badge"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>';
+/* =========================================================
+   作品 Instagram
+   ========================================================= */
+const SHADES=[
+  {n:'酒紅',c:'#6D2E46',code:'NO.01 WINE'},
+  {n:'裸粉',c:'#E7C3C0',code:'NO.02 NUDE'},
+  {n:'珊瑚',c:'#E08A76',code:'NO.03 CORAL'},
+  {n:'香檳',c:'#C9A86A',code:'NO.04 CHAMPAGNE'},
+  {n:'霧紫',c:'#9B8AA6',code:'NO.05 MAUVE'},
+  {n:'奶茶',c:'#C7A98B',code:'NO.06 MILK TEA'}
+];
+function renderWorks(urls){
+  const g=document.getElementById('gallery'); g.innerHTML='';
+  if(urls && urls.length){
+    urls.slice(0,12).forEach(u=>{
+      const d=document.createElement('div'); d.className='ig-embed';
+      d.innerHTML='<blockquote class="instagram-media" data-instgrm-permalink="'+u+'" data-instgrm-version="14"></blockquote>';
+      g.appendChild(d);
+    });
+    loadIG(()=>{ if(window.instgrm) window.instgrm.Embeds.process(); });
+  }else{
+    SHADES.forEach(s=>{
+      const d=document.createElement('div'); d.className='work-tile'; d.style.setProperty('--g',s.c);
+      d.innerHTML='<span class="code">'+s.code+'</span><span class="shade">'+s.n+'</span>';
+      g.appendChild(d);
+    });
+  }
+}
+function loadIG(cb){
+  if(window.instgrm){cb();return;}
+  const s=document.createElement('script'); s.async=true; s.src='https://www.instagram.com/embed.js';
+  s.onload=cb; document.body.appendChild(s);
+}
 
-function render(posts){
-  grid.innerHTML = "";
-  // 只取前 6 篇
-  posts.slice(0, 6).forEach(post => {
-    const a = document.createElement("a");
-    a.className = "ig-tile";
-    a.href = post.url || IG_PROFILE;
-    a.target = "_blank";
-    a.rel = "noopener";
-    a.setAttribute("aria-label", post.title || "Instagram 貼文");
+/* =========================================================
+   行事曆（時間 × 美甲師 圓點格）
+   ========================================================= */
+const WD=['日','一','二','三','四','五','六'];
+function fmtDate(x){return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');}
+function buildSlots(o,c,step){
+  const out=[]; for(let m=o*60; m<c*60; m+=step){
+    out.push(String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'));
+  } return out;
+}
+function renderCal(data){
+  const box=document.getElementById('cal'); box.innerHTML='';
+  const slots=buildSlots(data.openHour,data.closeHour,data.slotMinutes);
+  const techs=data.technicians;
+  const [Y,M,D]=String(data.today).split('-').map(Number);
+  const start=new Date(Y,M-1,D);            // 本地午夜，避免時區位移
+  const dayN=Math.min(data.days||14,5);
 
-    const isVideo = post.type === "reels" || post.type === "video";
+  // 每日日期字串
+  const dates=[]; for(let i=0;i<dayN;i++){const x=new Date(start);x.setDate(x.getDate()+i);dates.push(x);}
+  const ds=x=>fmtDate(x);
 
-    a.innerHTML = `
-      <img src="${post.image}" alt="${post.title || ""}" loading="lazy"
-           onerror="this.parentElement.classList.add('is-empty'); this.remove();">
-      ${isVideo ? PLAY_ICON : ""}
-      ${post.title ? `<span class="ig-caption">${post.title}</span>` : ""}
-    `;
-    grid.appendChild(a);
+  // 判斷某格是否已預約
+  function bookingAt(dateStr,tech,slot){
+    return data.bookings.find(b=>b.date===dateStr && b.tech===tech && b.start<=slot && slot<b.end);
+  }
+  function freeCount(dateStr){
+    let n=0; slots.forEach(s=>techs.forEach(t=>{ if(!bookingAt(dateStr,t,s)) n++; })); return n;
+  }
+
+  // 分頁
+  const tabs=document.createElement('div'); tabs.className='cal-tabs';
+  dates.forEach((x,i)=>{
+    const t=document.createElement('button'); t.className='cal-tab'+(i===0?' active':'');
+    t.dataset.date=ds(x);
+    t.innerHTML='<div class="wd">週'+WD[x.getDay()]+'</div><div class="dd">'+x.getDate()+'</div><div class="free">剩 '+freeCount(ds(x))+'</div>';
+    t.onclick=()=>{document.querySelectorAll('.cal-tab').forEach(e=>e.classList.remove('active'));t.classList.add('active');drawGrid(ds(x));};
+    tabs.appendChild(t);
+  });
+  box.appendChild(tabs);
+
+  const scroll=document.createElement('div'); scroll.className='grid-scroll'; box.appendChild(scroll);
+
+  function drawGrid(dateStr){
+    let html='<table class="cal"><thead><tr><th></th>';
+    techs.forEach(t=>html+='<th>'+t+'</th>'); html+='</tr></thead><tbody>';
+    slots.forEach(s=>{
+      html+='<tr><th>'+s+'</th>';
+      techs.forEach(t=>{
+        const b=bookingAt(dateStr,t,s);
+        if(b){
+          html+='<td class="cell-busy"><span class="dot busy"></span><span class="tip">'+b.service+' · '+(b.start)+'–'+(b.end)+'</span></td>';
+        }else{
+          html+='<td><span class="dot free"></span></td>';
+        }
+      });
+      html+='</tr>';
+    });
+    html+='</tbody></table>';
+    scroll.innerHTML=html;
+  }
+  drawGrid(ds(dates[0]));
+
+  const lg=document.createElement('div'); lg.className='cal-legend';
+  lg.innerHTML='<span><span class="dot free"></span> 可預約</span><span><span class="dot busy"></span> 已預約</span>';
+  box.appendChild(lg);
+}
+
+/* =========================================================
+   日誌 Blog（首頁只顯示最新 3 篇）
+   ========================================================= */
+function esc(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function renderPosts(posts){
+  const box=document.getElementById('posts'); box.innerHTML='';
+  if(!posts || !posts.length){ box.innerHTML='<div class="loading">目前還沒有文章，敬請期待。</div>'; return; }
+  posts.slice(0,3).forEach(p=>{
+    const day=String(p.date||'').slice(0,10);
+    const el=document.createElement('article'); el.className='post';
+    el.innerHTML='<span class="date">'+esc(day)+'</span><h3>'+esc(p.title)+'</h3><p>'+esc(p.content)+'</p><span class="more">閱讀更多 →</span>';
+    box.appendChild(el);
   });
 }
 
-function setProfileLinks(){
-  document.getElementById("ig-follow").href = IG_PROFILE;
-  const top = document.getElementById("ig-handle-top");
-  top.href = IG_PROFILE;
-  top.textContent = IG_HANDLE;
+/* =========================================================
+   互動：導覽、進場動畫、年份
+   ========================================================= */
+function initUI(){
+  document.getElementById('yr').textContent=new Date().getFullYear();
+  const nav=document.getElementById('nav');
+  addEventListener('scroll',()=>nav.classList.toggle('scrolled',scrollY>10));
+  const menu=document.getElementById('menu'), tg=document.getElementById('navToggle');
+  tg.onclick=()=>menu.classList.toggle('open');
+  menu.querySelectorAll('a').forEach(a=>a.onclick=()=>menu.classList.remove('open'));
+
+  const io=new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.12});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 }
 
-// 讀取 JSON → 失敗就用 fallback
-async function load(){
-  setProfileLinks();
-  try{
-    const res = await fetch("/data/instagram.json", { cache:"no-store" });
-    if(!res.ok) throw new Error("no file");
-    const data = await res.json();
-    if(!Array.isArray(data) || data.length === 0) throw new Error("empty");
-    render(data);
-  }catch(e){
-    // 本機直接開檔 / 還沒放 JSON 時，用示範資料
-    render(FALLBACK);
-  }
-}
-
-load();
+/* =========================================================
+   啟動
+   ========================================================= */
+initUI();
+call('getUrls').then(renderWorks).catch(()=>renderWorks([]));
+call('getBookings').then(renderCal).catch(e=>document.getElementById('cal').innerHTML='<div class="loading">行事曆載入失敗</div>');
+call('getPosts').then(renderPosts).catch(()=>renderPosts([]));
 </script>
 </body>
 </html>
