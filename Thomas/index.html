@@ -153,23 +153,303 @@ header.nav.scrolled{border-color:var(--line)}
 .tech-card h4{font-family:var(--f-serif);font-weight:600;font-size:1.1rem;margin-bottom:.15rem}
 .tech-card span{font-family:var(--f-label);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
 
-/* ---------- 作品 Instagram ---------- */
-.works-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:2.4rem}
-.gallery{display:flex;gap:20px;overflow-x:auto;padding-bottom:14px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
-.gallery::-webkit-scrollbar{height:6px}
-.gallery::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px}
-.gallery > *{scroll-snap-align:start;flex:0 0 300px}
-.ig-embed{min-width:300px}
-.ig-embed blockquote{margin:0!important;min-width:auto!important;width:100%!important}
+/* ---------- 作品 Instagram：雜誌風 Infinite Carousel ---------- */
+.works-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:20px;
+  flex-wrap:wrap;
+  margin-bottom:2.4rem
+}
+
+.ig-carousel{
+  position:relative;
+  width:100%;
+}
+
+.ig-viewport{
+  overflow:hidden;
+  width:100%;
+}
+
+.gallery{
+  display:flex;
+  gap:20px;
+  width:max-content;
+  padding:8px 4px 24px;
+  cursor:grab;
+  user-select:none;
+  touch-action:pan-y;
+  will-change:scroll-position;
+}
+
+.gallery.dragging{
+  cursor:grabbing;
+}
+
+.gallery::-webkit-scrollbar{
+  display:none
+}
+
+.gallery{
+  scrollbar-width:none;
+}
+
+.gallery > *{
+  flex:0 0
+    calc((min(var(--wrap), calc(100vw - 56px)) - 40px) / 3);
+  min-width:0;
+}
+
+/* 作品卡 */
+.ig-card{
+  display:flex;
+  flex-direction:column;
+  height:100%;
+  background:var(--cream);
+  border:1px solid var(--line);
+  border-radius:18px;
+  overflow:hidden;
+  box-shadow:none;
+  transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease;
+}
+
+.ig-card:hover{
+  transform:translateY(-7px);
+  box-shadow:var(--shadow);
+}
+
+.ig-card-image{
+  position:relative;
+  aspect-ratio:4/5;
+  overflow:hidden;
+  background:linear-gradient(135deg,#eee6df,#dfd0c8);
+}
+
+.ig-card-image img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  opacity:0;
+  transition:transform .7s cubic-bezier(.2,.7,.2,1),opacity .4s ease;
+}
+
+.ig-card-image img.loaded{
+  opacity:1;
+}
+
+.ig-card:hover .ig-card-image img{
+  transform:scale(1.045);
+}
+
+.ig-card-image::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,.03),transparent 42%,rgba(0,0,0,.34));
+}
+
+.ig-category{
+  position:absolute;
+  top:14px;
+  left:14px;
+  z-index:3;
+  background:rgba(255,255,255,.92);
+  backdrop-filter:blur(8px);
+  padding:5px 9px;
+  font-family:var(--f-label);
+  font-size:.62rem;
+  letter-spacing:.08em;
+  font-weight:500;
+}
+
+.ig-view{
+  position:absolute;
+  left:18px;
+  bottom:16px;
+  z-index:3;
+  color:#fff;
+  font-family:var(--f-label);
+  font-size:.7rem;
+  letter-spacing:.06em;
+  opacity:0;
+  transform:translateY(5px);
+  transition:.3s ease;
+}
+
+.ig-card:hover .ig-view{
+  opacity:1;
+  transform:none;
+}
+
+.ig-card-body{
+  display:flex;
+  flex-direction:column;
+  flex:1;
+  padding:19px 20px 20px;
+}
+
+.ig-card-date{
+  font-family:var(--f-label);
+  font-size:.66rem;
+  letter-spacing:.12em;
+  color:var(--gold);
+  margin-bottom:8px;
+}
+
+.ig-card-title{
+  font-family:var(--f-serif);
+  font-weight:600;
+  font-size:1.18rem;
+  line-height:1.45;
+  margin-bottom:7px;
+}
+
+.ig-card-summary{
+  color:var(--ink-soft);
+  font-size:.86rem;
+  line-height:1.7;
+  display:-webkit-box;
+  -webkit-line-clamp:3;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+
+.ig-card-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-top:auto;
+  padding-top:18px;
+}
+
+.ig-card-link{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  color:var(--wine);
+  font-family:var(--f-label);
+  font-size:.7rem;
+  letter-spacing:.06em;
+  transition:.2s;
+}
+
+.ig-card-link:hover{
+  color:var(--wine-2);
+}
+
+.ig-card-link .arrow{
+  transition:transform .2s;
+}
+
+.ig-card-link:hover .arrow{
+  transform:translateX(4px);
+}
+
+.ig-nav{
+  position:absolute;
+  top:calc(50% - 28px);
+  width:46px;
+  height:46px;
+  border:1px solid var(--line);
+  border-radius:50%;
+  background:rgba(255,255,255,.96);
+  color:var(--ink);
+  box-shadow:0 8px 24px rgba(90,45,60,.14);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:10;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.ig-nav:hover{
+  background:var(--wine);
+  color:#fff;
+  transform:scale(1.08);
+}
+
+.ig-nav.prev{left:-23px}
+.ig-nav.next{right:-23px}
+
+.ig-dots{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:7px;
+  margin-top:4px;
+}
+
+.ig-dot{
+  width:6px;
+  height:6px;
+  padding:0;
+  border:0;
+  border-radius:999px;
+  background:#d5c8c1;
+  cursor:pointer;
+  transition:width .25s,background .25s;
+}
+
+.ig-dot.active{
+  width:22px;
+  background:var(--wine);
+}
+
 /* 示範 / 空資料時的色卡作品磚 */
-.work-tile{aspect-ratio:4/5;border-radius:18px;position:relative;overflow:hidden;box-shadow:var(--shadow);
-  display:flex;align-items:flex-end;padding:20px;color:#fff}
-.work-tile::before{content:"";position:absolute;inset:0;
-  background:radial-gradient(130% 80% at 30% 20%,rgba(255,255,255,.55),rgba(255,255,255,0) 45%),var(--g,#6D2E46)}
-.work-tile::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.32))}
-.work-tile span{position:relative;z-index:2}
-.work-tile .shade{font-family:var(--f-disp);font-size:1.5rem;letter-spacing:.06em}
-.work-tile .code{position:relative;z-index:2;font-family:var(--f-label);font-size:.66rem;letter-spacing:.2em;opacity:.85;position:absolute;top:18px;left:20px}
+.work-tile{
+  aspect-ratio:4/5;
+  border-radius:18px;
+  position:relative;
+  overflow:hidden;
+  box-shadow:var(--shadow);
+  display:flex;
+  align-items:flex-end;
+  padding:20px;
+  color:#fff
+}
+
+.work-tile::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(130% 80% at 30% 20%,rgba(255,255,255,.55),rgba(255,255,255,0) 45%),
+    var(--g,#6D2E46)
+}
+
+.work-tile::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.32))
+}
+
+.work-tile span{
+  position:relative;
+  z-index:2
+}
+
+.work-tile .shade{
+  font-family:var(--f-disp);
+  font-size:1.5rem;
+  letter-spacing:.06em
+}
+
+.work-tile .code{
+  position:relative;
+  z-index:2;
+  font-family:var(--f-label);
+  font-size:.66rem;
+  letter-spacing:.2em;
+  opacity:.85;
+  position:absolute;
+  top:18px;
+  left:20px
+}
 
 /* ---------- 行事曆 ---------- */
 .cal-wrap{background:var(--cream-2);border:1px solid var(--line);border-radius:24px;padding:clamp(22px,4vw,40px);margin-top:2.4rem}
@@ -247,6 +527,40 @@ footer{padding:56px 0 40px;border-top:1px solid var(--line)}
   .nav-toggle{display:block}
   .nav-links .btn{align-self:flex-start}
 }
+@media(max-width:900px){
+  .gallery > *{
+    flex:0 0
+      calc((min(900px, calc(100vw - 56px)) - 20px) / 2);
+  }
+
+  .ig-nav.prev{left:-10px}
+  .ig-nav.next{right:-10px}
+}
+
+@media(max-width:640px){
+  .gallery{
+    gap:14px;
+    padding-right:18%;
+  }
+
+  .gallery > *{
+    flex:0 0 86vw;
+  }
+
+  .ig-nav{
+    display:none;
+  }
+
+  .ig-card:hover{
+    transform:none;
+    box-shadow:none;
+  }
+
+  .ig-view{
+    display:none;
+  }
+}
+
 @media(prefers-reduced-motion:reduce){
   *{scroll-behavior:auto}
   .reveal{opacity:1;transform:none;transition:none}
@@ -337,7 +651,25 @@ footer{padding:56px 0 40px;border-top:1px solid var(--line)}
       </div>
       <a href="https://www.instagram.com/" target="_blank" rel="noopener" class="btn light">前往 Instagram</a>
     </div>
-    <div class="gallery reveal" id="gallery"><div class="loading">載入作品中…</div></div>
+    <div class="ig-carousel reveal" id="igCarousel">
+
+      <button class="ig-nav prev" id="igPrev" aria-label="上一張">
+        <span aria-hidden="true">←</span>
+      </button>
+
+      <div class="ig-viewport">
+        <div class="gallery" id="gallery">
+          <div class="loading">載入作品中…</div>
+        </div>
+      </div>
+
+      <button class="ig-nav next" id="igNext" aria-label="下一張">
+        <span aria-hidden="true">→</span>
+      </button>
+
+      <div class="ig-dots" id="igDots" aria-label="作品進度"></div>
+
+    </div>
   </div>
 </section>
 
@@ -397,7 +729,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxskPNJm7JmAYKap2vwSKq-
 
 const READ_MAP = {
   getPosts:    { resource:'posts',     pick:j=>j.posts },
-  getUrls:     { resource:'instagram', pick:j=>j.urls  },
+  getUrls:     { resource:'instagram', pick:j=>j.urls || j.posts || j.data || [] },
   getBookings: { resource:'calendar',  pick:j=>j.data  }
 };
 
@@ -447,28 +779,475 @@ const SHADES=[
   {n:'霧紫',c:'#9B8AA6',code:'NO.05 MAUVE'},
   {n:'奶茶',c:'#C7A98B',code:'NO.06 MILK TEA'}
 ];
-function renderWorks(urls){
-  const g=document.getElementById('gallery'); g.innerHTML='';
-  if(urls && urls.length){
-    urls.slice(0,12).forEach(u=>{
-      const d=document.createElement('div'); d.className='ig-embed';
-      d.innerHTML='<blockquote class="instagram-media" data-instgrm-permalink="'+u+'" data-instgrm-version="14"></blockquote>';
-      g.appendChild(d);
+const IG_AUTO_INTERVAL = 5000;
+const IG_RESUME_DELAY = 3500;
+
+let igTimer = null;
+let igResumeTimer = null;
+let igCurrent = 0;
+let igTotal = 0;
+let igLoopStart = 0;
+let igDragging = false;
+let igStartX = 0;
+let igStartScroll = 0;
+let igScrollRAF = null;
+let igJumping = false;
+
+function cleanIgUrl(raw){
+  if(!raw) return '';
+  let url=String(raw).trim().split('?')[0].split('#')[0];
+  if(!url) return '';
+  if(!/^https?:\/\//i.test(url)) url='https://'+url;
+  url=url.replace(/^https?:\/\/instagram\.com/i,'https://www.instagram.com');
+  if(!url.endsWith('/')) url+='/';
+  return url;
+}
+
+function igUrlId(url){
+  const m=String(url).match(/instagram\.com\/(?:p|reel|tv)\/([^\/]+)/i);
+  return m ? m[1] : '';
+}
+
+function normalizeWork(raw,index){
+  if(typeof raw === 'string'){
+    return {
+      id:index+1,
+      date:'',
+      title:'',
+      summary:'',
+      image:'',
+      instagram:cleanIgUrl(raw),
+      category:''
+    };
+  }
+
+  return {
+    id:raw.id ?? index+1,
+    date:raw.date || '',
+    title:raw.title || '',
+    summary:raw.summary || raw.content || '',
+    image:raw.image || '',
+    instagram:cleanIgUrl(raw.instagram || raw.url || ''),
+    category:raw.category || ''
+  };
+}
+
+function igIcon(){
+  return `
+    <svg width="14" height="14" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="1.8"
+      aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="5"/>
+      <circle cx="12" cy="12" r="4"/>
+      <circle cx="17.5" cy="6.5" r="1"
+        fill="currentColor" stroke="none"/>
+    </svg>`;
+}
+
+function createIgCard(work){
+  const slide=document.createElement('div');
+  slide.className='ig-slide';
+  slide.dataset.id=work.id;
+
+  const card=document.createElement('article');
+  card.className='ig-card';
+
+  const image=document.createElement('div');
+  image.className='ig-card-image';
+
+  if(work.category){
+    const cat=document.createElement('div');
+    cat.className='ig-category';
+    cat.textContent=work.category;
+    image.appendChild(cat);
+  }
+
+  const img=document.createElement('img');
+  img.alt=work.title || 'Lueur 最新作品';
+  img.loading='lazy';
+  img.decoding='async';
+
+  if(work.image){
+    img.src=work.image;
+    img.addEventListener('load',()=>img.classList.add('loaded'),{once:true});
+    img.addEventListener('error',()=>{img.style.display='none'},{once:true});
+  }
+
+  image.appendChild(img);
+
+  const view=document.createElement('div');
+  view.className='ig-view';
+  view.textContent='View on Instagram ↗';
+  image.appendChild(view);
+
+  const body=document.createElement('div');
+  body.className='ig-card-body';
+
+  if(work.date){
+    const date=document.createElement('div');
+    date.className='ig-card-date';
+    date.textContent=String(work.date).slice(0,10).replaceAll('-','.');
+    body.appendChild(date);
+  }
+
+  if(work.title){
+    const title=document.createElement('h3');
+    title.className='ig-card-title';
+    title.textContent=work.title;
+    body.appendChild(title);
+  }
+
+  if(work.summary){
+    const summary=document.createElement('p');
+    summary.className='ig-card-summary';
+    summary.textContent=work.summary;
+    body.appendChild(summary);
+  }
+
+  const footer=document.createElement('div');
+  footer.className='ig-card-footer';
+
+  const link=document.createElement('a');
+  link.className='ig-card-link';
+  link.href=work.instagram || '#';
+  link.target='_blank';
+  link.rel='noopener noreferrer';
+  link.innerHTML=`
+    ${igIcon()}
+    <span>View on Instagram</span>
+    <span class="arrow">↗</span>
+  `;
+
+  footer.appendChild(link);
+  body.appendChild(footer);
+
+  card.appendChild(image);
+  card.appendChild(body);
+  slide.appendChild(card);
+
+  return slide;
+}
+
+function igSlides(){
+  return [...document.querySelectorAll('#gallery .ig-slide')];
+}
+
+function igStep(){
+  const list=igSlides();
+  if(list.length<2) return 0;
+  return list[1].offsetLeft-list[0].offsetLeft;
+}
+
+function igScrollToActual(index,smooth=true){
+  const list=igSlides();
+  const slide=list[index];
+  if(!slide) return;
+
+  const left=slide.offsetLeft-
+    (document.getElementById('gallery').clientWidth-slide.clientWidth)/2;
+
+  document.getElementById('gallery').scrollTo({
+    left,
+    behavior:smooth?'smooth':'auto'
+  });
+}
+
+function igGoTo(index,smooth=true){
+  if(igTotal<=0) return;
+
+  igCurrent=((index%igTotal)+igTotal)%igTotal;
+
+  igScrollToActual(igLoopStart+igCurrent,smooth);
+  updateIgDots();
+}
+
+function igActualIndex(){
+  const track=document.getElementById('gallery');
+  const list=igSlides();
+  if(!list.length) return 0;
+
+  const center=track.scrollLeft+track.clientWidth/2;
+  let best=0;
+  let distance=Infinity;
+
+  list.forEach((slide,index)=>{
+    const slideCenter=slide.offsetLeft+slide.clientWidth/2;
+    const d=Math.abs(slideCenter-center);
+    if(d<distance){
+      distance=d;
+      best=index;
+    }
+  });
+
+  return best;
+}
+
+function igCurrentFromActual(){
+  if(!igTotal) return 0;
+  const actual=igActualIndex();
+  return ((actual-igLoopStart)%igTotal+igTotal)%igTotal;
+}
+
+function updateIgDots(){
+  [...document.querySelectorAll('#igDots .ig-dot')]
+    .forEach((dot,index)=>{
+      dot.classList.toggle('active',index===igCurrent);
     });
-    loadIG(()=>{ if(window.instgrm) window.instgrm.Embeds.process(); });
-  }else{
-    SHADES.forEach(s=>{
-      const d=document.createElement('div'); d.className='work-tile'; d.style.setProperty('--g',s.c);
-      d.innerHTML='<span class="code">'+s.code+'</span><span class="shade">'+s.n+'</span>';
-      g.appendChild(d);
+}
+
+function createIgDots(){
+  const box=document.getElementById('igDots');
+  box.innerHTML='';
+
+  for(let i=0;i<igTotal;i++){
+    const dot=document.createElement('button');
+    dot.className='ig-dot';
+    dot.type='button';
+    dot.setAttribute('aria-label',`第 ${i+1} 張作品`);
+    dot.addEventListener('click',()=>{
+      stopIgAuto();
+      igGoTo(i,true);
+      restartIgAuto();
     });
+    box.appendChild(dot);
+  }
+
+  updateIgDots();
+}
+
+function buildIgInfinite(workList){
+  const track=document.getElementById('gallery');
+  track.innerHTML='';
+
+  /*
+   * [Clone] [Original] [Clone]
+   *
+   * 真正的第一張位於 igLoopStart。
+   * 到 Clone 區時立即無動畫跳回真正資料，
+   * 使用者視覺上會得到無限循環。
+   */
+  workList.forEach(w=>track.appendChild(createIgCard(w)));
+  workList.forEach(w=>track.appendChild(createIgCard(w)));
+  workList.forEach(w=>track.appendChild(createIgCard(w)));
+
+  igTotal=workList.length;
+  igLoopStart=igTotal;
+}
+
+function normalizeIgLoop(){
+  if(igJumping || !igTotal) return;
+
+  const actual=igActualIndex();
+
+  if(actual < igLoopStart){
+    const real=((actual-igLoopStart)+igTotal)%igTotal;
+
+    igJumping=true;
+    igScrollToActual(igLoopStart+real,false);
+    igCurrent=real;
+    updateIgDots();
+
+    requestAnimationFrame(()=>igJumping=false);
+  }
+  else if(actual >= igLoopStart+igTotal){
+    const real=(actual-igLoopStart)%igTotal;
+
+    igJumping=true;
+    igScrollToActual(igLoopStart+real,false);
+    igCurrent=real;
+    updateIgDots();
+
+    requestAnimationFrame(()=>igJumping=false);
   }
 }
-function loadIG(cb){
-  if(window.instgrm){cb();return;}
-  const s=document.createElement('script'); s.async=true; s.src='https://www.instagram.com/embed.js';
-  s.onload=cb; document.body.appendChild(s);
+
+function nextIg(){
+  if(igTotal<=1) return;
+
+  const next=igCurrent+1;
+  igCurrent=next%igTotal;
+  igScrollToActual(igLoopStart+next,true);
+  updateIgDots();
 }
+
+function prevIg(){
+  if(igTotal<=1) return;
+
+  const prev=igCurrent-1;
+  igCurrent=(prev+igTotal)%igTotal;
+  igScrollToActual(igLoopStart+prev,true);
+  updateIgDots();
+}
+
+function startIgAuto(){
+  if(igTimer || igTotal<=1) return;
+  igTimer=setInterval(nextIg,IG_AUTO_INTERVAL);
+}
+
+function stopIgAuto(){
+  clearInterval(igTimer);
+  igTimer=null;
+}
+
+function restartIgAuto(){
+  stopIgAuto();
+  clearTimeout(igResumeTimer);
+  igResumeTimer=setTimeout(startIgAuto,IG_RESUME_DELAY);
+}
+
+function bindIgCarousel(){
+  const carousel=document.getElementById('igCarousel');
+  const track=document.getElementById('gallery');
+  const prev=document.getElementById('igPrev');
+  const next=document.getElementById('igNext');
+
+  prev.onclick=()=>{
+    stopIgAuto();
+    prevIg();
+    restartIgAuto();
+  };
+
+  next.onclick=()=>{
+    stopIgAuto();
+    nextIg();
+    restartIgAuto();
+  };
+
+  track.addEventListener('scroll',()=>{
+    if(igScrollRAF) return;
+
+    igScrollRAF=requestAnimationFrame(()=>{
+      if(!igDragging){
+        igCurrent=igCurrentFromActual();
+        updateIgDots();
+      }
+
+      normalizeIgLoop();
+      igScrollRAF=null;
+    });
+  },{passive:true});
+
+  track.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='touch') return;
+
+    igDragging=true;
+    igStartX=e.clientX;
+    igStartScroll=track.scrollLeft;
+
+    track.classList.add('dragging');
+    track.setPointerCapture(e.pointerId);
+    stopIgAuto();
+  });
+
+  track.addEventListener('pointermove',e=>{
+    if(!igDragging) return;
+
+    track.scrollLeft=igStartScroll-(e.clientX-igStartX);
+  });
+
+  track.addEventListener('pointerup',()=>{
+    if(!igDragging) return;
+
+    igDragging=false;
+    track.classList.remove('dragging');
+
+    const current=igCurrentFromActual();
+    igGoTo(current,true);
+    restartIgAuto();
+  });
+
+  track.addEventListener('pointercancel',()=>{
+    igDragging=false;
+    track.classList.remove('dragging');
+    restartIgAuto();
+  });
+
+  carousel.addEventListener('mouseenter',stopIgAuto);
+  carousel.addEventListener('mouseleave',startIgAuto);
+
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden) stopIgAuto();
+    else startIgAuto();
+  });
+
+  window.addEventListener('resize',()=>{
+    requestAnimationFrame(()=>{
+      igScrollToActual(igLoopStart+igCurrent,false);
+    });
+  });
+}
+
+function renderWorks(urls){
+  const carousel=document.getElementById('igCarousel');
+  const dots=document.getElementById('igDots');
+
+  const works=(urls||[])
+    .map((item,index)=>normalizeWork(item,index))
+    .filter(w=>w.instagram);
+
+  if(!works.length){
+    /*
+     * API 沒有圖片資料時保留原本的色卡示範，
+     * 同時仍使用新的 Carousel 外框。
+     */
+    const demo=SHADES.map((s,i)=>({
+      id:`shade-${i}`,
+      date:'',
+      title:s.n,
+      summary:'',
+      image:'',
+      instagram:'',
+      category:s.code
+    }));
+
+    const track=document.getElementById('gallery');
+    track.innerHTML='';
+
+    demo.forEach(s=>{
+      const d=document.createElement('div');
+      d.className='ig-slide';
+
+      const tile=document.createElement('div');
+      tile.className='work-tile';
+      tile.style.setProperty('--g',s.category==='NO.01 WINE'?'#6D2E46':
+        s.category==='NO.02 NUDE'?'#E7C3C0':
+        s.category==='NO.03 CORAL'?'#E08A76':
+        s.category==='NO.04 CHAMPAGNE'?'#C9A86A':
+        s.category==='NO.05 MAUVE'?'#9B8AA6':'#C7A98B');
+
+      tile.innerHTML=`
+        <span class="code">${s.category}</span>
+        <span class="shade">${s.title}</span>
+      `;
+
+      d.appendChild(tile);
+      track.appendChild(d);
+    });
+
+    igTotal=demo.length;
+    igLoopStart=igTotal;
+
+    /*
+     * 示範色卡不做無限循環，避免沒有實際 IG URL 時產生
+     * 無意義的循環互動。
+     */
+    dots.innerHTML='';
+    return;
+  }
+
+  carousel.style.display='block';
+
+  buildIgInfinite(works);
+  createIgDots();
+
+  requestAnimationFrame(()=>{
+    igCurrent=0;
+    igScrollToActual(igLoopStart,false);
+    updateIgDots();
+    startIgAuto();
+  });
+}
+
 
 /* =========================================================
    行事曆（時間 × 美甲師 圓點格）
@@ -572,6 +1351,7 @@ function initUI(){
    啟動
    ========================================================= */
 initUI();
+bindIgCarousel();
 call('getUrls').then(renderWorks).catch(()=>renderWorks([]));
 call('getBookings').then(renderCal).catch(e=>document.getElementById('cal').innerHTML='<div class="loading">行事曆載入失敗</div>');
 call('getPosts').then(renderPosts).catch(()=>renderPosts([]));
