@@ -1463,32 +1463,15 @@ function extractDriveFileId(url){
   match=value.match(/[?&]id=([^&#]+)/i);
   if(match && /drive\.google\.com/i.test(value)) return match[1];
 
-  match=value.match(/drive\.google\.com\/thumbnail\?id=([^&#]+)/i);
-  if(match) return match[1];
-
   return '';
 }
 
-function normalizeDriveImageUrl(url, size='w1600'){
-  const value=String(url || '').trim();
-  if(!value) return '';
-
-  const fileId=extractDriveFileId(value);
-
-  if(fileId){
-    // thumbnail 比 /uc?export=view 更適合網站圖片預覽，
-    // 並保留一個 fallback URL 供載入失敗時切換。
-    return `https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=${size}`;
-  }
-
-  return value;
-}
-
-function getDriveImageFallback(url){
-  const fileId=extractDriveFileId(url);
-  if(!fileId) return '';
-
-  return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(fileId)}`;
+/*
+ * 圖片網址由 Apps Script + Google Drive API 提供。
+ * 不再於前端自行組合 uc?export=view 或 thumbnail URL。
+ */
+function getBlogCoverUrl(post){
+  return String(post?.coverUrl || post?.cover || '').trim();
 }
 
 function normalizeBlogPost(raw,index){
@@ -1501,8 +1484,11 @@ function normalizeBlogPost(raw,index){
     summary: String(raw?.summary || '').trim(),
     content: String(raw?.content || '').trim(),
     category: String(raw?.category || '其他').trim() || '其他',
-    cover: normalizeDriveImageUrl(originalCover),
+    cover: getBlogCoverUrl(raw),
     coverOriginal: originalCover,
+    coverSource: String(raw?.coverSource || '').trim(),
+    coverFileId: String(raw?.coverFileId || '').trim(),
+    coverMimeType: String(raw?.coverMimeType || '').trim(),
     status: String(raw?.status || 'published').trim().toLowerCase()
   };
 }
@@ -1555,23 +1541,13 @@ function renderBlogCover(container,cover,title){
   img.loading='eager';
   img.decoding='async';
 
-  let fallbackTried=false;
-
   img.addEventListener('error',()=>{
-    // Google Drive thumbnail 失敗時，再嘗試 /uc?export=view。
-    const fallback=getDriveImageFallback(cover);
-
-    if(fallback && !fallbackTried && fallback!==cover){
-      fallbackTried=true;
-      img.src=fallback;
-      return;
-    }
-
-    // 最後才顯示預設封面。
+    // Drive thumbnailLink 無法載入時，直接顯示預設封面。
+    // 不再回退到 uc?export=view。
     img.remove();
     container.textContent='✦';
     container.classList.add('placeholder');
-  });
+  },{once:true});
 
   container.appendChild(img);
 }
@@ -1653,24 +1629,15 @@ function renderBlogCards(posts){
       img.loading='lazy';
       img.decoding='async';
 
-      let fallbackTried=false;
-
       img.addEventListener('error',()=>{
-        const fallback=getDriveImageFallback(post.cover);
-
-        if(fallback && !fallbackTried && fallback!==post.cover){
-          fallbackTried=true;
-          img.src=fallback;
-          return;
-        }
-
+        // thumbnailLink 失效時直接使用預設封面，避免再次呼叫舊式 uc URL。
         img.remove();
 
         const placeholder=document.createElement('div');
         placeholder.className='post-cover-placeholder';
         placeholder.textContent='✦';
         cover.appendChild(placeholder);
-      });
+      },{once:true});
 
       cover.appendChild(img);
     }else{
