@@ -151,6 +151,21 @@
   }
   .slot-empty{ color:var(--ink-soft); font-size:0.9rem; padding:20px 0; text-align:center; }
 
+  /* Multi-select summary + simultaneous toggle */
+  .simul-row{ margin-top:16px; }
+  .simul-label{
+    display:flex; align-items:flex-start; gap:10px; cursor:pointer;
+    background:var(--rose-pale); border:1px solid #E7C6D0; border-radius:12px;
+    padding:12px 14px; font-size:0.86rem; color:var(--ink); line-height:1.5;
+  }
+  .simul-label input{ width:18px; height:18px; margin-top:1px; flex:none; accent-color:var(--rose); cursor:pointer; }
+  .svc-summary{
+    margin-top:16px; background:#FBF5F2; border:1px solid var(--line);
+    border-radius:12px; padding:14px 16px; font-size:0.88rem; line-height:1.8; color:var(--ink);
+  }
+  .svc-summary .sum-total{ color:var(--rose-deep); font-weight:700; }
+  .svc-summary .sum-part{ color:var(--ink-soft); font-family:'JetBrains Mono',monospace; font-size:0.82rem; }
+
   /* Buttons */
   .row-actions{ display:flex; gap:10px; margin-top:28px; }
   .btn{
@@ -255,8 +270,15 @@
     <!-- STEP 1: Service -->
     <div class="panel" data-step="1">
       <h2 class="panel-title">選擇服務項目</h2>
-      <p class="panel-sub">依服務時長，系統會自動排出可預約的連續時段。</p>
+      <p class="panel-sub">可複選多項服務；同部位的時間會累加，不同部位可勾「同時進行」由兩位美甲師一起完成。</p>
       <div class="choice-grid" id="serviceGrid"></div>
+      <div id="simulRow" class="simul-row" style="display:none;">
+        <label class="simul-label">
+          <input type="checkbox" id="simulCheck">
+          <span>同時進行 — 不同部位請兩位美甲師一起做，總時間以最長的部位計。</span>
+        </label>
+      </div>
+      <div id="svcSummary" class="svc-summary" style="display:none;"></div>
       <div class="row-actions">
         <button class="btn btn-primary" id="toStep2" disabled>下一步</button>
       </div>
@@ -277,7 +299,7 @@
     <!-- STEP 3: Designer -->
     <div class="panel" data-step="3">
       <h2 class="panel-title">選擇設計師</h2>
-      <p class="panel-sub">每位設計師風格略有不同，選一位陪你完成這次造型。</p>
+      <p class="panel-sub" id="designerSub">每位設計師風格略有不同，選一位陪你完成這次造型。</p>
       <div class="choice-grid" id="designerGrid"></div>
       <div class="row-actions">
         <button class="btn btn-ghost" data-back="2">上一步</button>
@@ -392,17 +414,23 @@
    ========================================================= */
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzXbx5aCEIaOuyY8moK_XxMjtid1WVsbhSZkxxYg21H0kizGa0iIHmCXOKlXqBoPV4X/exec";
 
-const DESIGNERS = ["Mina", "Yuri", "Rei"];
-const SERVICES = {
-  "素色凝膠": { duration: 90,  desc: "簡約俐落，日常首選" },
-  "手繪設計": { duration: 120, desc: "客製圖案，展現個性" },
-  "延甲造型": { duration: 150, desc: "長效造型，質感升級" }
-};
+// 設計師與服務項目改由後端提供（config 動作），開場載入
+let DESIGNERS = [];   // [{ id, designer }]
+let SERVICES  = [];   // [{ id, position, service, longtime, introduction, designer, price }]
 const WORK_START = 10 * 60;
 const WORK_END   = 20 * 60;
 const SLOT_MIN   = 30;
 
-const state = { step: 1, designer: null, date: null, service: null, startTime: null, name: "" };
+const state = {
+  step: 1,
+  date: null,
+  startTime: null,
+  name: "",
+  services: [],        // 已選服務物件陣列
+  simultaneous: false, // 是否同時進行（兩位美甲師）
+  designer: null,      // 非同時進行：單一美甲師
+  designers: []        // 同時進行：兩位美甲師
+};
 
 const STEP_LABELS = { 1:"服務項目", 2:"日期", 3:"設計師", 4:"時段", 5:"完成預約" };
 
@@ -476,41 +504,163 @@ function showPanel(step){
   renderStepper();
 }
 
-/* ---------- STEP 1: service ---------- */
+/* ---------- 服務分組 / 時間計算 ---------- */
+function groupByPosition(services){
+  const byPos = {};
+  services.forEach(s=>{
+    const p = String(s.position);
+    (byPos[p] = byPos[p] || []).push(s);
+  });
+  return byPos;
+}
+function positionCount(){ return Object.keys(groupByPosition(state.services)).length; }
+function partTime(list){ return list.reduce((sum,s)=> sum + Number(s.longtime||0), 0); }
+
+/** 總時間：同部位相加；多部位時，同時進行取最長、否則全部相加 */
+function computeDuration(){
+  const byPos = groupByPosition(state.services);
+  const posTimes = Object.keys(byPos).map(p=> partTime(byPos[p]));
+  if(posTimes.length === 0) return 0;
+  if(posTimes.length === 1) return posTimes[0];
+  return state.simultaneous ? Math.max.apply(null, posTimes)
+                            : posTimes.reduce((a,b)=>a+b,0);
+}
+function computePrice(){
+  return state.services.reduce((sum,s)=>{ const n = Number(s.price); return sum + (isNaN(n)?0:n); }, 0);
+}
+function isServiceSelected(id){ return state.services.some(s=> s.id === id); }
+
+/* ---------- STEP 1: service（複選）---------- */
 function renderServiceGrid(){
   const grid = document.getElementById("serviceGrid");
   grid.innerHTML = "";
-  Object.keys(SERVICES).forEach(name=>{
-    const svc = SERVICES[name];
+  if(!SERVICES.length){
+    grid.innerHTML = `<div class="slot-empty">尚無可預約的服務項目</div>`;
+    return;
+  }
+  SERVICES.forEach(svc=>{
     const el = document.createElement("button");
     el.type = "button";
-    el.className = "choice" + (state.service === name ? " selected" : "");
-    el.innerHTML = `<div class="c-name">${name}</div><div class="c-meta">約 ${svc.duration} 分鐘</div><div class="c-meta" style="margin-top:4px;">${svc.desc}</div>`;
-    el.addEventListener("click", ()=>{
-      state.service = name;
-      renderServiceGrid();
-      document.getElementById("toStep2").disabled = false;
-    });
+    el.className = "choice" + (isServiceSelected(svc.id) ? " selected" : "");
+    const priceLine = svc.price !== "" ? `<div class="c-meta" style="margin-top:4px;">NT$ ${svc.price}</div>` : "";
+    el.innerHTML = `<div class="c-name">${svc.service}</div><div class="c-meta">部位 ${svc.position}・約 ${svc.longtime} 分鐘</div><div class="c-meta" style="margin-top:4px;">${svc.introduction}</div>${priceLine}`;
+    el.addEventListener("click", ()=> toggleService(svc));
     grid.appendChild(el);
   });
+  refreshServiceUI();
+}
+
+function toggleService(svc){
+  const idx = state.services.findIndex(s=> s.id === svc.id);
+  if(idx >= 0) state.services.splice(idx, 1);
+  else state.services.push(svc);
+  // 服務變動 → 後續選擇需重來
+  state.designer = null; state.designers = [];
+  document.getElementById("toStep4").disabled = true;
+  renderServiceGrid();
+}
+
+/** 更新「同時進行」勾選列與摘要，並控制下一步是否可按 */
+function refreshServiceUI(){
+  const simulRow = document.getElementById("simulRow");
+  const summary  = document.getElementById("svcSummary");
+  const multiPart = positionCount() >= 2;
+
+  simulRow.style.display = multiPart ? "block" : "none";
+  if(!multiPart){                    // 少於兩個部位不能同時進行
+    state.simultaneous = false;
+    document.getElementById("simulCheck").checked = false;
+  }
+
+  if(state.services.length === 0){
+    summary.style.display = "none";
+    document.getElementById("toStep2").disabled = true;
+    return;
+  }
+
+  const byPos = groupByPosition(state.services);
+  const partLines = Object.keys(byPos).map(p=>{
+    const names = byPos[p].map(s=>s.service).join("、");
+    return `<div class="sum-part">部位 ${p}：${names}（${partTime(byPos[p])} 分）</div>`;
+  }).join("");
+  const dur = computeDuration();
+  const price = computePrice();
+  const modeNote = multiPart
+    ? (state.simultaneous ? "・兩位美甲師同時進行" : "・單一美甲師依序完成")
+    : "";
+  summary.style.display = "block";
+  summary.innerHTML =
+    partLines +
+    `<div style="margin-top:8px;">預估總時間：<span class="sum-total">${dur} 分鐘</span>${modeNote}</div>` +
+    (price > 0 ? `<div>費用小計：<span class="sum-total">NT$ ${price}</span></div>` : "");
+
+  document.getElementById("toStep2").disabled = false;
 }
 
 /* ---------- STEP 3: designer ---------- */
+function availableDesigners(){
+  let list = DESIGNERS.slice();
+  // 取所有已選服務 designer 限制的交集（該欄留空＝不限制）
+  state.services.forEach(svc=>{
+    if(svc.designer){
+      const allow = svc.designer.split(/[,，、]/).map(s=>s.trim()).filter(Boolean);
+      if(allow.length){
+        const f = list.filter(d=> allow.indexOf(d.designer) !== -1);
+        if(f.length) list = f;
+      }
+    }
+  });
+  return list;
+}
+
+function updateDesignerStep(){
+  document.getElementById("designerSub").textContent = state.simultaneous
+    ? "同時進行：請選擇兩位美甲師一起完成。"
+    : "每位設計師風格略有不同，選一位陪你完成這次造型。";
+  renderDesignerGrid();
+}
+
+function designerChosen(name){
+  return state.simultaneous ? state.designers.indexOf(name) !== -1 : state.designer === name;
+}
+
 function renderDesignerGrid(){
   const grid = document.getElementById("designerGrid");
   grid.innerHTML = "";
-  DESIGNERS.forEach(name=>{
+  const list = availableDesigners();
+  if(list.length === 0 || (state.simultaneous && list.length < 2)){
+    grid.innerHTML = `<div class="slot-empty">${state.simultaneous ? "可選的美甲師不足兩位，無法同時進行" : "尚無可選的設計師"}</div>`;
+    document.getElementById("toStep4").disabled = true;
+    return;
+  }
+  list.forEach(d=>{
     const el = document.createElement("button");
     el.type = "button";
-    el.className = "choice" + (state.designer === name ? " selected" : "");
-    el.innerHTML = `<div class="c-name">${name}</div><div class="c-meta">美甲設計師</div>`;
-    el.addEventListener("click", ()=>{
-      state.designer = name;
-      renderDesignerGrid();
-      document.getElementById("toStep4").disabled = false;
-    });
+    el.className = "choice" + (designerChosen(d.designer) ? " selected" : "");
+    el.innerHTML = `<div class="c-name">${d.designer}</div><div class="c-meta">美甲設計師</div>`;
+    el.addEventListener("click", ()=> toggleDesigner(d.designer));
     grid.appendChild(el);
   });
+  updateDesignerNext();
+}
+
+function toggleDesigner(name){
+  if(state.simultaneous){
+    const i = state.designers.indexOf(name);
+    if(i >= 0) state.designers.splice(i, 1);
+    else {
+      if(state.designers.length >= 2) state.designers.shift(); // 最多兩位，超過替換最舊
+      state.designers.push(name);
+    }
+  } else {
+    state.designer = name;
+  }
+  renderDesignerGrid();
+}
+
+function updateDesignerNext(){
+  const ok = state.simultaneous ? state.designers.length === 2 : !!state.designer;
+  document.getElementById("toStep4").disabled = !ok;
 }
 
 /* ---------- STEP 4: slots ---------- */
@@ -520,9 +670,14 @@ async function loadSlots(){
   document.getElementById("toStep5").disabled = true;
   state.startTime = null;
   try{
-    const data = await callApi("slots", { date: state.date, designer: state.designer });
-    const available = computeAvailable(data.bookedRanges || [], SERVICES[state.service].duration);
-    const bookedStarts = new Set((data.bookedRanges||[]).map(r=>r.startTime));
+    // 同時進行需兩位都有空 → 合併兩人的已佔用時段一起計算
+    const designers = state.simultaneous ? state.designers : [state.designer];
+    let booked = [];
+    for(const dz of designers){
+      const data = await callApi("slots", { date: state.date, designer: dz });
+      booked = booked.concat(data.bookedRanges || []);
+    }
+    const available = computeAvailable(booked, computeDuration());
     if(available.length === 0){
       area.innerHTML = `<div class="slot-empty">這天已經沒有足夠長度的空檔了，換一天看看吧。</div>`;
       return;
@@ -530,22 +685,17 @@ async function loadSlots(){
     area.innerHTML = "";
     const grid = document.createElement("div");
     grid.className = "slot-grid";
-    generateAllSlots().forEach(slot=>{
-      if(!available.includes(slot) && !bookedStarts.has(slot)) return; // hide slots that don't even start a valid window and aren't shown as booked marker
+    available.forEach(slot=>{
       const btn = document.createElement("button");
       btn.type = "button";
-      const isAvailable = available.includes(slot);
-      btn.className = "slot" + (isAvailable ? "" : " booked") + (state.startTime===slot ? " selected":"");
+      btn.className = "slot" + (state.startTime===slot ? " selected":"");
       btn.textContent = slot;
-      btn.disabled = !isAvailable;
-      if(isAvailable){
-        btn.addEventListener("click", ()=>{
-          state.startTime = slot;
-          document.getElementById("toStep5").disabled = false;
-          Array.from(grid.children).forEach(c=>c.classList.remove("selected"));
-          btn.classList.add("selected");
-        });
-      }
+      btn.addEventListener("click", ()=>{
+        state.startTime = slot;
+        document.getElementById("toStep5").disabled = false;
+        Array.from(grid.children).forEach(c=>c.classList.remove("selected"));
+        btn.classList.add("selected");
+      });
       grid.appendChild(btn);
     });
     area.appendChild(grid);
@@ -555,20 +705,32 @@ async function loadSlots(){
 }
 
 /* ---------- STEP 5: review + submit ---------- */
+function serviceNames(){ return state.services.map(s=>s.service).join("＋"); }
+function designerText(){
+  return state.simultaneous ? state.designers.join("、") + "（同時進行）" : state.designer;
+}
 function renderReview(){
-  const dur = SERVICES[state.service].duration;
+  const dur = computeDuration();
   const endTime = fromMins(toMins(state.startTime) + dur);
+  const price = computePrice();
+  const priceLine = price > 0 ? `<br>費用：<b>NT$ ${price}</b>` : "";
   document.getElementById("reviewBox").innerHTML = `
-    服務：<b>${state.service}</b>（約 ${dur} 分鐘）<br>
+    服務：<b>${serviceNames()}</b>（約 ${dur} 分鐘）<br>
     日期：<b>${state.date}</b><br>
-    設計師：<b>${state.designer}</b><br>
-    時段：<b>${state.startTime} – ${endTime}</b>
+    設計師：<b>${designerText()}</b><br>
+    時段：<b>${state.startTime} – ${endTime}</b>${priceLine}
   `;
 }
 
 /* ---------- wiring ---------- */
 document.getElementById("toStep2").addEventListener("click", ()=>showPanel(2));
-document.getElementById("toStep3").addEventListener("click", ()=>showPanel(3));
+document.getElementById("toStep3").addEventListener("click", ()=>{ updateDesignerStep(); showPanel(3); });
+document.getElementById("simulCheck").addEventListener("change", (e)=>{
+  state.simultaneous = e.target.checked;
+  state.designer = null; state.designers = [];
+  document.getElementById("toStep4").disabled = true;
+  refreshServiceUI();
+});
 document.getElementById("toStep4").addEventListener("click", ()=>{ showPanel(4); loadSlots(); });
 document.getElementById("toStep5").addEventListener("click", ()=>{ renderReview(); showPanel(5); });
 document.querySelectorAll("[data-back]").forEach(btn=>{
@@ -594,15 +756,20 @@ document.getElementById("submitBooking").addEventListener("click", async ()=>{
   btn.disabled = true; btn.textContent = "送出中…";
   try{
     const data = await callApi("book", {
-      name, date: state.date, designer: state.designer,
-      service: state.service, startTime: state.startTime
+      name, date: state.date, startTime: state.startTime,
+      serviceIds: state.services.map(s=>s.id).join(","),
+      simultaneous: state.simultaneous ? "1" : "0",
+      designer: state.simultaneous ? "" : state.designer,
+      designers: state.simultaneous ? state.designers.join(",") : ""
     });
+    const price = computePrice();
+    const priceLine = price > 0 ? `費用：<b>NT$ ${price}</b><br>` : "";
     document.getElementById("successBox").innerHTML = `
-      服務：<b>${state.service}</b><br>
+      服務：<b>${serviceNames()}</b><br>
       日期：<b>${state.date}</b><br>
-      設計師：<b>${state.designer}</b><br>
+      設計師：<b>${designerText()}</b><br>
       時段：<b>${state.startTime} – ${data.endTime}</b><br>
-      姓名：<b>${name}</b><br>
+      ${priceLine}姓名：<b>${name}</b><br>
       狀態：<span class="confirm-status">待確認</span>
     `;
     showPanel(6);
@@ -616,9 +783,12 @@ document.getElementById("submitBooking").addEventListener("click", async ()=>{
 });
 
 document.getElementById("restartBtn").addEventListener("click", ()=>{
-  state.designer = null; state.date = null; state.service = null; state.startTime = null;
+  state.services = []; state.simultaneous = false;
+  state.designer = null; state.designers = [];
+  state.date = null; state.startTime = null;
   document.getElementById("dateInput").value = "";
   document.getElementById("nameInput").value = "";
+  document.getElementById("simulCheck").checked = false;
   document.getElementById("toStep2").disabled = true;
   document.getElementById("toStep3").disabled = true;
   document.getElementById("toStep4").disabled = true;
@@ -629,9 +799,22 @@ document.getElementById("restartBtn").addEventListener("click", ()=>{
 });
 
 /* ---------- init customer flow ---------- */
-renderServiceGrid();
-renderDesignerGrid();
+async function initConfig(){
+  const grid = document.getElementById("serviceGrid");
+  grid.innerHTML = `<div class="slot-empty">載入中…</div>`;
+  try{
+    const data = await callApi("config", {});
+    DESIGNERS = data.designers || [];
+    SERVICES  = data.services  || [];
+    renderServiceGrid();
+    renderDesignerGrid();
+    populateAdminSelects();
+  }catch(e){
+    grid.innerHTML = `<div class="error-msg">${e.message}</div>`;
+  }
+}
 showPanel(1);
+initConfig();
 
 /* =========================================================
    ADMIN
@@ -640,13 +823,13 @@ let adminPin = "";
 
 function populateAdminSelects(){
   const designerSel = document.getElementById("adminDesigner");
-  designerSel.innerHTML = DESIGNERS.map(d=>`<option value="${d}">${d}</option>`).join("");
+  designerSel.innerHTML = DESIGNERS.map(d=>`<option value="${d.designer}">${d.designer}</option>`).join("");
   const serviceSel = document.getElementById("addService");
-  serviceSel.innerHTML = Object.keys(SERVICES).map(s=>`<option value="${s}">${s}（${SERVICES[s].duration}分）</option>`).join("");
+  serviceSel.innerHTML = SERVICES.map(s=>`<option value="${s.id}">${s.service}（${s.longtime}分）</option>`).join("");
   document.getElementById("adminDate").min = todayStr();
   document.getElementById("adminDate").value = todayStr();
 }
-populateAdminSelects();
+// 設定載入完成後，由 initConfig() 呼叫 populateAdminSelects()
 
 document.getElementById("openAdmin").addEventListener("click", ()=>{
   document.getElementById("adminBackdrop").classList.add("active");
@@ -719,7 +902,7 @@ document.getElementById("addSubmit").addEventListener("click", async ()=>{
   const errEl = document.getElementById("addError");
   errEl.innerHTML = "";
   const name = document.getElementById("addName").value.trim();
-  const service = document.getElementById("addService").value;
+  const serviceId = document.getElementById("addService").value;
   const startTime = document.getElementById("addStart").value.trim();
   const designer = document.getElementById("adminDesigner").value;
   const date = document.getElementById("adminDate").value;
@@ -730,7 +913,7 @@ document.getElementById("addSubmit").addEventListener("click", async ()=>{
   const btn = document.getElementById("addSubmit");
   btn.disabled = true; btn.textContent = "新增中…";
   try{
-    await callApi("admin_add", { pin: adminPin, name, date, designer, service, startTime });
+    await callApi("admin_add", { pin: adminPin, name, date, designer, serviceId, startTime });
     document.getElementById("addName").value = "";
     document.getElementById("addStart").value = "";
     queryAdmin();
