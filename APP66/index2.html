@@ -166,6 +166,23 @@
   .svc-summary .sum-total{ color:var(--rose-deep); font-weight:700; }
   .svc-summary .sum-part{ color:var(--ink-soft); font-family:'JetBrains Mono',monospace; font-size:0.82rem; }
 
+  /* Per-position designer blocks */
+  .pos-block{ margin-bottom:18px; }
+  .pos-block:last-child{ margin-bottom:0; }
+  .pos-title{
+    font-size:0.86rem; font-weight:700; color:var(--ink); margin-bottom:10px;
+    padding-left:10px; border-left:3px solid var(--rose);
+  }
+  .choice.dim{ opacity:0.38; cursor:not-allowed; }
+  .choice.dim:hover{ transform:none; border-color:var(--line); }
+
+  /* 14-day calendar */
+  .cal-day{ padding:12px 0; border-bottom:1px dashed var(--line); }
+  .cal-day:last-child{ border-bottom:none; }
+  .cal-date{ font-size:0.86rem; font-weight:700; color:var(--ink); margin-bottom:8px; }
+  .cal-chips{ display:grid; grid-template-columns:repeat(auto-fill, minmax(72px,1fr)); gap:8px; }
+  .cal-full{ font-size:0.82rem; color:#B8A7AE; }
+
   /* Buttons */
   .row-actions{ display:flex; gap:10px; margin-top:28px; }
   .btn{
@@ -284,42 +301,30 @@
       </div>
     </div>
 
-    <!-- STEP 2: Date -->
+    <!-- STEP 2: Designer (per position) -->
     <div class="panel" data-step="2">
-      <h2 class="panel-title">選擇日期</h2>
-      <p class="panel-sub">營業時間為每日 10:00–20:00。</p>
-      <label class="field-label" for="dateInput">預約日期</label>
-      <input type="date" id="dateInput">
+      <h2 class="panel-title">選擇設計師</h2>
+      <p class="panel-sub" id="designerSub">請為每個部位指派一位美甲師。</p>
+      <div id="designerGrid"></div>
       <div class="row-actions">
         <button class="btn btn-ghost" data-back="1">上一步</button>
         <button class="btn btn-primary" id="toStep3" disabled>下一步</button>
       </div>
     </div>
 
-    <!-- STEP 3: Designer -->
+    <!-- STEP 3: Time slot (14-day calendar) -->
     <div class="panel" data-step="3">
-      <h2 class="panel-title">選擇設計師</h2>
-      <p class="panel-sub" id="designerSub">每位設計師風格略有不同，選一位陪你完成這次造型。</p>
-      <div class="choice-grid" id="designerGrid"></div>
+      <h2 class="panel-title">選擇預約時段</h2>
+      <p class="panel-sub" id="slotSub">以下為近兩週、依美甲師空檔整理的可預約時段，點選即可。</p>
+      <div id="slotArea"><div class="slot-empty">請先完成前面的選擇</div></div>
       <div class="row-actions">
         <button class="btn btn-ghost" data-back="2">上一步</button>
         <button class="btn btn-primary" id="toStep4" disabled>下一步</button>
       </div>
     </div>
 
-    <!-- STEP 4: Time slot -->
+    <!-- STEP 4: Contact + confirm -->
     <div class="panel" data-step="4">
-      <h2 class="panel-title">選擇時段</h2>
-      <p class="panel-sub" id="slotSub">開放的時段如下，點選一個開始時間。</p>
-      <div id="slotArea"><div class="slot-empty">請先完成前面的選擇</div></div>
-      <div class="row-actions">
-        <button class="btn btn-ghost" data-back="3">上一步</button>
-        <button class="btn btn-primary" id="toStep5" disabled>下一步</button>
-      </div>
-    </div>
-
-    <!-- STEP 5: Contact + confirm -->
-    <div class="panel" data-step="5">
       <h2 class="panel-title">留下您的姓名</h2>
       <p class="panel-sub">確認以下資訊無誤後即可完成預約。</p>
       <label class="field-label" for="nameInput">姓名 / 稱呼</label>
@@ -327,13 +332,13 @@
       <div class="confirm-summary" id="reviewBox"></div>
       <div id="bookError"></div>
       <div class="row-actions">
-        <button class="btn btn-ghost" data-back="4">上一步</button>
+        <button class="btn btn-ghost" data-back="3">上一步</button>
         <button class="btn btn-primary" id="submitBooking">確認預約</button>
       </div>
     </div>
 
-    <!-- STEP 6: Success -->
-    <div class="panel" data-step="6">
+    <!-- STEP 5: Success -->
+    <div class="panel" data-step="5">
       <div class="confirm-box">
         <svg class="confirm-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2c1.2 2 1.2 4 0 6-1.2-2-1.2-4 0-6Z" fill="#B85C7A"/><path d="M12 2c1.2 2 1.2 4 0 6-1.2-2-1.2-4 0-6Z" fill="#B85C7A" transform="rotate(72 12 12)"/><path d="M12 2c1.2 2 1.2 4 0 6-1.2-2-1.2-4 0-6Z" fill="#B85C7A" transform="rotate(144 12 12)"/><path d="M12 2c1.2 2 1.2 4 0 6-1.2-2-1.2-4 0-6Z" fill="#B85C7A" transform="rotate(216 12 12)"/><path d="M12 2c1.2 2 1.2 4 0 6-1.2-2-1.2-4 0-6Z" fill="#B85C7A" transform="rotate(288 12 12)"/><circle cx="12" cy="12" r="2.3" fill="#7C8F6E"/></svg>
         <h2 class="panel-title">預約已送出</h2>
@@ -427,12 +432,11 @@ const state = {
   startTime: null,
   name: "",
   services: [],        // 已選服務物件陣列
-  simultaneous: false, // 是否同時進行（兩位美甲師）
-  designer: null,      // 非同時進行：單一美甲師
-  designers: []        // 同時進行：兩位美甲師
+  simultaneous: false, // 是否同時進行（各部位由不同美甲師並行）
+  assign: {}           // 每個部位指派的美甲師：{ position: designer }
 };
 
-const STEP_LABELS = { 1:"服務項目", 2:"日期", 3:"設計師", 4:"時段", 5:"完成預約" };
+const STEP_LABELS = { 1:"服務項目", 2:"設計師", 3:"時段", 4:"完成預約" };
 
 /* ---------- helpers ---------- */
 function toMins(t){ const [h,m] = t.split(":").map(Number); return h*60+m; }
@@ -476,7 +480,8 @@ async function callApi(action, params){
 function renderStepper(){
   const stepper = document.getElementById("stepper");
   stepper.innerHTML = "";
-  for(let i=1;i<=5;i++){
+  const total = Object.keys(STEP_LABELS).length;
+  for(let i=1;i<=total;i++){
     const group = document.createElement("div");
     group.className = "step-dot-group";
     const bud = document.createElement("div");
@@ -486,7 +491,7 @@ function renderStepper(){
     bud.className = cls;
     bud.innerHTML = `<span class="num">${i}</span><svg viewBox="0 0 24 24" fill="none"><path d="M12 4c1 1.6 1 3.2 0 4.8-1-1.6-1-3.2 0-4.8Z" fill="white"/><path d="M12 4c1 1.6 1 3.2 0 4.8-1-1.6-1-3.2 0-4.8Z" fill="white" transform="rotate(120 12 12)"/><path d="M12 4c1 1.6 1 3.2 0 4.8-1-1.6-1-3.2 0-4.8Z" fill="white" transform="rotate(240 12 12)"/></svg>`;
     group.appendChild(bud);
-    if(i < 5){
+    if(i < total){
       const line = document.createElement("div");
       line.className = "step-line" + (i < state.step ? " done" : "");
       group.appendChild(line);
@@ -530,6 +535,15 @@ function computePrice(){
 }
 function isServiceSelected(id){ return state.services.some(s=> s.id === id); }
 
+/* 部位排序：兩者皆數字則比數字，否則比字串 */
+function positionCompare(a,b){
+  const na = Number(a), nb = Number(b);
+  if(!isNaN(na) && !isNaN(nb)) return na - nb;
+  return String(a) < String(b) ? -1 : String(a) > String(b) ? 1 : 0;
+}
+function orderedPositions(){ return Object.keys(groupByPosition(state.services)).sort(positionCompare); }
+function positionServices(pos){ return state.services.filter(s=> String(s.position) === String(pos)); }
+
 /* ---------- STEP 1: service（複選）---------- */
 function renderServiceGrid(){
   const grid = document.getElementById("serviceGrid");
@@ -554,9 +568,9 @@ function toggleService(svc){
   const idx = state.services.findIndex(s=> s.id === svc.id);
   if(idx >= 0) state.services.splice(idx, 1);
   else state.services.push(svc);
-  // 服務變動 → 後續選擇需重來
-  state.designer = null; state.designers = [];
-  document.getElementById("toStep4").disabled = true;
+  // 服務變動 → 部位可能改變，清空指派並鎖住後續
+  state.assign = {};
+  document.getElementById("toStep3").disabled = true;
   renderServiceGrid();
 }
 
@@ -597,108 +611,197 @@ function refreshServiceUI(){
   document.getElementById("toStep2").disabled = false;
 }
 
-/* ---------- STEP 3: designer ---------- */
-function availableDesigners(){
-  let list = DESIGNERS.slice();
-  // 取所有已選服務 designer 限制的交集（該欄留空＝不限制）
-  state.services.forEach(svc=>{
-    if(svc.designer){
-      const allow = svc.designer.split(/[,，、]/).map(s=>s.trim()).filter(Boolean);
+/* ---------- STEP 3: designer（每部位指派一位）---------- */
+// 該部位可施作的美甲師：需能做該部位「所有」已選服務（各服務 designer 限制的交集；留空＝全部）
+function candidateDesigners(pos){
+  let names = DESIGNERS.map(d=> d.designer);
+  positionServices(pos).forEach(s=>{
+    if(s.designer){
+      const allow = s.designer.split(/[,，、]/).map(x=>x.trim()).filter(Boolean);
       if(allow.length){
-        const f = list.filter(d=> allow.indexOf(d.designer) !== -1);
-        if(f.length) list = f;
+        const f = names.filter(n=> allow.indexOf(n) !== -1);
+        if(f.length) names = f;
       }
     }
   });
-  return list;
+  return names;
+}
+// 同時進行時，某美甲師是否已被指派到其他部位
+function isDesignerUsedElsewhere(pos, name){
+  return orderedPositions().some(p=> p !== pos && state.assign[p] === name);
 }
 
 function updateDesignerStep(){
   document.getElementById("designerSub").textContent = state.simultaneous
-    ? "同時進行：請選擇兩位美甲師一起完成。"
-    : "每位設計師風格略有不同，選一位陪你完成這次造型。";
+    ? "同時進行：請為每個部位各指派一位不同的美甲師。"
+    : "請為每個部位指派一位美甲師。";
   renderDesignerGrid();
 }
 
-function designerChosen(name){
-  return state.simultaneous ? state.designers.indexOf(name) !== -1 : state.designer === name;
-}
-
 function renderDesignerGrid(){
-  const grid = document.getElementById("designerGrid");
-  grid.innerHTML = "";
-  const list = availableDesigners();
-  if(list.length === 0 || (state.simultaneous && list.length < 2)){
-    grid.innerHTML = `<div class="slot-empty">${state.simultaneous ? "可選的美甲師不足兩位，無法同時進行" : "尚無可選的設計師"}</div>`;
-    document.getElementById("toStep4").disabled = true;
+  const wrap = document.getElementById("designerGrid");
+  wrap.innerHTML = "";
+  const posList = orderedPositions();
+  if(posList.length === 0){
+    wrap.innerHTML = `<div class="slot-empty">請先選擇服務項目</div>`;
+    document.getElementById("toStep3").disabled = true;
     return;
   }
-  list.forEach(d=>{
-    const el = document.createElement("button");
-    el.type = "button";
-    el.className = "choice" + (designerChosen(d.designer) ? " selected" : "");
-    el.innerHTML = `<div class="c-name">${d.designer}</div><div class="c-meta">美甲設計師</div>`;
-    el.addEventListener("click", ()=> toggleDesigner(d.designer));
-    grid.appendChild(el);
+  posList.forEach(pos=>{
+    const block = document.createElement("div");
+    block.className = "pos-block";
+    const svcNames = positionServices(pos).map(s=>s.service).join("、");
+    const title = document.createElement("div");
+    title.className = "pos-title";
+    title.textContent = `部位 ${pos}：${svcNames}`;
+    block.appendChild(title);
+
+    const grid = document.createElement("div");
+    grid.className = "choice-grid";
+    const cands = candidateDesigners(pos);
+    if(cands.length === 0){
+      const empty = document.createElement("div");
+      empty.className = "slot-empty";
+      empty.textContent = "這個部位目前沒有可施作的美甲師";
+      grid.appendChild(empty);
+    } else {
+      cands.forEach(name=>{
+        const dimmed = state.simultaneous && isDesignerUsedElsewhere(pos, name);
+        const el = document.createElement("button");
+        el.type = "button";
+        el.className = "choice" + (state.assign[pos] === name ? " selected" : "") + (dimmed ? " dim" : "");
+        el.innerHTML = `<div class="c-name">${name}</div><div class="c-meta">美甲設計師</div>`;
+        el.addEventListener("click", ()=>{
+          if(state.simultaneous && isDesignerUsedElsewhere(pos, name)) return; // 同時進行不可重複指派
+          state.assign[pos] = name;
+          renderDesignerGrid();
+        });
+        grid.appendChild(el);
+      });
+    }
+    block.appendChild(grid);
+    wrap.appendChild(block);
   });
   updateDesignerNext();
 }
 
-function toggleDesigner(name){
-  if(state.simultaneous){
-    const i = state.designers.indexOf(name);
-    if(i >= 0) state.designers.splice(i, 1);
-    else {
-      if(state.designers.length >= 2) state.designers.shift(); // 最多兩位，超過替換最舊
-      state.designers.push(name);
-    }
-  } else {
-    state.designer = name;
-  }
-  renderDesignerGrid();
-}
-
 function updateDesignerNext(){
-  const ok = state.simultaneous ? state.designers.length === 2 : !!state.designer;
-  document.getElementById("toStep4").disabled = !ok;
+  const posList = orderedPositions();
+  let ok = posList.length > 0 && posList.every(p=> !!state.assign[p]);
+  if(ok && state.simultaneous){
+    const used = posList.map(p=> state.assign[p]);
+    ok = new Set(used).size === used.length;   // 各部位須為不同美甲師
+  }
+  document.getElementById("toStep3").disabled = !ok;
 }
 
 /* ---------- STEP 4: slots ---------- */
-async function loadSlots(){
+/* 依部位建立工作項：{designer, offset(分), duration(分)} */
+function buildTasks(){
+  const posList = orderedPositions();
+  const times = posList.map(p=> partTime(positionServices(p)));
+  const tasks = [];
+  let cum = 0;
+  posList.forEach((p, i)=>{
+    tasks.push({ designer: state.assign[p], offset: state.simultaneous ? 0 : cum, duration: times[i] });
+    cum += times[i];
+  });
+  return tasks;
+}
+/* 對每個候選開始時間，檢查各部位美甲師在各自子時段是否有空 */
+function computeAvailableMulti(tasks, bookedByDesigner){
+  const total = Math.max.apply(null, tasks.map(t=> t.offset + t.duration));
+  const out = [];
+  for(let S = WORK_START; S + total <= WORK_END; S += SLOT_MIN){
+    let ok = true;
+    for(const t of tasks){
+      const ws = S + t.offset, we = ws + t.duration;
+      const ranges = bookedByDesigner[t.designer] || [];
+      if(ranges.some(r=> ws < r[1] && r[0] < we)){ ok = false; break; }
+    }
+    if(ok) out.push(fromMins(S));
+  }
+  return out;
+}
+
+/* ---------- STEP 3: 14 天行事曆時段 ---------- */
+function pad2(n){ return ('0'+n).slice(-2); }
+function dateStr(d){ return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+function next14Dates(){
+  const arr = [];
+  const base = new Date(); base.setHours(0,0,0,0);
+  for(let i=0;i<14;i++){ const d = new Date(base); d.setDate(base.getDate()+i); arr.push(d); }
+  return arr;
+}
+const WEEK = ['日','一','二','三','四','五','六'];
+
+async function loadCalendar(){
   const area = document.getElementById("slotArea");
   area.innerHTML = `<div class="slot-empty">載入中…</div>`;
-  document.getElementById("toStep5").disabled = true;
-  state.startTime = null;
+  document.getElementById("toStep4").disabled = true;
+  state.date = null; state.startTime = null;
   try{
-    // 同時進行需兩位都有空 → 合併兩人的已佔用時段一起計算
-    const designers = state.simultaneous ? state.designers : [state.designer];
-    let booked = [];
-    for(const dz of designers){
-      const data = await callApi("slots", { date: state.date, designer: dz });
-      booked = booked.concat(data.bookedRanges || []);
+    const tasks = buildTasks();
+    const distinct = tasks.map(t=>t.designer).filter((v,i,a)=> a.indexOf(v)===i);
+    const dates = next14Dates();
+    const startDate = dateStr(dates[0]);
+
+    // 每位美甲師整段 14 天的預約，只抓一次
+    const rangeByDesigner = {};
+    for(const dz of distinct){
+      const data = await callApi("slots_range", { designer: dz, date: startDate, days: "14" });
+      rangeByDesigner[dz] = data.bookedByDate || {};
     }
-    const available = computeAvailable(booked, computeDuration());
-    if(available.length === 0){
-      area.innerHTML = `<div class="slot-empty">這天已經沒有足夠長度的空檔了，換一天看看吧。</div>`;
-      return;
-    }
+
+    const now = new Date();
+    const todayS = dateStr(now);
+    const nowMin = now.getHours()*60 + now.getMinutes();
+
     area.innerHTML = "";
-    const grid = document.createElement("div");
-    grid.className = "slot-grid";
-    available.forEach(slot=>{
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "slot" + (state.startTime===slot ? " selected":"");
-      btn.textContent = slot;
-      btn.addEventListener("click", ()=>{
-        state.startTime = slot;
-        document.getElementById("toStep5").disabled = false;
-        Array.from(grid.children).forEach(c=>c.classList.remove("selected"));
-        btn.classList.add("selected");
+    let anyAvail = false;
+
+    dates.forEach(d=>{
+      const ds = dateStr(d);
+      const bookedByDesigner = {};
+      distinct.forEach(dz=>{
+        bookedByDesigner[dz] = (rangeByDesigner[dz][ds] || []).map(r=> [toMins(r.startTime), toMins(r.endTime)]);
       });
-      grid.appendChild(btn);
+      let avail = computeAvailableMulti(tasks, bookedByDesigner);
+      if(ds === todayS) avail = avail.filter(t=> toMins(t) > nowMin);  // 今天只留未來時段
+
+      const day = document.createElement("div");
+      day.className = "cal-day";
+      const label = `${ds.slice(5)}（週${WEEK[d.getDay()]}）`;
+
+      if(avail.length === 0){
+        day.innerHTML = `<div class="cal-date">${label}</div><div class="cal-full">已額滿</div>`;
+      } else {
+        anyAvail = true;
+        const dateEl = document.createElement("div");
+        dateEl.className = "cal-date"; dateEl.textContent = label;
+        const chips = document.createElement("div");
+        chips.className = "cal-chips";
+        avail.forEach(slot=>{
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "slot";
+          btn.textContent = slot;
+          btn.addEventListener("click", ()=>{
+            state.date = ds; state.startTime = slot;
+            document.getElementById("toStep4").disabled = false;
+            area.querySelectorAll(".slot.selected").forEach(c=> c.classList.remove("selected"));
+            btn.classList.add("selected");
+          });
+          chips.appendChild(btn);
+        });
+        day.appendChild(dateEl); day.appendChild(chips);
+      }
+      area.appendChild(day);
     });
-    area.appendChild(grid);
+
+    if(!anyAvail){
+      area.innerHTML = `<div class="slot-empty">近兩週都已額滿，請稍後再試或直接聯繫店家。</div>`;
+    }
   }catch(e){
     area.innerHTML = `<div class="error-msg">${e.message}</div>`;
   }
@@ -707,7 +810,8 @@ async function loadSlots(){
 /* ---------- STEP 5: review + submit ---------- */
 function serviceNames(){ return state.services.map(s=>s.service).join("＋"); }
 function designerText(){
-  return state.simultaneous ? state.designers.join("、") + "（同時進行）" : state.designer;
+  const t = orderedPositions().map(p=> `${p}：${state.assign[p]}`).join("、");
+  return state.simultaneous ? t + "（同時進行）" : t;
 }
 function renderReview(){
   const dur = computeDuration();
@@ -723,24 +827,17 @@ function renderReview(){
 }
 
 /* ---------- wiring ---------- */
-document.getElementById("toStep2").addEventListener("click", ()=>showPanel(2));
-document.getElementById("toStep3").addEventListener("click", ()=>{ updateDesignerStep(); showPanel(3); });
+document.getElementById("toStep2").addEventListener("click", ()=>{ updateDesignerStep(); showPanel(2); });
+document.getElementById("toStep3").addEventListener("click", ()=>{ showPanel(3); loadCalendar(); });
 document.getElementById("simulCheck").addEventListener("change", (e)=>{
   state.simultaneous = e.target.checked;
-  state.designer = null; state.designers = [];
-  document.getElementById("toStep4").disabled = true;
+  state.assign = {};
+  document.getElementById("toStep3").disabled = true;
   refreshServiceUI();
 });
-document.getElementById("toStep4").addEventListener("click", ()=>{ showPanel(4); loadSlots(); });
-document.getElementById("toStep5").addEventListener("click", ()=>{ renderReview(); showPanel(5); });
+document.getElementById("toStep4").addEventListener("click", ()=>{ renderReview(); showPanel(4); });
 document.querySelectorAll("[data-back]").forEach(btn=>{
   btn.addEventListener("click", ()=> showPanel(Number(btn.dataset.back)));
-});
-
-document.getElementById("dateInput").min = todayStr();
-document.getElementById("dateInput").addEventListener("change", (e)=>{
-  state.date = e.target.value;
-  document.getElementById("toStep3").disabled = !state.date;
 });
 
 document.getElementById("submitBooking").addEventListener("click", async ()=>{
@@ -759,8 +856,7 @@ document.getElementById("submitBooking").addEventListener("click", async ()=>{
       name, date: state.date, startTime: state.startTime,
       serviceIds: state.services.map(s=>s.id).join(","),
       simultaneous: state.simultaneous ? "1" : "0",
-      designer: state.simultaneous ? "" : state.designer,
-      designers: state.simultaneous ? state.designers.join(",") : ""
+      assign: JSON.stringify(state.assign)
     });
     const price = computePrice();
     const priceLine = price > 0 ? `費用：<b>NT$ ${price}</b><br>` : "";
@@ -772,27 +868,24 @@ document.getElementById("submitBooking").addEventListener("click", async ()=>{
       ${priceLine}姓名：<b>${name}</b><br>
       狀態：<span class="confirm-status">待確認</span>
     `;
-    showPanel(6);
+    showPanel(5);
   }catch(e){
     errBox.innerHTML = `<div class="error-msg">${e.message}，請重新選擇時段。</div>`;
-    // Refresh slots in background in case of conflict
-    loadSlots();
+    // 若因衝突失敗，背景重新整理行事曆
+    loadCalendar();
   }finally{
     btn.disabled = false; btn.textContent = "確認預約";
   }
 });
 
 document.getElementById("restartBtn").addEventListener("click", ()=>{
-  state.services = []; state.simultaneous = false;
-  state.designer = null; state.designers = [];
+  state.services = []; state.simultaneous = false; state.assign = {};
   state.date = null; state.startTime = null;
-  document.getElementById("dateInput").value = "";
   document.getElementById("nameInput").value = "";
   document.getElementById("simulCheck").checked = false;
   document.getElementById("toStep2").disabled = true;
   document.getElementById("toStep3").disabled = true;
   document.getElementById("toStep4").disabled = true;
-  document.getElementById("toStep5").disabled = true;
   renderServiceGrid();
   renderDesignerGrid();
   showPanel(1);
