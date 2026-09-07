@@ -176,12 +176,21 @@
   .choice.dim{ opacity:0.38; cursor:not-allowed; }
   .choice.dim:hover{ transform:none; border-color:var(--line); }
 
-  /* 14-day calendar */
-  .cal-day{ padding:12px 0; border-bottom:1px dashed var(--line); }
-  .cal-day:last-child{ border-bottom:none; }
-  .cal-date{ font-size:0.86rem; font-weight:700; color:var(--ink); margin-bottom:8px; }
-  .cal-chips{ display:grid; grid-template-columns:repeat(auto-fill, minmax(72px,1fr)); gap:8px; }
-  .cal-full{ font-size:0.82rem; color:#B8A7AE; }
+  /* 14-day calendar — 一週一列，日期橫向、時段縱向 */
+  .cal-week{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:14px; }
+  .cal-week:last-child{ margin-bottom:0; }
+  .cal-col{ min-width:0; }
+  .cal-colhead{
+    text-align:center; padding:6px 2px 8px; border-bottom:2px solid var(--line); margin-bottom:8px;
+  }
+  .cal-colhead.today{ border-bottom-color:var(--rose); }
+  .cal-dow{ font-size:0.68rem; color:var(--ink-soft); font-weight:600; }
+  .cal-dom{ font-size:0.82rem; color:var(--ink); font-weight:700; font-family:'JetBrains Mono',monospace; margin-top:2px; }
+  .cal-colhead.today .cal-dom{ color:var(--rose-deep); }
+  .cal-slots{ display:flex; flex-direction:column; gap:6px; }
+  .cal-slots .slot{ padding:7px 2px; font-size:0.74rem; }
+  .cal-slots .slot.selected::before{ content:""; }
+  .cal-none{ text-align:center; color:#C9BAC0; font-size:0.8rem; padding:8px 0; }
 
   /* Buttons */
   .row-actions{ display:flex; gap:10px; margin-top:28px; }
@@ -417,7 +426,7 @@
    設定：請將下方 SCRIPT_URL 換成你部署後的 Apps Script 網址
    （部署 → 網頁應用程式 → 複製網址）
    ========================================================= */
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwpy3LX2iKLHDXMrz9Uio0ZQPZcJS3uC1hHY62-3Ko1wn7ev4aEh3VgBSYG8SKJF--b/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzXbx5aCEIaOuyY8moK_XxMjtid1WVsbhSZkxxYg21H0kizGa0iIHmCXOKlXqBoPV4X/exec";
 
 // 設計師與服務項目改由後端提供（config 動作），開場載入
 let DESIGNERS = [];   // [{ id, designer }]
@@ -759,45 +768,58 @@ async function loadCalendar(){
 
     area.innerHTML = "";
     let anyAvail = false;
+    const clearSel = ()=> area.querySelectorAll(".slot.selected").forEach(c=> c.classList.remove("selected"));
 
-    dates.forEach(d=>{
-      const ds = dateStr(d);
-      const bookedByDesigner = {};
-      distinct.forEach(dz=>{
-        bookedByDesigner[dz] = (rangeByDesigner[dz][ds] || []).map(r=> [toMins(r.startTime), toMins(r.endTime)]);
-      });
-      let avail = computeAvailableMulti(tasks, bookedByDesigner);
-      if(ds === todayS) avail = avail.filter(t=> toMins(t) > nowMin);  // 今天只留未來時段
+    // 一週（最多 7 天）一列；每天：上方日期、下方縱向時段
+    for(let w = 0; w < dates.length; w += 7){
+      const week = document.createElement("div");
+      week.className = "cal-week";
 
-      const day = document.createElement("div");
-      day.className = "cal-day";
-      const label = `${ds.slice(5)}（週${WEEK[d.getDay()]}）`;
-
-      if(avail.length === 0){
-        day.innerHTML = `<div class="cal-date">${label}</div><div class="cal-full">已額滿</div>`;
-      } else {
-        anyAvail = true;
-        const dateEl = document.createElement("div");
-        dateEl.className = "cal-date"; dateEl.textContent = label;
-        const chips = document.createElement("div");
-        chips.className = "cal-chips";
-        avail.forEach(slot=>{
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "slot";
-          btn.textContent = slot;
-          btn.addEventListener("click", ()=>{
-            state.date = ds; state.startTime = slot;
-            document.getElementById("toStep4").disabled = false;
-            area.querySelectorAll(".slot.selected").forEach(c=> c.classList.remove("selected"));
-            btn.classList.add("selected");
-          });
-          chips.appendChild(btn);
+      dates.slice(w, w + 7).forEach(d=>{
+        const ds = dateStr(d);
+        const bookedByDesigner = {};
+        distinct.forEach(dz=>{
+          bookedByDesigner[dz] = (rangeByDesigner[dz][ds] || []).map(r=> [toMins(r.startTime), toMins(r.endTime)]);
         });
-        day.appendChild(dateEl); day.appendChild(chips);
-      }
-      area.appendChild(day);
-    });
+        let avail = computeAvailableMulti(tasks, bookedByDesigner);
+        if(ds === todayS) avail = avail.filter(t=> toMins(t) > nowMin);  // 今天只留未來時段
+
+        const col = document.createElement("div");
+        col.className = "cal-col";
+
+        const head = document.createElement("div");
+        head.className = "cal-colhead" + (ds === todayS ? " today" : "");
+        head.innerHTML = `<div class="cal-dow">週${WEEK[d.getDay()]}</div><div class="cal-dom">${d.getMonth()+1}/${d.getDate()}</div>`;
+        col.appendChild(head);
+
+        const slots = document.createElement("div");
+        slots.className = "cal-slots";
+        if(avail.length === 0){
+          const none = document.createElement("div");
+          none.className = "cal-none"; none.textContent = "—";
+          slots.appendChild(none);
+        } else {
+          anyAvail = true;
+          avail.forEach(slot=>{
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "slot";
+            btn.textContent = slot;
+            btn.addEventListener("click", ()=>{
+              state.date = ds; state.startTime = slot;
+              document.getElementById("toStep4").disabled = false;
+              clearSel();
+              btn.classList.add("selected");
+            });
+            slots.appendChild(btn);
+          });
+        }
+        col.appendChild(slots);
+        week.appendChild(col);
+      });
+
+      area.appendChild(week);
+    }
 
     if(!anyAvail){
       area.innerHTML = `<div class="slot-empty">近兩週都已額滿，請稍後再試或直接聯繫店家。</div>`;
