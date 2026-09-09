@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全球詐騙損失與反詐執行力比較｜2025</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{
+  --bg:#f5f7fa; --card:#fff; --text:#18212f; --muted:#667085;
+  --line:#e4e7ec; --accent:#2563eb; --danger:#dc2626; --dark:#111827;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif;line-height:1.7}
+.container{max-width:1200px;margin:auto;padding:32px 20px}
+.hero{background:linear-gradient(135deg,#111827,#26364d);color:#fff;padding:54px 24px}
+.hero-inner{max-width:1200px;margin:auto}
+.eyebrow{font-size:13px;letter-spacing:2px;text-transform:uppercase;opacity:.7}
+h1{font-size:clamp(30px,5vw,52px);line-height:1.2;margin:10px 0 16px}
+.subtitle{max-width:800px;color:#d1d5db}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin:24px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 5px 20px rgba(16,24,40,.04)}
+.kpi-label{font-size:14px;color:var(--muted)}
+.kpi{font-size:30px;font-weight:800;margin:4px 0}
+.kpi-note{font-size:13px;color:var(--muted)}
+.section-title{margin-top:48px;margin-bottom:16px}
+.chart-card{height:430px}
+.chart-wrap{position:relative;height:350px}
+.table-wrap{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:16px}
+table{width:100%;border-collapse:collapse;min-width:900px}
+th,td{padding:13px 14px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{background:#f9fafb;color:#475467;font-size:13px}
+th:first-child,td:first-child{text-align:left}
+.highlight{font-weight:800;color:var(--accent)}
+.badge{display:inline-block;padding:3px 9px;border-radius:999px;background:#eef4ff;color:#2457c5;font-size:12px}
+.country-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+.country h3{margin:0 0 8px}
+.country p{margin:7px 0;color:#475467}
+.score{font-size:28px;font-weight:800}
+.footer{margin-top:48px;padding:24px 0;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+.warning{background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:16px;color:#9a3412}
+.nav{position:sticky;top:0;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);z-index:10}
+.nav-inner{max-width:1200px;margin:auto;display:flex;gap:20px;padding:10px 20px;overflow:auto}
+.nav a{color:#344054;text-decoration:none;font-size:14px;white-space:nowrap}
+.nav a:hover{color:var(--accent)}
+@media(max-width:600px){.container{padding:24px 14px}.hero{padding:40px 18px}.chart-card{height:380px}.chart-wrap{height:300px}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">2025 GLOBAL SCAM DATA</div>
+    <h1>全球詐騙損失與反詐執行力比較</h1>
+    <p class="subtitle">
+      以「全國人口人均損失」與「每案平均損失」觀察台灣、美國、日本、南韓、中國，
+      再從金流、平台、通訊與跨境犯罪四個面向比較各國反詐策略。
+    </p>
+  </div>
+</header>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#overview">總覽</a>
+    <a href="#charts">數據圖表</a>
+    <a href="#table">完整數據</a>
+    <a href="#taiwan-trend">台灣 2024→2025</a>
+    <a href="#strategy">各國反詐策略</a>
+    <a href="#execution">執行力</a>
+    <a href="#notes">資料說明</a>
+  </div>
+</nav>
+
+<main class="container">
+
+<section id="overview">
+  <h2 class="section-title">一、核心數據總覽</h2>
+  <div class="grid">
+    <div class="card">
+      <div class="kpi-label">台灣全國人口人均損失</div>
+      <div class="kpi">NT$3,817</div>
+      <div class="kpi-note">約 893.3 億元 ÷ 2,340 萬人</div>
+    </div>
+    <div class="card">
+      <div class="kpi-label">台灣每案平均損失</div>
+      <div class="kpi">NT$55.1 萬</div>
+      <div class="kpi-note">約 893.3 億元 ÷ 16.2 萬件</div>
+    </div>
+    <div class="card">
+      <div class="kpi-label">日本每案平均損失</div>
+      <div class="kpi">NT$157.7 萬</div>
+      <div class="kpi-note">本組資料中最高</div>
+    </div>
+    <div class="card">
+      <div class="kpi-label">中國全國人口人均損失</div>
+      <div class="kpi">NT$314</div>
+      <div class="kpi-note">約 4,400 億元 ÷ 14 億人</div>
+    </div>
+  </div>
+</section>
+
+<section id="charts">
+  <h2 class="section-title">二、數據圖表</h2>
+
+  <div class="card chart-card">
+    <h3>全國人口人均損失（新台幣）</h3>
+    <div class="chart-wrap"><canvas id="perCapitaChart"></canvas></div>
+  </div>
+
+  <div class="card chart-card" style="margin-top:20px">
+    <h3>每案平均損失（新台幣）</h3>
+    <div class="chart-wrap"><canvas id="perCaseChart"></canvas></div>
+  </div>
+
+  <div class="card chart-card" style="margin-top:20px">
+    <h3>反詐執行力評分</h3>
+    <div class="chart-wrap"><canvas id="scoreChart"></canvas></div>
+  </div>
+</section>
+
+<section id="table">
+  <h2 class="section-title">三、完整數據</h2>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>國家</th>
+        <th>2025 總財損（NT$）</th>
+        <th>人口</th>
+        <th>人口人均損失</th>
+        <th>案件數</th>
+        <th>每案平均損失</th>
+        <th>執行力</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>台灣</td><td>893.26 億</td><td>2,340 萬</td><td class="highlight">3,817</td><td>約 16.2 萬</td><td>約 55.1 萬</td><td>7.0</td></tr>
+      <tr><td>美國（FBI）</td><td>6,688 億</td><td>3.4 億</td><td>1,967</td><td>約 100 萬</td><td>66.9 萬</td><td>6.0</td></tr>
+      <tr><td>美國（FTC）</td><td>5,088 億</td><td>3.4 億</td><td>1,498</td><td>約 300 萬</td><td>17.0 萬</td><td>6.0</td></tr>
+      <tr><td>日本</td><td>678 億</td><td>1.24 億</td><td>547</td><td>約 4.3 萬</td><td class="highlight">157.7 萬</td><td>6.5</td></tr>
+      <tr><td>南韓</td><td>270 億</td><td>5,170 萬</td><td>522</td><td>約 2.3 萬</td><td>117.4 萬</td><td>7.5</td></tr>
+      <tr><td>中國</td><td>4,400 億</td><td>14 億</td><td>314</td><td>約 25.8 萬</td><td>約 170.5 萬</td><td>8.5</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+
+<section id="taiwan-trend">
+  <h2 class="section-title">四、台灣 2024 → 2025 詐騙數據變化</h2>
+
+  <div class="grid">
+    <div class="card">
+      <div class="kpi-label">2024 傳統刑案統計</div>
+      <div class="kpi">122,805 件</div>
+      <div class="kpi-note">刑事案件紀錄表口徑</div>
+    </div>
+    <div class="card">
+      <div class="kpi-label">2024 傳統統計財損</div>
+      <div class="kpi">NT$502 億</div>
+      <div class="kpi-note">與 2025 打詐儀錶板口徑不同</div>
+    </div>
+    <div class="card">
+      <div class="kpi-label">2025 打詐儀錶板受理</div>
+      <div class="kpi">約 16.2 萬件</div>
+      <div class="kpi-note">民眾報案受理數口徑</div>
+    </div>
+    <div class="card">
+      <div class="kpi-label">2025 打詐儀錶板財損</div>
+      <div class="kpi">NT$893.26 億</div>
+      <div class="kpi-note">即時受理與申報財損口徑</div>
+    </div>
+  </div>
+
+  <div class="card chart-card">
+    <h3>台灣詐騙財損：2024 傳統統計 vs 2025 儀錶板</h3>
+    <div class="chart-wrap"><canvas id="taiwanLossChart"></canvas></div>
+  </div>
+
+  <div class="card chart-card" style="margin-top:20px">
+    <h3>台灣案件數：2024 傳統刑案 vs 2025 儀錶板受理</h3>
+    <div class="chart-wrap"><canvas id="taiwanCasesChart"></canvas></div>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <h3>為什麼不能直接把 502 億與 893.26 億視為「一年暴增 78%」？</h3>
+    <p>
+      關鍵不是單純的數字變化，而是<strong>統計口徑發生改變</strong>。2024 年 8 月底以前主要採
+      「刑事案件紀錄表」的發生數／破獲數；「165 打詐儀錶板」上線後，則改以民眾報案的
+      受理數與申報財損進行即時揭露。因此，2024 年的 502 億元與 2025 年的 893.26 億元
+      並非完全同口徑的年度序列。
+    </p>
+    <p>
+      更適合的分析方式，是把 <strong>2024 年 8 月前後視為統計制度轉折點</strong>，
+      再使用同口徑的月資料比較 2024 下半年與 2025 下半年。
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <h3>詐騙型態：金額與件數是兩個不同戰場</h3>
+    <div class="grid">
+      <div>
+        <span class="badge">財損</span>
+        <p><strong>假投資詐騙</strong>是主要財損來源，依你提供的資料，兩年均占總財損逾五成至六成。</p>
+      </div>
+      <div>
+        <span class="badge">案件數</span>
+        <p><strong>網路購物／拍賣詐騙</strong>在案件件數方面持續占有高比重。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="strategy">
+  <h2 class="section-title">五、各國反詐策略</h2>
+  <div class="country-grid">
+    <article class="card country">
+      <h3>🇹🇼 台灣</h3>
+      <span class="badge">事前源頭控管</span>
+      <p><strong>核心：</strong>人頭帳戶、平台廣告、虛擬資產、金融異常交易。</p>
+      <p><strong>挑戰：</strong>封閉式通訊軟體、境外主謀、虛擬資產跨境移轉。</p>
+    </article>
+
+    <article class="card country">
+      <h3>🇺🇸 美國</h3>
+      <span class="badge">跨國金流追擊</span>
+      <p><strong>核心：</strong>司法部專案、加密貨幣追蹤與資產沒收、電信防偽。</p>
+      <p><strong>挑戰：</strong>聯邦制度分散、跨境犯罪與個資冒用。</p>
+    </article>
+
+    <article class="card country">
+      <h3>🇨🇳 中國</h3>
+      <span class="badge">強制阻斷</span>
+      <p><strong>核心：</strong>跨境清剿、斷卡、電信阻斷、國家反詐體系。</p>
+      <p><strong>挑戰：</strong>犯罪基地轉移，以及過度管制可能造成誤傷。</p>
+    </article>
+
+    <article class="card country">
+      <h3>🇯🇵 日本</h3>
+      <span class="badge">高齡者保護</span>
+      <p><strong>核心：</strong>ATM／轉帳限制、臨櫃關懷與警民聯防。</p>
+      <p><strong>挑戰：</strong>SNS 投資、愛情詐騙等數位型態快速成長。</p>
+    </article>
+
+    <article class="card country">
+      <h3>🇰🇷 南韓</h3>
+      <span class="badge">科技聯防</span>
+      <p><strong>核心：</strong>電信商、警察與金融機構聯合偵測，阻斷惡意 App 與異常交易。</p>
+      <p><strong>挑戰：</strong>木馬、Smishing 與假冒檢警手法持續演化。</p>
+    </article>
+  </div>
+</section>
+
+<section id="execution">
+  <h2 class="section-title">六、執行力比較</h2>
+  <div class="grid">
+    <div class="card"><div class="score">8.5</div><strong>中國</strong><p>體制動員與跨境打擊能力強，但伴隨較高的管制成本。</p></div>
+    <div class="card"><div class="score">7.5</div><strong>南韓</strong><p>電信、警察與金融聯防整合速度快。</p></div>
+    <div class="card"><div class="score">7.0</div><strong>台灣</strong><p>金融攔阻與通報體系積極，但跨境主謀與刑責嚇阻仍是難題。</p></div>
+    <div class="card"><div class="score">6.5</div><strong>日本</strong><p>傳統金融防詐能力強，但數位詐騙應對較慢。</p></div>
+    <div class="card"><div class="score">6.0</div><strong>美國</strong><p>技術與司法資源強，但聯邦制度造成執法分散。</p></div>
+  </div>
+</section>
+
+<section id="notes">
+  <h2 class="section-title">七、閱讀這份資料時要注意</h2>
+  <div class="warning">
+    <strong>重要：</strong>不同國家的「詐騙案件」定義、報案率、統計口徑與匯率換算方式並不完全一致。
+    因此本頁適合做「比較性展示」，不宜直接解讀為各國真實詐騙發生率的精確排名。
+    特別是美國 FBI 與 FTC 的案件範圍不同，中國的部分數字亦屬概算。
+  </div>
+  <div class="card" style="margin-top:18px">
+    <h3>建議的下一版資料結構</h3>
+    <p>若要把這個網站做成真正的「數據型反詐研究網站」，建議將資料與 HTML 分離：</p>
+    <ul>
+      <li><code>data.json</code>：保存各國年度數據</li>
+      <li><code>index.html</code>：網站介面</li>
+      <li><code>app.js</code>：讀取 JSON、計算人均與每案數據</li>
+      <li><code>style.css</code>：視覺樣式</li>
+      <li><code>sources.json</code>：每筆數據的來源、年份、網址與統計口徑</li>
+    </ul>
+    <p>如此一來，未來只需要更新 JSON，就可以讓圖表自動更新，不必重新修改 HTML。</p>
+  </div>
+</section>
+
+<footer class="footer">
+  本頁為資料視覺化展示範本。台灣 2024／2025 數據依目前提供內容建置；2024 傳統刑案統計與 2025 打詐儀錶板屬不同統計口徑，正式公開前建議逐筆補上警政署、165 打詐儀錶板及原始報導來源。
+</footer>
+
+</main>
+
+<script>
+const countries = ["台灣","美國 FBI","美國 FTC","日本","南韓","中國"];
+const perCapita = [3817,1967,1498,547,522,314];
+const perCase = [551000,669000,170000,1577000,1174000,1705000];
+const scores = [7.0,6.0,6.0,6.5,7.5,8.5];
+
+const common = {
+  responsive:true,
+  maintainAspectRatio:false,
+  plugins:{legend:{display:false}},
+  scales:{y:{beginAtZero:true,grid:{color:"#eaecf0"}}}
+};
+
+new Chart(document.getElementById("perCapitaChart"),{
+  type:"bar",
+  data:{labels:countries,datasets:[{data:perCapita}]},
+  options:{...common,scales:{y:{beginAtZero:true,ticks:{callback:v=>"NT$"+v.toLocaleString()}}}}
+});
+
+new Chart(document.getElementById("perCaseChart"),{
+  type:"bar",
+  data:{labels:countries,datasets:[{data:perCase}]},
+  options:{...common,scales:{y:{beginAtZero:true,ticks:{callback:v=>"NT$"+(v/10000).toFixed(0)+"萬"}}}}
+});
+
+new Chart(document.getElementById("scoreChart"),{
+  type:"bar",
+  data:{labels:countries,datasets:[{data:scores}]},
+  options:{...common,scales:{y:{beginAtZero:true,max:10,ticks:{stepSize:1}}}}
+});
+
+new Chart(document.getElementById("taiwanLossChart"),{
+  type:"bar",
+  data:{
+    labels:["2024 傳統刑案統計","2025 打詐儀錶板"],
+    datasets:[{data:[502,893.26]}]
+  },
+  options:{...common,scales:{y:{beginAtZero:true,ticks:{callback:v=>"NT$"+v+" 億"}}}}
+});
+
+new Chart(document.getElementById("taiwanCasesChart"),{
+  type:"bar",
+  data:{
+    labels:["2024 傳統刑案統計","2025 打詐儀錶板"],
+    datasets:[{data:[122805,162000]}]
+  },
+  options:{...common,scales:{y:{beginAtZero:true,ticks:{callback:v=>v.toLocaleString()+" 件"}}}}
+});
+
+</script>
+</body>
+</html>
