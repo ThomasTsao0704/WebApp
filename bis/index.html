@@ -485,18 +485,29 @@ function setConnection(state, text) {
 function extractDimensions(structure) {
     const dims = [];
     const root = structure.data || structure;
-    
-    // 解析 codelists
+
+    // 1. 建立 Codelists 索引（同時支援 ID 與完整 URN 索引）
     const codelists = {};
-    const codelistArray = root.codelists || (root.structures && root.structures.codelists) || [];
+    const codelistArray = 
+        root.codelists || 
+        (root.structures && root.structures.codelists) || 
+        [];
+
     codelistArray.forEach(cl => {
-        codelists[cl.id] = (cl.codes || []).map(c => ({
-            id: c.id,
-            name: (c.names && (c.names['zh-tw'] || c.names['zh'] || c.names['en'])) || c.name || c.id
+        const codes = (cl.codes || []).map(c => ({
+            id: String(c.id),
+            name: (c.names && (c.names['zh-tw'] || c.names['zh'] || c.names['en'])) || 
+                  c.name || 
+                  c.id
         }));
+
+        // 依 ID 索引 (例: CL_NA_FREQ)
+        if (cl.id) codelists[cl.id] = codes;
+        // 依 URN 索引 (若存在)
+        if (cl.urn) codelists[cl.urn] = codes;
     });
 
-    // 解析 DSD dimensions
+    // 2. 尋找 Dimension 列表
     let dimList = [];
     if (root.dataStructures && root.dataStructures[0]?.dataStructureComponents?.dimensionList?.dimensions) {
         dimList = root.dataStructures[0].dataStructureComponents.dimensionList.dimensions;
@@ -504,20 +515,27 @@ function extractDimensions(structure) {
         dimList = root.dimensions;
     }
 
+    // 3. 解析每個維度並提取代碼
     dimList.forEach(d => {
-        // 排除 TIME_PERIOD 維度
-        if (d.id === "TIME_PERIOD") return;
+        if (d.id === "TIME_PERIOD") return; // 排除時間維度
 
         let clId = null;
-        if (d.localRepresentation?.enumeration?.id) {
-            clId = d.localRepresentation.enumeration.id;
-        } else if (d.representation?.codelist?.id) {
-            clId = d.representation.codelist.id;
-        } else if (d.codelist) {
-            clId = d.codelist;
+        const enumRef = d.localRepresentation?.enumeration || d.representation?.codelist || d.codelist;
+
+        if (typeof enumRef === "string") {
+            // 從 URN 字串提取代碼 (例: "urn:...:BIS:CL_NA_FREQ(1.0)" -> "CL_NA_FREQ")
+            const match = enumRef.match(/(?:Codelist=)?(?:[^:]+:)?([A-Za-z0-9_]+)(?:\(.*\))?/);
+            clId = match ? match[1] : enumRef;
+        } else if (enumRef && typeof enumRef === "object") {
+            clId = enumRef.id || (enumRef.ref && enumRef.ref.id) || null;
         }
 
-        const values = codelists[clId] || [];
+        // 嘗試取得該維度的選項（先用 clId，找不到再嘗試 CL_ + 維度名）
+        const values = codelists[clId] || 
+                       codelists[enumRef] || 
+                       codelists["CL_" + d.id] || 
+                       [];
+
         dims.push({
             id: d.id,
             name: (d.names && (d.names['zh-tw'] || d.names['en'])) || d.name || d.id,
