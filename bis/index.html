@@ -3,320 +3,889 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BIS 維度動態查詢器｜GitHub Pages + GAS</title>
+<title>BIS Dynamic Dimension Explorer</title>
+
+<!-- Chart.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<!-- Font -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
 <style>
-:root{--bg:#f5f7fa;--panel:#fff;--ink:#171b22;--muted:#667085;--line:#d9dee7;--indigo:#4355d6;--indigo2:#eef0ff;--danger:#b42318;--success:#027a48;--shadow:0 8px 28px rgba(16,24,40,.07)}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif}.wrap{max-width:1500px;margin:0 auto;padding:28px 24px 48px}h1{margin:0 0 6px;font-size:28px;letter-spacing:-.02em}.sub{margin:0 0 22px;color:var(--muted);font-size:14px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow)}.grid{display:grid;grid-template-columns:repeat(4,minmax(220px,1fr));gap:14px}.dim{min-width:0}.dim label{display:block;font-weight:600;font-size:13px;margin-bottom:6px}.dim small{display:block;color:var(--muted);font-size:11px;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dim select{width:100%;min-height:128px;border:1px solid #cfd5df;border-radius:9px;background:#fff;padding:6px;font:13px "IBM Plex Sans",sans-serif;outline:none}.dim select:focus{border-color:var(--indigo);box-shadow:0 0 0 3px rgba(67,85,214,.12)}.bar{display:flex;align-items:end;gap:14px;margin-top:18px;flex-wrap:wrap}.field label{display:block;font-size:12px;font-weight:600;margin-bottom:6px}.field input{height:38px;border:1px solid #cfd5df;border-radius:8px;padding:0 10px;font:13px "IBM Plex Mono",monospace}.btn{height:38px;border:0;border-radius:8px;padding:0 18px;background:var(--indigo);color:#fff;font-weight:600;cursor:pointer}.btn:disabled{opacity:.45;cursor:not-allowed}.btn.secondary{background:#eef0f4;color:#344054}.keyline{margin-top:14px;padding-top:12px;border-top:1px solid #edf0f4;font-size:12px;color:var(--muted);word-break:break-all}.keyline code{font-family:"IBM Plex Mono",monospace;color:var(--ink)}.status{min-height:38px;padding:12px 2px;font-size:13px;color:var(--muted)}.status.ok{color:var(--success)}.status.error{color:var(--danger)}.hint{font-size:12px;line-height:1.6;color:var(--muted)}code{font-family:"IBM Plex Mono",monospace}.chart-wrap{margin-top:4px}.chart-box{height:540px;min-height:540px;position:relative}.toolbar{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}.badge{font:11px "IBM Plex Mono",monospace;background:#f2f4f7;border:1px solid #e4e7ec;padding:5px 8px;border-radius:6px}.loading{opacity:.65}.hidden{display:none!important}@media(max-width:1050px){.grid{grid-template-columns:repeat(2,minmax(220px,1fr))}}@media(max-width:650px){.wrap{padding:18px 12px}.grid{grid-template-columns:1fr}.chart-box{height:430px;min-height:430px}h1{font-size:23px}}
+:root {
+    --bg: #f5f6f8;
+    --panel: #ffffff;
+    --border: #dfe3e8;
+    --border-dark: #c7ccd3;
+    --ink: #171b22;
+    --ink-soft: #68707d;
+    --ink-light: #8b929d;
+    --indigo: #4255c7;
+    --indigo-dark: #3343a5;
+    --indigo-soft: #eef0ff;
+    --danger: #b42318;
+    --danger-bg: #fff1f0;
+    --success: #147a52;
+    --success-bg: #ecfdf3;
+    --warning: #9a6700;
+    --warning-bg: #fff8e6;
+    --shadow: 0 2px 10px rgba(20, 25, 35, .05), 0 8px 30px rgba(20, 25, 35, .04);
+    --radius: 12px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+code {
+    font-family: "IBM Plex Mono", monospace;
+}
+
+.wrap {
+    width: min(1500px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 32px 0 60px;
+}
+
+.header {
+    margin-bottom: 24px;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+}
+
+.header .sub {
+    margin: 8px 0 0;
+    color: var(--ink-soft);
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    margin-bottom: 18px;
+}
+
+.connection {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #f8f9fb;
+    border: 1px solid var(--border);
+    font-size: 13px;
+}
+
+.connection-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--ink-light);
+    flex: 0 0 auto;
+}
+
+.connection-dot.ok { background: var(--success); }
+.connection-dot.error { background: var(--danger); }
+.connection-dot.loading { background: var(--warning); }
+
+#connectionText {
+    color: var(--ink-soft);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.dimension {
+    min-width: 0;
+}
+
+.dimension-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.dimension-id {
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dimension-count {
+    color: var(--ink-light);
+    font-size: 11px;
+    font-family: "IBM Plex Mono", monospace;
+    flex-shrink: 0;
+}
+
+.dimension select {
+    width: 100%;
+    min-height: 130px;
+    padding: 8px;
+    border: 1px solid var(--border-dark);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink);
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 12px;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.dimension select:focus {
+    border-color: var(--indigo);
+    box-shadow: 0 0 0 3px rgba(66, 85, 199, .12);
+}
+
+.dimension select option {
+    padding: 5px;
+    border-radius: 4px;
+}
+
+.dimension select option:checked {
+    background: var(--indigo-soft);
+    color: var(--ink);
+}
+
+.dimension select option.unavailable {
+    color: #a0a6b1;
+    background: #fafafa;
+}
+
+.hint {
+    margin: 14px 2px 0;
+    color: var(--ink-soft);
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+.bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.field label {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.field input {
+    width: 150px;
+    height: 38px;
+    padding: 0 10px;
+    border: 1px solid var(--border-dark);
+    border-radius: 8px;
+    background: #fff;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    outline: none;
+}
+
+.field input:focus {
+    border-color: var(--indigo);
+    box-shadow: 0 0 0 3px rgba(66, 85, 199, .12);
+}
+
+button {
+    height: 38px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--indigo);
+    color: #fff;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s ease, transform .05s ease, opacity .15s ease;
+}
+
+button:hover { background: var(--indigo-dark); }
+button:active { transform: translateY(1px); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+
+.keyline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    color: var(--ink-soft);
+    font-size: 11px;
+    overflow-x: auto;
+}
+
+.keyline b {
+    color: var(--ink);
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.keyline a {
+    color: var(--indigo);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.keyline a:hover { text-decoration: underline; }
+
+.status {
+    min-height: 20px;
+    margin: 8px 2px 14px;
+    font-size: 13px;
+}
+
+.status.info { color: var(--ink-soft); }
+.status.success { color: var(--success); }
+.status.error { color: var(--danger); }
+.status.warning { color: var(--warning); }
+
+.chart-wrap {
+    display: none;
+}
+
+.chart-box {
+    position: relative;
+    width: 100%;
+    height: 540px;
+    min-height: 540px;
+}
+
+.chart-box canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+@media (max-width: 1100px) {
+    .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 800px) {
+    .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .bar { align-items: stretch; flex-direction: column; }
+    .field input, button { width: 100%; }
+    .chart-box { height: 460px; min-height: 460px; }
+}
+
+@media (max-width: 560px) {
+    .wrap { width: calc(100% - 20px); padding-top: 20px; }
+    .grid { grid-template-columns: 1fr; }
+    .header h1 { font-size: 23px; }
+    .panel { padding: 14px; }
+    .dimension select { min-height: 100px; }
+}
 </style>
 </head>
+
 <body>
 <div class="wrap">
-  <h1>BIS 維度動態查詢器</h1>
-  <p class="sub">WS_NA_SEC_DSS｜GitHub Pages + Google Apps Script + BIS SDMX API</p>
+    <header class="header">
+        <h1>BIS Dynamic Dimension Explorer</h1>
+        <p class="sub">
+            BIS SDMX 維度選取器｜GitHub Pages + Google Apps Script｜<code>WS_NA_SEC_DSS</code>
+        </p>
+    </header>
 
-  <div class="panel">
-    <div id="grid" class="grid"><div class="loading">正在從 Google Apps Script 載入 BIS 維度……</div></div>
-    <p class="hint">每次選取或取消維度值後，系統會透過 GAS 查詢 BIS Availability。其他維度只保留目前條件下仍可組合出資料的值；每個下拉選單可複選，未選取任何值代表該維度不限值。</p>
+    <section class="panel">
+        <div class="connection">
+            <span id="connectionDot" class="connection-dot loading"></span>
+            <span id="connectionText">正在連線至 Google Apps Script…</span>
+        </div>
 
-    <div class="bar">
-      <div class="field"><label for="start">起始期間</label><input id="start" value="2015-Q1" placeholder="2015-Q1"></div>
-      <div class="field"><label for="end">結束期間（可空白）</label><input id="end" value="" placeholder="2026-Q2"></div>
-      <button id="go" class="btn" disabled>抓取並繪圖</button>
-      <button id="reset" class="btn secondary" type="button">清除選擇</button>
-    </div>
+        <div id="grid" class="grid">
+            <div style="color:var(--ink-soft);font-size:13px;">正在載入 BIS 維度清單…</div>
+        </div>
 
-    <div class="keyline">key：<code id="keytext">—</code> <a id="keyurl" href="#" target="_blank" rel="noopener" style="display:none;color:var(--indigo)">· 在 BIS 開啟</a></div>
-  </div>
+        <p class="hint">
+            每次選取或取消維度值後，系統會透過 Google Apps Script 查詢 BIS Availability API。<br>
+            灰色選項代表在目前條件下無法組合出有效序列。Windows 使用 <code>Ctrl</code>、macOS 使用 <code>Cmd</code> 進行複選，未選取表示該維度不限制。
+        </p>
 
-  <div id="status" class="status"></div>
+        <div class="bar">
+            <div class="field">
+                <label for="start">起始期間</label>
+                <input type="text" id="start" value="2015-Q1" autocomplete="off">
+            </div>
+            <button id="go" disabled>抓取並繪圖</button>
+        </div>
 
-  <div id="chartWrap" class="chart-wrap hidden">
-    <div class="panel">
-      <div class="toolbar"><span class="badge" id="seriesCount">0 series</span><span class="badge" id="periodCount">0 periods</span></div>
-      <div class="chart-box"><canvas id="chart"></canvas></div>
-      <p class="hint">圖例使用 S1、S2、S3……避免長名稱壓縮圖表；滑鼠移到資料線上時，Tooltip 會顯示完整 BIS 序列名稱與數值。</p>
-    </div>
-  </div>
+        <div class="keyline">
+            <span>SDMX Key：</span>
+            <b id="keytext">—</b>
+            <a id="keyurl" href="#" target="_blank" rel="noopener" style="display:none">· 在 BIS 開啟（CSV）</a>
+        </div>
+    </section>
+
+    <div id="status" class="status"></div>
+
+    <section id="chartWrap" class="chart-wrap">
+        <div class="panel">
+            <div class="chart-box">
+                <canvas id="chart"></canvas>
+            </div>
+            <p class="hint">
+                圖例使用 <code>S1、S2、S3…</code> 以免長序列字串遮蔽排版。滑鼠懸停於線條上即可檢視該序列完整名稱、代碼與數值。
+            </p>
+        </div>
+    </section>
 </div>
 
 <script>
 /* =========================================================
-   GAS Web App URL
-   ---------------------------------------------------------
-   把下面網址換成你的 Google Apps Script /exec URL。
-   例如：
-   https://script.google.com/macros/s/XXXXXXXX/exec
+   1. Google Apps Script Web App URL
    ========================================================= */
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzvmobA1LOrqANcF1cX8ioTHuW5c-BCyUxQDBVDZbbC0eYg33MTwt3bDkvL0hzF30Ju8Q/exec";
 
-const FLOW = "WS_NA_SEC_DSS";
-const VERSION = "1.0";
+/* =========================================================
+   2. BIS Dataflow 定義
+   ========================================================= */
+const BIS_FLOW = "WS_NA_SEC_DSS";
+const BIS_AGENCY = "BIS";
+const BIS_VERSION = "1.0";
 
-let dimensions = [];
-let chart = null;
-let requestSerial = 0;
+/* =========================================================
+   3. 全域狀態
+   ========================================================= */
+let dimensions = []; // 維度定義清單: [{ id, name, codelistId, values: [{ id, name }] }]
+let chartInstance = null;
+let availabilityTimer = null;
+let availabilityRequestId = 0;
+let dimensionMasterValues = {}; // { [dimId]: [ { id, name } ] }
+let currentAvailability = {};   // { [dimId]: Set(['CODE1', 'CODE2']) }
 
-const $ = id => document.getElementById(id);
+/* =========================================================
+   4. DOM 節點
+   ========================================================= */
+const grid = document.getElementById("grid");
+const goButton = document.getElementById("go");
+const statusEl = document.getElementById("status");
+const keyText = document.getElementById("keytext");
+const keyUrl = document.getElementById("keyurl");
+const startInput = document.getElementById("start");
+const chartWrap = document.getElementById("chartWrap");
+const connectionDot = document.getElementById("connectionDot");
+const connectionText = document.getElementById("connectionText");
 
-function setStatus(message, type=""){
-  const el = $("status");
-  el.className = "status " + type;
-  el.textContent = message || "";
-}
+/* =========================================================
+   5. JSONP 請求工具
+   ========================================================= */
+function jsonpRequest(url, timeout = 60000) {
+    return new Promise((resolve, reject) => {
+        const callbackName = "__bis_jsonp_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+        let finished = false;
+        const script = document.createElement("script");
 
-function truncateLabel(text,max=34){
-  text=String(text||"series");
-  return text.length>max?text.slice(0,max-1)+"…":text;
-}
+        const timer = setTimeout(() => {
+            if (finished) return;
+            finished = true;
+            cleanup();
+            reject(new Error("連線逾時 (GAS Request Timeout)"));
+        }, timeout);
 
-function gasReady(){
-  return GAS_API_URL && !GAS_API_URL.includes("PASTE_YOUR_GAS_API");
-}
+        function cleanup() {
+            clearTimeout(timer);
+            try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
+            if (script.parentNode) script.remove();
+        }
 
-/* JSONP：GitHub Pages 與 GAS 不同網域時使用 */
-function gasJSONP(action, params={}){
-  return new Promise((resolve,reject)=>{
-    if(!gasReady()){
-      reject(new Error("尚未設定 GAS_API_URL。請在 HTML 最上方填入 Google Apps Script /exec URL。"));
-      return;
-    }
-    const callback="bisCallback_"+Date.now()+"_"+Math.floor(Math.random()*100000);
-    const script=document.createElement("script");
-    const query=new URLSearchParams({action,callback,...params});
-    let finished=false;
-    const cleanup=()=>{try{delete window[callback]}catch(e){};script.remove()};
-    const timer=setTimeout(()=>{if(finished)return;finished=true;cleanup();reject(new Error("GAS API 連線逾時。"))},60000);
-    window[callback]=(data)=>{if(finished)return;finished=true;clearTimeout(timer);cleanup();if(data&&data.ok===false)reject(new Error(data.error||"GAS API 發生錯誤"));else resolve(data)};
-    script.onerror=()=>{if(finished)return;finished=true;clearTimeout(timer);cleanup();reject(new Error("無法連線 Google Apps Script。請確認 Web App 已部署為『任何人』可存取。"))};
-    script.src=GAS_API_URL+"?"+query.toString();
-    document.head.appendChild(script);
-  });
-}
+        window[callbackName] = function(data) {
+            if (finished) return;
+            finished = true;
+            cleanup();
+            resolve(data);
+        };
 
-function composeKey(){
-  return dimensions.map(d=>{
-    const sel=d.select?Array.from(d.select.selectedOptions).map(o=>o.value).filter(Boolean):[];
-    return sel.join("+");
-  }).join(".");
-}
+        script.onerror = function() {
+            if (finished) return;
+            finished = true;
+            cleanup();
+            reject(new Error("無法載入 Google Apps Script 腳本，請確認連線或部署權限。"));
+        };
 
-function updateKey(){
-  const key=composeKey();
-  $("keytext").textContent=key||"（全部維度不限）";
-  const url=$("keyurl");
-  if(key){
-    url.href="https://stats.bis.org/api/v2/data/BIS/"+FLOW+"/"+VERSION+"/"+key+"?format=csvfile";
-    url.style.display="inline";
-  }else url.style.display="none";
-  return key;
-}
-
-function normalizeDimension(raw,index){
-  const id=String(raw.id||raw.ID||raw.dimension||raw.name||("DIM"+(index+1)));
-  const name=String(raw.name||raw.label||id);
-  let vals=raw.values||raw.codes||raw.items||[];
-  if(!Array.isArray(vals)) vals=Object.entries(vals).map(([code,v])=>({code,name:v&&v.name||code}));
-  vals=vals.map(v=>({code:String(v.code??v.id??v.value??""),name:String(v.name??v.label??v.code??v.id??"")})).filter(v=>v.code);
-  return {id,name,values:vals,select:null};
-}
-
-function extractDimensions(payload){
-  const candidates=[];
-  const walk=(node,depth=0)=>{
-    if(!node||depth>10)return;
-    if(Array.isArray(node)){node.forEach(x=>walk(x,depth+1));return}
-    if(typeof node!=="object")return;
-    if(Array.isArray(node.dimensions)) candidates.push(node.dimensions);
-    if(node.dimensionList&&Array.isArray(node.dimensionList.dimensions)) candidates.push(node.dimensionList.dimensions);
-    if(node.dataStructureComponents&&node.dataStructureComponents.dimensionList&&Array.isArray(node.dataStructureComponents.dimensionList.dimensions)) candidates.push(node.dataStructureComponents.dimensionList.dimensions);
-    Object.keys(node).forEach(k=>{if(k!=="links"&&k!=="annotations")walk(node[k],depth+1)});
-  };
-  walk(payload);
-  let arr=candidates.find(a=>Array.isArray(a)&&a.length);
-  if(!arr) throw new Error("GAS 已取得 BIS Structure，但找不到 dimensions。請檢查 Code.gs 的 Structure 格式解析。\n");
-  return arr.map((d,i)=>normalizeDimension(d,i)).filter(d=>d.id);
-}
-
-function renderDimensions(){
-  const grid=$("grid");grid.innerHTML="";
-  dimensions.forEach((d,i)=>{
-    const box=document.createElement("div");box.className="dim";
-    const label=document.createElement("label");label.textContent=`${i+1}. ${d.id}`;
-    const small=document.createElement("small");small.title=d.name;small.textContent=d.name;
-    const select=document.createElement("select");select.multiple=true;select.size=Math.min(Math.max(d.values.length,5),9);select.dataset.index=i;
-    d.values.forEach(v=>{const opt=document.createElement("option");opt.value=v.code;opt.textContent=`${v.code} — ${v.name}`;opt.dataset.name=v.name;select.appendChild(opt)});
-    d.select=select;
-    select.addEventListener("change",()=>{updateKey();refreshAvailability()});
-    box.append(label,small,select);grid.appendChild(box);
-  });
-  updateKey();$("go").disabled=false;
-}
-
-function selectedSet(d){return new Set(Array.from(d.select.selectedOptions).map(o=>o.value))}
-
-function applyAvailability(avail){
-  if(!avail||typeof avail!=="object")return;
-  dimensions.forEach(d=>{
-    const raw=avail[d.id];
-    if(!raw)return;
-    const allowed=new Set(Object.keys(raw));
-    const previous=selectedSet(d);
-    const validSelected=new Set([...previous].filter(x=>allowed.has(x)));
-    d.select.innerHTML="";
-    d.values.filter(v=>allowed.has(v.code)||validSelected.has(v.code)).forEach(v=>{
-      const opt=document.createElement("option");opt.value=v.code;opt.textContent=`${v.code} — ${v.name}`;opt.dataset.name=v.name;
-      if(validSelected.has(v.code))opt.selected=true;
-      d.select.appendChild(opt);
+        const separator = url.includes("?") ? "&" : "?";
+        script.src = url + separator + "callback=" + encodeURIComponent(callbackName) + "&_=" + Date.now();
+        document.head.appendChild(script);
     });
-  });
 }
 
-async function refreshAvailability(){
-  const serial=++requestSerial;
-  const key=composeKey();
-  setStatus("正在依目前條件重新計算可用維度……");
-  try{
-    const res=await gasJSONP("available",{key:key||"all"});
-    if(serial!==requestSerial)return;
-    applyAvailability(res.dimensions||res.available||{});
-    updateKey();
-    setStatus("動態維度篩選已更新。","ok");
-  }catch(err){
-    if(serial!==requestSerial)return;
-    setStatus("Availability 無法取得："+err.message+"；目前保留原下拉選單，不會誤刪選項。","error");
-  }
-}
-
-function resetSelections(){
-  dimensions.forEach(d=>Array.from(d.select.options).forEach(o=>o.selected=false));
-  updateKey();refreshAvailability();
-}
-
-function valueFromPeriod(x){
-  if(x==null)return NaN;
-  if(typeof x==="number")return x;
-  const n=Number(x);if(Number.isFinite(n))return n;
-  return Number(String(x).replace(/,/g,""));
-}
-
-function extractDataset(payload){
-  const root=payload&&payload.data?payload.data:payload;
-  const ds=root&&root.data&&root.data.dataSets?root.data.dataSets:root&&root.dataSets?root.dataSets:[];
-  const structures=root&&root.data&&root.data.structures?root.data.structures:root&&root.structures?root.structures:[];
-  const structure=structures[0]||root&&root.structure||{};
-  const periods=[];
-  const datasets=[];
-
-  if(!ds.length)return {periods,datasets};
-
-  const timeValues=(structure.dimensions&&structure.dimensions.observation)||[];
-  const timeNames=timeValues.map(v=>v.name||v.id||v);
-
-  ds.forEach((set,si)=>{
-    const obs=set.observations||set.data||{};
-    const points=[];
-    if(Array.isArray(obs)){
-      obs.forEach((v,i)=>points.push({x:timeNames[i]||String(i),y:valueFromPeriod(Array.isArray(v)?v[0]:v)}));
-    }else{
-      Object.keys(obs).forEach(k=>{
-        const v=obs[k];
-        const idx=Number(k.split(":")[0]);
-        const x=timeNames[idx]||String(idx);
-        points.push({x,y:valueFromPeriod(Array.isArray(v)?v[0]:v)});
-      });
+/* =========================================================
+   6. GAS API 統一入口
+   ========================================================= */
+async function gasRequest(action, params = {}) {
+    if (!GAS_API_URL || GAS_API_URL.includes("PASTE_YOUR")) {
+        throw new Error("尚未設定 GAS_API_URL。");
     }
-    datasets.push({label:`S${si+1}`,fullLabel:set.label||set.name||`Series ${si+1}`,data:points});
-  });
 
-  const all=[...new Set(datasets.flatMap(s=>s.data.map(p=>p.x)))];
-  return {periods:all,datasets};
-}
+    const query = new URLSearchParams();
+    query.set("action", action);
+    query.set("flow", BIS_FLOW);
 
-function parseSdmxJson(payload){
-  const root=payload&&payload.data?payload.data:payload;
-  const dataSets=root&&root.dataSets?root.dataSets:root&&root.data&&root.data.dataSets?root.data.dataSets:[];
-  const structures=root&&root.structures?root.structures:root&&root.data&&root.data.structures?root.data.structures:[];
-  const structure=structures[0]||{};
-  const seriesDims=(structure.dimensions&&structure.dimensions.series)||[];
-  const obsDims=(structure.dimensions&&structure.dimensions.observation)||[];
-  const timeNames=obsDims.map(v=>v.name||v.id||String(v));
-  const out=[];
-  const ds=dataSets[0];
-  if(!ds)return out;
-  const series=ds.series||{};
-  Object.entries(series).forEach(([key,s],i)=>{
-    const label=decodeSeriesLabel(key,seriesDims);
-    const points=[];
-    const obs=s.observations||{};
-    Object.entries(obs).forEach(([idx,val])=>{
-      const n=Number(idx);const y=Array.isArray(val)?Number(val[0]):Number(val);
-      if(Number.isFinite(y))points.push({x:timeNames[n]||String(n),y});
+    Object.keys(params).forEach(key => {
+        const val = params[key];
+        if (val !== undefined && val !== null) {
+            query.set(key, String(val));
+        }
     });
-    if(points.length)out.push({label:`S${i+1}`,fullLabel:label,data:points});
-  });
-  if(out.length)return out;
-  return parseFlatObservations(ds,timeNames);
+
+    return jsonpRequest(GAS_API_URL + "?" + query.toString());
 }
 
-function decodeSeriesLabel(key,dims){
-  const codes=String(key).split(":");
-  if(!dims.length)return codes.join(" · ");
-  return codes.map((c,i)=>{
-    const d=dims[i];const vals=d&&d.values||[];const v=vals[Number(c)]||{};return `${d&&d.id||"D"+(i+1)}=${v.id||c}${v.name?" ("+v.name+")":""}`;
-  }).join(" · ");
+/* =========================================================
+   7. UI 狀態輔助
+   ========================================================= */
+function setStatus(text, type = "info") {
+    statusEl.textContent = text || "";
+    statusEl.className = "status " + type;
 }
 
-function parseFlatObservations(ds,timeNames){
-  const out=[];const obs=ds&&ds.observations||{};const points=[];
-  Object.entries(obs).forEach(([k,v])=>{const n=Number(k);const y=Array.isArray(v)?Number(v[0]):Number(v);if(Number.isFinite(y))points.push({x:timeNames[n]||String(n),y})});
-  if(points.length)out.push({label:"S1",fullLabel:"BIS series",data:points});
-  return out;
+function setConnection(state, text) {
+    connectionDot.className = "connection-dot " + state;
+    connectionText.textContent = text;
 }
 
-function drawChart(series){
-  if(chart)chart.destroy();
-  const ctx=$("chart").getContext("2d");
-  const datasets=series.map((s,i)=>({label:s.fullLabel||s.label,data:s.data,borderWidth:2,pointRadius:2,pointHoverRadius:5,tension:.15,fill:false}));
-  chart=new Chart(ctx,{type:"line",data:{datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{position:"bottom",labels:{font:{family:"IBM Plex Sans",size:10},boxWidth:10,boxHeight:10,padding:10,usePointStyle:true,generateLabels(chart){const labels=Chart.defaults.plugins.legend.labels.generateLabels(chart);return labels.map((item,i)=>({...item,text:`S${i+1}`}))}},tooltip:{backgroundColor:"#171B22",padding:12,cornerRadius:8,titleFont:{family:"IBM Plex Mono"},bodyFont:{family:"IBM Plex Sans"},callbacks:{title(items){return items[0]?.label||""},label(context){return `${context.dataset.label}: ${context.formattedValue}`}}}},scales:{x:{type:"category",ticks:{font:{family:"IBM Plex Mono",size:10},padding:6},grid:{color:"rgba(0,0,0,.05)"}},y:{ticks:{font:{family:"IBM Plex Mono",size:10},padding:8},grid:{color:"rgba(0,0,0,.05)"}}}}});
-  $("chartWrap").classList.remove("hidden");$("seriesCount").textContent=series.length+" series";$("periodCount").textContent=new Set(series.flatMap(s=>s.data.map(p=>p.x))).size+" periods";
+/* =========================================================
+   8. SDMX 結構解析
+   ========================================================= */
+function extractDimensions(structure) {
+    const dims = [];
+    const root = structure.data || structure;
+    
+    // 解析 codelists
+    const codelists = {};
+    const codelistArray = root.codelists || (root.structures && root.structures.codelists) || [];
+    codelistArray.forEach(cl => {
+        codelists[cl.id] = (cl.codes || []).map(c => ({
+            id: c.id,
+            name: (c.names && (c.names['zh-tw'] || c.names['zh'] || c.names['en'])) || c.name || c.id
+        }));
+    });
+
+    // 解析 DSD dimensions
+    let dimList = [];
+    if (root.dataStructures && root.dataStructures[0]?.dataStructureComponents?.dimensionList?.dimensions) {
+        dimList = root.dataStructures[0].dataStructureComponents.dimensionList.dimensions;
+    } else if (root.dimensions) {
+        dimList = root.dimensions;
+    }
+
+    dimList.forEach(d => {
+        // 排除 TIME_PERIOD 維度
+        if (d.id === "TIME_PERIOD") return;
+
+        let clId = null;
+        if (d.localRepresentation?.enumeration?.id) {
+            clId = d.localRepresentation.enumeration.id;
+        } else if (d.representation?.codelist?.id) {
+            clId = d.representation.codelist.id;
+        } else if (d.codelist) {
+            clId = d.codelist;
+        }
+
+        const values = codelists[clId] || [];
+        dims.push({
+            id: d.id,
+            name: (d.names && (d.names['zh-tw'] || d.names['en'])) || d.name || d.id,
+            codelistId: clId,
+            values: values
+        });
+    });
+
+    return dims;
 }
 
-async function loadData(){
-  const key=updateKey();
-  if(!key){setStatus("請至少選擇一個維度值後再查詢。","error");return}
-  const params={key,startPeriod:$("start").value.trim()};
-  if($("end").value.trim())params.endPeriod=$("end").value.trim();
-  $("go").disabled=true;setStatus("正在透過 GAS 取得 BIS 資料……");
-  try{
-    const res=await gasJSONP("data",params);
-    const series=parseSdmxJson(res);
-    if(!series.length)throw new Error("BIS 沒有回傳可繪圖的序列，請檢查維度組合與期間。");
-    drawChart(series);setStatus(`資料載入完成：${series.length} 個序列。`,"ok");
-  }catch(err){setStatus("資料查詢失敗："+err.message,"error")}
-  finally{$("go").disabled=false}
+function buildDimensionMasterValues(structure) {
+    dimensions.forEach(dim => {
+        dimensionMasterValues[dim.id] = dim.values || [];
+    });
 }
 
-async function init(){
-  if(!gasReady()){
-    setStatus("尚未設定 GAS_API_URL。請修改 HTML 最上方的 GAS /exec URL。","error");
-    return;
-  }
-  try{
-    setStatus("正在載入 BIS Structure……");
-    const res=await gasJSONP("structure",{});
-    dimensions=extractDimensions(res);
-    renderDimensions();
-    setStatus(`已載入 ${dimensions.length} 個 BIS 維度。選擇任一值後，其他維度會自動依可用性更新。`,"ok");
-  }catch(err){setStatus("無法載入 BIS 維度："+err.message,"error")}
+/* =========================================================
+   9. 渲染與維度互動
+   ========================================================= */
+function renderDimensionSelectors() {
+    grid.innerHTML = "";
+    dimensions.forEach(dim => {
+        const item = document.createElement("div");
+        item.className = "dimension";
+
+        const label = document.createElement("div");
+        label.className = "dimension-label";
+        label.innerHTML = `
+            <span class="dimension-id" title="${dim.id}">${dim.name} (${dim.id})</span>
+            <span class="dimension-count" id="count_${dim.id}">${dim.values.length}</span>
+        `;
+
+        const select = document.createElement("select");
+        select.multiple = true;
+        select.id = "dim_" + dim.id;
+        select.dataset.dimId = dim.id;
+
+        dim.values.forEach(v => {
+            const opt = document.createElement("option");
+            opt.value = v.id;
+            opt.textContent = `${v.id} - ${v.name}`;
+            select.appendChild(opt);
+        });
+
+        select.addEventListener("change", () => {
+            updateCurrentKey();
+            scheduleAvailabilityRefresh();
+        });
+
+        item.appendChild(label);
+        item.appendChild(select);
+        grid.appendChild(item);
+    });
+
+    updateCurrentKey();
 }
 
-$("go").addEventListener("click",loadData);
-$("reset").addEventListener("click",resetSelections);
-window.addEventListener("DOMContentLoaded",init);
+function getCurrentKey() {
+    return dimensions.map(dim => {
+        const select = document.getElementById("dim_" + dim.id);
+        if (!select) return "";
+        const selected = Array.from(select.selectedOptions).map(opt => opt.value);
+        return selected.join("+");
+    }).join(".");
+}
+
+function updateCurrentKey() {
+    const key = getCurrentKey();
+    keyText.textContent = key || "—";
+
+    if (key && key.replace(/\./g, "").length > 0) {
+        keyUrl.href = `https://data.bis.org/api/v1/data/${BIS_FLOW}/${key}?format=csv`;
+        keyUrl.style.display = "inline";
+    } else {
+        keyUrl.style.display = "none";
+    }
+}
+
+/* =========================================================
+   10. Availability 機制
+   ========================================================= */
+function scheduleAvailabilityRefresh(immediate = false) {
+    if (availabilityTimer) clearTimeout(availabilityTimer);
+    if (immediate) {
+        fetchAvailability();
+    } else {
+        availabilityTimer = setTimeout(fetchAvailability, 400);
+    }
+}
+
+async function fetchAvailability() {
+    const thisRequestId = ++availabilityRequestId;
+    const currentKey = getCurrentKey();
+
+    try {
+        setStatus("正在檢查維度有效組合 (Availability)…", "info");
+        const res = await gasRequest("availability", { key: currentKey });
+        
+        if (thisRequestId !== availabilityRequestId) return; // 捨棄過期回應
+
+        if (res && res.ok && res.data) {
+            applyAvailability(res.data);
+            setStatus("維度更新完畢。", "success");
+        } else {
+            // 若後端未實作 availability 動作，容錯降級處理
+            setStatus("Ready", "info");
+        }
+    } catch (err) {
+        console.warn("Availability check bypassed or failed:", err);
+        setStatus("Ready", "info");
+    }
+}
+
+function applyAvailability(availData) {
+    dimensions.forEach(dim => {
+        const select = document.getElementById("dim_" + dim.id);
+        const countSpan = document.getElementById("count_" + dim.id);
+        if (!select) return;
+
+        const validSet = availData[dim.id] ? new Set(availData[dim.id]) : null;
+        let availableCount = 0;
+
+        Array.from(select.options).forEach(opt => {
+            if (!validSet || validSet.has(opt.value)) {
+                opt.disabled = false;
+                opt.classList.remove("unavailable");
+                availableCount++;
+            } else {
+                opt.disabled = true;
+                opt.classList.add("unavailable");
+            }
+        });
+
+        if (countSpan) {
+            countSpan.textContent = validSet ? `${availableCount}/${dim.values.length}` : dim.values.length;
+        }
+    });
+}
+
+/* =========================================================
+   11. 資料擷取與 Chart.js 視覺化
+   ========================================================= */
+goButton.addEventListener("click", fetchDataAndRenderChart);
+
+async function fetchDataAndRenderChart() {
+    const key = getCurrentKey();
+    const startPeriod = startInput.value.trim();
+
+    if (!key) {
+        setStatus("請確認維度條件。", "warning");
+        return;
+    }
+
+    goButton.disabled = true;
+    setStatus("正在向 BIS 擷取時間序列數據…", "info");
+
+    try {
+        const response = await gasRequest("data", {
+            key: key,
+            startPeriod: startPeriod
+        });
+
+        if (!response || !response.ok) {
+            throw new Error(response?.error || "數據讀取失敗");
+        }
+
+        const seriesData = parseSdmxData(response.data || response);
+        if (!seriesData || seriesData.length === 0) {
+            setStatus("該條件查無數據，請嘗試放寬或選取其他維度值組合。", "warning");
+            chartWrap.style.display = "none";
+            return;
+        }
+
+        renderChart(seriesData);
+        chartWrap.style.display = "block";
+        setStatus(`成功讀取 ${seriesData.length} 條時間序列！`, "success");
+        chartWrap.scrollIntoView({ behavior: "smooth" });
+
+    } catch (err) {
+        console.error(err);
+        setStatus("讀取失敗：" + err.message, "error");
+    } finally {
+        goButton.disabled = false;
+    }
+}
+
+function parseSdmxData(payload) {
+    // 支援 SDMX-JSON Data 結構
+    const root = payload.data || payload;
+    const structures = root.structure || payload.structure;
+    const dataSets = root.dataSets || payload.dataSets;
+
+    if (!dataSets || !dataSets[0] || !dataSets[0].series) {
+        return [];
+    }
+
+    const seriesObj = dataSets[0].series;
+    const timePeriods = structures.dimensions.observation[0].values.map(v => v.id || v.name);
+    const seriesDimMeta = structures.dimensions.series;
+
+    const result = [];
+
+    Object.keys(seriesObj).forEach((seriesKey, sIndex) => {
+        const s = seriesObj[seriesKey];
+        const indices = seriesKey.split(":").map(Number);
+        
+        // 拼接序列識別名稱
+        const labelParts = indices.map((valIdx, dimIdx) => {
+            const dimDef = seriesDimMeta[dimIdx];
+            return dimDef?.values[valIdx]?.name || dimDef?.values[valIdx]?.id || "";
+        });
+        const fullName = labelParts.filter(Boolean).join(" - ");
+
+        const observations = s.observations || {};
+        const dataPoints = [];
+
+        timePeriods.forEach((t, timeIdx) => {
+            if (observations[timeIdx] !== undefined) {
+                const val = observations[timeIdx][0];
+                if (val !== null && !isNaN(val)) {
+                    dataPoints.push({ x: t, y: Number(val) });
+                }
+            }
+        });
+
+        if (dataPoints.length > 0) {
+            result.push({
+                label: `S${sIndex + 1}`,
+                fullName: fullName || `Series ${sIndex + 1}`,
+                points: dataPoints
+            });
+        }
+    });
+
+    return result;
+}
+
+const PALETTE = [
+    "#4255c7", "#0e9f6e", "#f05252", "#c27803", "#9061f9", 
+    "#e74694", "#16bdca", "#31c48d", "#f59e0b", "#6366f1"
+];
+
+function renderChart(seriesList) {
+    const ctx = document.getElementById("chart").getContext("2d");
+
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+
+    // 彙整並按時間順序排序所有 X 軸標籤
+    const labelSet = new Set();
+    seriesList.forEach(s => s.points.forEach(p => labelSet.add(p.x)));
+    const labels = Array.from(labelSet).sort();
+
+    const datasets = seriesList.map((s, i) => {
+        const color = PALETTE[i % PALETTE.length];
+        const map = new Map(s.points.map(p => [p.x, p.y]));
+        return {
+            label: s.label,
+            fullName: s.fullName,
+            data: labels.map(l => (map.has(l) ? map.get(l) : null)),
+            borderColor: color,
+            backgroundColor: color,
+            borderWidth: 2,
+            pointRadius: 2.5,
+            pointHoverRadius: 5,
+            tension: 0.15,
+            spanGaps: true
+        };
+    });
+
+    chartInstance = new Chart(ctx, {
+        type: "line",
+        data: { labels, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: "nearest",
+                intersect: false,
+                axis: "x"
+            },
+            plugins: {
+                legend: {
+                    position: "top",
+                    labels: {
+                        boxWidth: 12,
+                        font: { family: "'IBM Plex Mono', monospace", size: 11 }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: "rgba(23, 27, 34, 0.92)",
+                    titleFont: { family: "'IBM Plex Sans', sans-serif", size: 12 },
+                    bodyFont: { family: "'IBM Plex Mono', monospace", size: 11 },
+                    padding: 10,
+                    callbacks: {
+                        title: function(context) {
+                            return "週期: " + context[0].label;
+                        },
+                        label: function(context) {
+                            const ds = context.dataset;
+                            return `[${ds.label}] ${context.formattedValue} | ${ds.fullName}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: "#eaedf1" },
+                    ticks: {
+                        font: { family: "'IBM Plex Mono', monospace", size: 10 },
+                        autoSkip: true,
+                        maxTicksLimit: 16
+                    }
+                },
+                y: {
+                    grid: { color: "#eaedf1" },
+                    ticks: {
+                        font: { family: "'IBM Plex Mono', monospace", size: 10 }
+                    }
+                }
+            }
+        }
+    });
+}
+
+/* =========================================================
+   12. 主程式初始化入口
+   ========================================================= */
+async function init() {
+    try {
+        setConnection("loading", "正在連線至 Google Apps Script…");
+        setStatus("正在取得 BIS Structure…", "info");
+
+        const response = await gasRequest("structure");
+
+        if (!response || response.ok === false) {
+            throw new Error(response && response.error ? response.error : "BIS Structure 取得失敗。");
+        }
+
+        const structure = response.data || response.structure || response;
+        dimensions = extractDimensions(structure);
+
+        if (!dimensions.length) {
+            throw new Error("找不到可用的 BIS dimensions，請確認 dataflow 是否相符。");
+        }
+
+        buildDimensionMasterValues(structure);
+        renderDimensionSelectors();
+
+        goButton.disabled = false;
+        setConnection("ok", "Google Apps Script 已連線｜BIS API 可用");
+        setStatus(`BIS 維度載入完成，共 ${dimensions.length} 個維度。`, "success");
+
+        // 啟動首次可選狀態驗證
+        scheduleAvailabilityRefresh(true);
+
+    } catch (error) {
+        console.error("Init Error:", error);
+        setConnection("error", "連線失敗");
+        setStatus("初始化出錯：" + error.message, "error");
+        grid.innerHTML = `<div style="color:var(--danger);font-size:13px;padding:10px;">無法載入維度：${error.message}</div>`;
+    }
+}
+
+// 啟動
+window.addEventListener("DOMContentLoaded", init);
 </script>
 </body>
 </html>
