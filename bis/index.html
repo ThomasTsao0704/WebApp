@@ -480,67 +480,123 @@ function setConnection(state, text) {
 }
 
 /* =========================================================
-   8. SDMX 結構解析
+   8. SDMX 結構解析（強化版：相容所有 BIS 核心代碼表）
    ========================================================= */
 function extractDimensions(structure) {
     const dims = [];
+    
+    // 1. 定位 SDMX-JSON 的結構根節點
     const root = structure.data || structure;
+    const structuresNode = root.structures || root;
 
-    // 1. 建立 Codelists 索引（同時支援 ID 與完整 URN 索引）
-    const codelists = {};
-    const codelistArray = 
+    // 2. 收集所有 Codelists (建立全域索引表)
+    const codelistsRaw = 
+        structuresNode.codelists || 
         root.codelists || 
-        (root.structures && root.structures.codelists) || 
         [];
 
-    codelistArray.forEach(cl => {
-        const codes = (cl.codes || []).map(c => ({
-            id: String(c.id),
-            name: (c.names && (c.names['zh-tw'] || c.names['zh'] || c.names['en'])) || 
-                  c.name || 
-                  c.id
-        }));
+    const codelistMap = new Map();
 
-        // 依 ID 索引 (例: CL_NA_FREQ)
-        if (cl.id) codelists[cl.id] = codes;
-        // 依 URN 索引 (若存在)
-        if (cl.urn) codelists[cl.urn] = codes;
+    codelistsRaw.forEach(cl => {
+        if (!cl) return;
+
+        // 提取代碼項目清單 (相容 codes 與 items 兩種 SDMX 格式)
+        const items = cl.codes || cl.items || [];
+        const parsedCodes = items.map(c => {
+            let label = c.id;
+            if (typeof c.name === "string") {
+                label = c.name;
+            } else if (c.names && typeof c.names === "object") {
+                label = c.names["zh-tw"] || c.names["zh"] || c.names["en"] || Object.values(c.names)[0] || c.id;
+            } else if (c.name && typeof c.name === "object") {
+                label = c.name["zh-tw"] || c.name["zh"] || c.name["en"] || Object.values(c.name)[0] || c.id;
+            }
+            return {
+                id: String(c.id),
+                name: String(label)
+            };
+        });
+
+        // 多重註冊鍵值：保證無論是用 URN、原始 ID 或不分大小寫都能查到
+        if (cl.id) {
+            codelistMap.set(cl.id, parsedCodes);
+            codelistMap.set(cl.id.toLowerCase(), parsedCodes);
+        }
+        if (cl.urn) {
+            codelistMap.set(cl.urn, parsedCodes);
+            // 提取 URN 結尾的 ID (例如 urn:sdmx:org.sdmx.infomodel.codelist.Codelist=BIS:CL_AREA(1.0) -> CL_AREA)
+            const urnMatch = cl.urn.match(/[=:]?([A-Z0-9_]+)(?:\([^\)]*\))?$/i);
+            if (urnMatch && urnMatch[1]) {
+                codelistMap.set(urnMatch[1], parsedCodes);
+                codelistMap.set(urnMatch[1].toLowerCase(), parsedCodes);
+            }
+        }
     });
 
-    // 2. 尋找 Dimension 列表
+    // 3. 尋找 Dimension 列表
     let dimList = [];
-    if (root.dataStructures && root.dataStructures[0]?.dataStructureComponents?.dimensionList?.dimensions) {
+    if (structuresNode.dataStructures && structuresNode.dataStructures[0]?.dataStructureComponents?.dimensionList?.dimensions) {
+        dimList = structuresNode.dataStructures[0].dataStructureComponents.dimensionList.dimensions;
+    } else if (root.dataStructures && root.dataStructures[0]?.dataStructureComponents?.dimensionList?.dimensions) {
         dimList = root.dataStructures[0].dataStructureComponents.dimensionList.dimensions;
     } else if (root.dimensions) {
         dimList = root.dimensions;
     }
 
-    // 3. 解析每個維度並提取代碼
+    // 4. 對應每個維度與其代碼表
     dimList.forEach(d => {
-        if (d.id === "TIME_PERIOD") return; // 排除時間維度
+        if (d.id === "TIME_PERIOD") return; // 排除時間軸
 
-        let clId = null;
-        const enumRef = d.localRepresentation?.enumeration || d.representation?.codelist || d.codelist;
-
-        if (typeof enumRef === "string") {
-            // 從 URN 字串提取代碼 (例: "urn:...:BIS:CL_NA_FREQ(1.0)" -> "CL_NA_FREQ")
-            const match = enumRef.match(/(?:Codelist=)?(?:[^:]+:)?([A-Za-z0-9_]+)(?:\(.*\))?/);
-            clId = match ? match[1] : enumRef;
-        } else if (enumRef && typeof enumRef === "object") {
-            clId = enumRef.id || (enumRef.ref && enumRef.ref.id) || null;
+        // 取得維度名稱
+        let dimName = d.id;
+        if (typeof d.name === "string") {
+            dimName = d.name;
+        } else if (d.names && typeof d.names === "object") {
+            dimName = d.names["zh-tw"] || d.names["zh"] || d.names["en"] || Object.values(d.names)[0] || d.id;
         }
 
-        // 嘗試取得該維度的選項（先用 clId，找不到再嘗試 CL_ + 維度名）
-        const values = codelists[clId] || 
-                       codelists[enumRef] || 
-                       codelists["CL_" + d.id] || 
-                       [];
+        // 解析對應的 Codelist 標識符
+        const enumRef = 
+            d.localRepresentation?.enumeration || 
+            d.representation?.codelist || 
+            d.codelist || 
+            "";
+
+        let matchedValues = null;
+
+        // 策略 A: 直接比對（若 enumRef 本身是完整字串或 URN）
+        if (typeof enumRef === "string" && enumRef) {
+            matchedValues = codelistMap.get(enumRef);
+            if (!matchedValues) {
+                // 從 URN 字串正則切出代碼 ID
+                const m = enumRef.match(/([A-Z0-9_]+)(?:\([^\)]*\))?$/i);
+                if (m && m[1]) {
+                    matchedValues = codelistMap.get(m[1]) || codelistMap.get(m[1].toLowerCase());
+                }
+            }
+        } 
+        // 策略 B: enumRef 為物件
+        else if (typeof enumRef === "object" && enumRef !== null) {
+            const targetId = enumRef.id || enumRef.ref?.id || enumRef.urn;
+            if (targetId) {
+                matchedValues = codelistMap.get(targetId) || codelistMap.get(String(targetId).toLowerCase());
+            }
+        }
+
+        // 策略 C: 降級備援機制（以 BIS 慣用命名常規猜測）
+        if (!matchedValues || matchedValues.length === 0) {
+            matchedValues = 
+                codelistMap.get("CL_" + d.id) ||
+                codelistMap.get(("CL_" + d.id).toLowerCase()) ||
+                codelistMap.get("CL_BIS_" + d.id) ||
+                [];
+        }
 
         dims.push({
             id: d.id,
-            name: (d.names && (d.names['zh-tw'] || d.names['en'])) || d.name || d.id,
-            codelistId: clId,
-            values: values
+            name: dimName,
+            codelistId: typeof enumRef === "string" ? enumRef : (enumRef?.id || ""),
+            values: matchedValues || []
         });
     });
 
