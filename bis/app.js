@@ -5,7 +5,7 @@ let chart = null;
 
 const $ = id => document.getElementById(id);
 // Google Apps Script Web App URL：部署 Code.gs 後，把 /exec URL 貼到這裡
-const GAS_API_URL = "PASTE_YOUR_GAS_WEB_APP_EXEC_URL_HERE";
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzvmobA1LOrqANcF1cX8ioTHuW5c-BCyUxQDBVDZbbC0eYg33MTwt3bDkvL0hzF30Ju8Q/exec";
 
 function gasJsonp(action, params={}){
   return new Promise((resolve, reject) => {
