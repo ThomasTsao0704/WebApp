@@ -1,29 +1,1163 @@
+```html
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BIS 維度選取器｜GAS 版</title>
+
+<title>BIS Dynamic Dimension Explorer</title>
+
+<!-- Chart.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<!-- Font -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link
+  href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+  rel="stylesheet"
+>
+
+<style>
+
+:root {
+    --bg: #f5f6f8;
+    --panel: #ffffff;
+    --border: #dfe3e8;
+    --border-dark: #c7ccd3;
+
+    --ink: #171b22;
+    --ink-soft: #68707d;
+    --ink-light: #8b929d;
+
+    --indigo: #4255c7;
+    --indigo-dark: #3343a5;
+    --indigo-soft: #eef0ff;
+
+    --danger: #b42318;
+    --danger-bg: #fff1f0;
+
+    --success: #147a52;
+    --success-bg: #ecfdf3;
+
+    --warning: #9a6700;
+    --warning-bg: #fff8e6;
+
+    --shadow:
+        0 2px 10px rgba(20, 25, 35, .05),
+        0 8px 30px rgba(20, 25, 35, .04);
+
+    --radius: 12px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family:
+        "IBM Plex Sans",
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+code {
+    font-family:
+        "IBM Plex Mono",
+        monospace;
+}
+
+.wrap {
+    width: min(1500px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 32px 0 60px;
+}
+
+/* =========================================================
+   Header
+   ========================================================= */
+
+.header {
+    margin-bottom: 24px;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+}
+
+.header .sub {
+    margin: 8px 0 0;
+    color: var(--ink-soft);
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+/* =========================================================
+   Panel
+   ========================================================= */
+
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    margin-bottom: 18px;
+}
+
+/* =========================================================
+   GAS status
+   ========================================================= */
+
+.connection {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #f8f9fb;
+    border: 1px solid var(--border);
+    font-size: 13px;
+}
+
+.connection-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--ink-light);
+    flex: 0 0 auto;
+}
+
+.connection-dot.ok {
+    background: var(--success);
+}
+
+.connection-dot.error {
+    background: var(--danger);
+}
+
+.connection-dot.loading {
+    background: var(--warning);
+}
+
+#connectionText {
+    color: var(--ink-soft);
+}
+
+/* =========================================================
+   Dimension grid
+   ========================================================= */
+
+.grid {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 14px;
+}
+
+.dimension {
+    min-width: 0;
+}
+
+.dimension-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+
+    margin-bottom: 6px;
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.dimension-id {
+    color: var(--ink);
+}
+
+.dimension-count {
+    color: var(--ink-light);
+    font-size: 11px;
+    font-family: "IBM Plex Mono", monospace;
+}
+
+/* =========================================================
+   Select
+   ========================================================= */
+
+.dimension select {
+    width: 100%;
+    min-height: 120px;
+
+    padding: 8px;
+
+    border:
+        1px solid var(--border-dark);
+
+    border-radius: 8px;
+
+    background: #fff;
+    color: var(--ink);
+
+    font-family:
+        "IBM Plex Sans",
+        sans-serif;
+
+    font-size: 12px;
+
+    outline: none;
+
+    transition:
+        border-color .15s ease,
+        box-shadow .15s ease;
+}
+
+.dimension select:focus {
+    border-color: var(--indigo);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(66, 85, 199, .12);
+}
+
+.dimension select option {
+    padding: 5px;
+}
+
+.dimension select option:checked {
+    background:
+        var(--indigo-soft);
+    color: var(--ink);
+}
+
+/* =========================================================
+   Invalid option
+   ========================================================= */
+
+.dimension select option.invalid {
+    color: var(--danger);
+    background: var(--danger-bg);
+}
+
+/* =========================================================
+   Hint
+   ========================================================= */
+
+.hint {
+    margin: 14px 2px 0;
+
+    color: var(--ink-soft);
+
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+/* =========================================================
+   Control bar
+   ========================================================= */
+
+.bar {
+    display: flex;
+    align-items: end;
+    gap: 14px;
+
+    margin-top: 20px;
+
+    padding-top: 18px;
+
+    border-top:
+        1px solid var(--border);
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.field label {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.field input {
+    width: 150px;
+    height: 38px;
+
+    padding:
+        0 10px;
+
+    border:
+        1px solid var(--border-dark);
+
+    border-radius: 8px;
+
+    background: #fff;
+
+    font-family:
+        "IBM Plex Mono",
+        monospace;
+
+    font-size: 12px;
+
+    outline: none;
+}
+
+.field input:focus {
+    border-color: var(--indigo);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(66, 85, 199, .12);
+}
+
+/* =========================================================
+   Buttons
+   ========================================================= */
+
+button {
+    height: 38px;
+
+    padding:
+        0 18px;
+
+    border: 0;
+    border-radius: 8px;
+
+    background:
+        var(--indigo);
+
+    color: #fff;
+
+    font-family:
+        "IBM Plex Sans",
+        sans-serif;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background .15s ease,
+        transform .05s ease,
+        opacity .15s ease;
+}
+
+button:hover {
+    background:
+        var(--indigo-dark);
+}
+
+button:active {
+    transform:
+        translateY(1px);
+}
+
+button:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+/* =========================================================
+   Key
+   ========================================================= */
+
+.keyline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    margin-top: 12px;
+
+    color: var(--ink-soft);
+
+    font-size: 11px;
+
+    overflow-x: auto;
+}
+
+.keyline b {
+    color: var(--ink);
+
+    font-family:
+        "IBM Plex Mono",
+        monospace;
+
+    font-weight: 500;
+
+    white-space: nowrap;
+}
+
+.keyline a {
+    color: var(--indigo);
+
+    text-decoration: none;
+
+    white-space: nowrap;
+}
+
+.keyline a:hover {
+    text-decoration: underline;
+}
+
+/* =========================================================
+   Status
+   ========================================================= */
+
+.status {
+    min-height: 20px;
+
+    margin:
+        8px 2px 14px;
+
+    font-size: 13px;
+}
+
+.status.info {
+    color: var(--ink-soft);
+}
+
+.status.success {
+    color: var(--success);
+}
+
+.status.error {
+    color: var(--danger);
+}
+
+.status.warning {
+    color: var(--warning);
+}
+
+/* =========================================================
+   Chart
+   ========================================================= */
+
+.chart-wrap {
+    display: none;
+}
+
+.chart-box {
+    position: relative;
+
+    width: 100%;
+
+    height: 540px;
+    min-height: 540px;
+}
+
+.chart-box canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* =========================================================
+   Responsive
+   ========================================================= */
+
+@media (max-width: 1100px) {
+
+    .grid {
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 800px) {
+
+    .grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .bar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .field input {
+        width: 100%;
+    }
+
+    button {
+        width: 100%;
+    }
+
+    .chart-box {
+        height: 460px;
+        min-height: 460px;
+    }
+}
+
+@media (max-width: 560px) {
+
+    .wrap {
+        width:
+            calc(100% - 20px);
+
+        padding-top: 20px;
+    }
+
+    .grid {
+        grid-template-columns:
+            1fr;
+    }
+
+    .header h1 {
+        font-size: 23px;
+    }
+
+    .panel {
+        padding: 14px;
+    }
+
+    .dimension select {
+        min-height: 100px;
+    }
+}
+
+</style>
 </head>
+
+
 <body>
+
 <div class="wrap">
-  <h1>BIS 維度選取器</h1>
-  <p class="sub">用下拉選單挑維度值，組出查詢並直接繪圖。資料集：<code>WS_NA_SEC_DSS</code>（債券統計）。</p>
-  <div class="panel">
-    <div id="grid" class="grid"><div style="color:var(--ink-soft);font-size:13px">載入維度清單中…</div></div>
-    <p class="hint">每次選取／取消維度值後，系統會重新向 BIS 查詢可用性；其他維度只保留「在目前條件下仍可組合出資料」的值。每格可複選（Ctrl／Cmd 點，等同 <code>+</code>），整格不選＝全選。</p>
-    <p class="hint" id="availNote" style="display:none;color:var(--warn-ink)">可用性裁剪目前拿不到資料，選單未過濾；若查無資料會在下方提示，並可點「在 BIS 開啟」自行確認。</p>
-    <div class="bar"><div class="field"><label for="start">起始期間</label><input type="text" id="start" value="2015-Q1" style="width:120px"></div><button id="go" disabled>抓取並繪圖</button></div>
-    <div class="keyline">key：<b id="keytext">—</b> <a id="keyurl" href="#" target="_blank" rel="noopener" style="color:var(--indigo);display:none">· 在 BIS 開啟（CSV）</a></div>
-  </div>
-  <div id="status" class="status"></div>
-  <div id="chartWrap" class="chart-wrap" style="display:none"><div class="panel"><div class="chart-box"><canvas id="chart"></canvas></div><p class="hint" style="margin:10px 2px 0">圖例以 <code>S1、S2…</code> 顯示以節省圖表空間；滑鼠移到線上時，Tooltip 會顯示完整 BIS 序列名稱與數值。</p></div></div>
+
+    <!-- =====================================================
+         Header
+         ===================================================== -->
+
+    <header class="header">
+
+        <h1>
+            BIS Dynamic Dimension Explorer
+        </h1>
+
+        <p class="sub">
+            BIS SDMX 維度選取器｜
+            GitHub Pages + Google Apps Script｜
+            <code>WS_NA_SEC_DSS</code>
+        </p>
+
+    </header>
+
+
+    <!-- =====================================================
+         Main Panel
+         ===================================================== -->
+
+    <section class="panel">
+
+        <!-- GAS connection status -->
+
+        <div class="connection">
+
+            <span
+                id="connectionDot"
+                class="connection-dot loading">
+            </span>
+
+            <span id="connectionText">
+                正在連線至 Google Apps Script…
+            </span>
+
+        </div>
+
+
+        <!-- Dimension selectors -->
+
+        <div
+            id="grid"
+            class="grid"
+        >
+
+            <div
+                style="
+                    color:var(--ink-soft);
+                    font-size:13px;
+                "
+            >
+                正在載入 BIS 維度清單…
+            </div>
+
+        </div>
+
+
+        <p class="hint">
+
+            每次選取或取消維度值後，
+            系統會透過 Google Apps Script
+            查詢 BIS Availability API。
+
+            其他維度只保留在目前條件下
+            仍然可以組合出資料的值。
+
+            每個維度可以複選；
+            Windows 使用 Ctrl，
+            macOS 使用 Cmd。
+
+            不選任何值代表該維度不限制。
+
+        </p>
+
+
+        <!-- Controls -->
+
+        <div class="bar">
+
+            <div class="field">
+
+                <label for="start">
+                    起始期間
+                </label>
+
+                <input
+                    type="text"
+                    id="start"
+                    value="2015-Q1"
+                    autocomplete="off"
+                >
+
+            </div>
+
+
+            <button
+                id="go"
+                disabled
+            >
+                抓取並繪圖
+            </button>
+
+        </div>
+
+
+        <!-- Query key -->
+
+        <div class="keyline">
+
+            <span>
+                key：
+            </span>
+
+            <b id="keytext">
+                —
+            </b>
+
+            <a
+                id="keyurl"
+                href="#"
+                target="_blank"
+                rel="noopener"
+                style="display:none"
+            >
+                · 在 BIS 開啟（CSV）
+            </a>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         Status
+         ===================================================== -->
+
+    <div
+        id="status"
+        class="status"
+    ></div>
+
+
+    <!-- =====================================================
+         Chart
+         ===================================================== -->
+
+    <section
+        id="chartWrap"
+        class="chart-wrap"
+    >
+
+        <div class="panel">
+
+            <div class="chart-box">
+
+                <canvas id="chart"></canvas>
+
+            </div>
+
+
+            <p class="hint">
+
+                圖例使用
+                <code>S1、S2、S3…</code>
+                以避免 BIS 長序列名稱擠壓圖表。
+
+                將滑鼠移到資料線上，
+                Tooltip 會顯示完整 BIS 序列名稱、
+                日期與數值。
+
+            </p>
+
+        </div>
+
+    </section>
+
 </div>
-<script src="app.js"></script>
-</body>
-</html>
+
+
+<script>
+
+/* =========================================================
+   1. Google Apps Script Web App URL
+
+   ★★★ 只需要修改這一行 ★★★
+
+   例如：
+
+   const GAS_API_URL =
+       "https://script.google.com/macros/s/XXXXXXXX/exec";
+
+   ========================================================= */
+
+const GAS_API_URL =
+    "PASTE_YOUR_GAS_WEB_APP_EXEC_URL_HERE";
+
+
+/* =========================================================
+   2. BIS Dataflow
+   ========================================================= */
+
+const BIS_FLOW =
+    "WS_NA_SEC_DSS";
+
+
+const BIS_AGENCY =
+    "BIS";
+
+
+const BIS_VERSION =
+    "1.0";
+
+
+/* =========================================================
+   3. 全域狀態
+   ========================================================= */
+
+let dimensions = [];
+
+let chartInstance = null;
+
+let availabilityTimer = null;
+
+let availabilityRequestId = 0;
+
+let dimensionMasterValues = {};
+
+let currentAvailability = {};
+
+
+/* =========================================================
+   4. DOM
+   ========================================================= */
+
+const grid =
+    document.getElementById("grid");
+
+
+const goButton =
+    document.getElementById("go");
+
+
+const statusEl =
+    document.getElementById("status");
+
+
+const keyText =
+    document.getElementById("keytext");
+
+
+const keyUrl =
+    document.getElementById("keyurl");
+
+
+const chartWrap =
+    document.getElementById("chartWrap");
+
+
+const connectionDot =
+    document.getElementById("connectionDot");
+
+
+const connectionText =
+    document.getElementById("connectionText");
+
+
+/* =========================================================
+   5. JSONP Helper
+   =========================================================
+
+   GitHub Pages 與 GAS 是不同網域。
+
+   使用 JSONP 可以避免一般 fetch 的
+   CORS 限制。
+
+   GAS：
+
+       ?callback=xxx
+
+   回傳：
+
+       xxx({...});
+
+   ========================================================= */
+
+function jsonpRequest(
+    url,
+    timeout = 60000
+) {
+
+    return new Promise(
+        (resolve, reject) => {
+
+            const callbackName =
+                "__bis_jsonp_" +
+                Date.now() +
+                "_" +
+                Math.random()
+                    .toString(36)
+                    .slice(2);
+
+
+            let finished = false;
+
+
+            const script =
+                document.createElement("script");
+
+
+            const timer =
+                setTimeout(
+                    () => {
+
+                        if (finished) {
+                            return;
+                        }
+
+                        finished = true;
+
+                        cleanup();
+
+                        reject(
+                            new Error(
+                                "GAS API request timeout."
+                            )
+                        );
+
+                    },
+                    timeout
+                );
+
+
+            function cleanup() {
+
+                clearTimeout(timer);
+
+                try {
+                    delete window[callbackName];
+                } catch (_) {
+                    window[callbackName] =
+                        undefined;
+                }
+
+                script.remove();
+            }
+
+
+            window[callbackName] =
+                function(data) {
+
+                    if (finished) {
+                        return;
+                    }
+
+                    finished = true;
+
+                    cleanup();
+
+                    resolve(data);
+                };
+
+
+            script.onerror =
+                function() {
+
+                    if (finished) {
+                        return;
+                    }
+
+                    finished = true;
+
+                    cleanup();
+
+                    reject(
+                        new Error(
+                            "無法連線到 Google Apps Script。"
+                        )
+                    );
+                };
+
+
+            const separator =
+                url.includes("?")
+                    ? "&"
+                    : "?";
+
+
+            script.src =
+                url +
+                separator +
+                "callback=" +
+                encodeURIComponent(
+                    callbackName
+                ) +
+                "&_=" +
+                Date.now();
+
+
+            document.head.appendChild(
+                script
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   6. GAS API
+   ========================================================= */
+
+async function gasRequest(
+    action,
+    params = {}
+) {
+
+    if (
+        !GAS_API_URL ||
+        GAS_API_URL.includes(
+            "PASTE_YOUR"
+        )
+    ) {
+
+        throw new Error(
+            "尚未設定 GAS_API_URL。"
+        );
+    }
+
+
+    const query =
+        new URLSearchParams();
+
+
+    query.set(
+        "action",
+        action
+    );
+
+
+    Object.keys(params)
+        .forEach(
+            key => {
+
+                const value =
+                    params[key];
+
+                if (
+                    value !== undefined &&
+                    value !== null
+                ) {
+
+                    query.set(
+                        key,
+                        String(value)
+                    );
+                }
+            }
+        );
+
+
+    const url =
+        GAS_API_URL +
+        "?" +
+        query.toString();
+
+
+    return jsonpRequest(
+        url
+    );
+}
+
+
+/* =========================================================
+   7. 狀態
+   ========================================================= */
+
+function setStatus(
+    text,
+    type = "info"
+) {
+
+    statusEl.textContent =
+        text || "";
+
+    statusEl.className =
+        "status " +
+        type;
+}
+
+
+/* =========================================================
+   8. GAS connection status
+   ========================================================= */
+
+function setConnection(
+    state,
+    text
+) {
+
+    connectionDot.className =
+        "connection-dot " +
+        state;
+
+    connectionText.textContent =
+        text;
+}
+
+
+/* =========================================================
+   9. 初始化
+   ========================================================= */
+
+async function init() {
+
+    try {
+
+        setConnection(
+            "loading",
+            "正在連線至 Google Apps Script…"
+        );
+
+
+        setStatus(
+            "正在取得 BIS Structure…",
+            "info"
+        );
+
+
+        const response =
+            await gasRequest(
+                "structure"
+            );
+
+
+        if (
+            !response ||
+            response.ok === false
+        ) {
+
+            throw new Error(
+                response &&
+                response.error
+                    ? response.error
+                    : "BIS Structure 取得失敗。"
+            );
+        }
+
+
+        /*
+         * GAS Code.gs 回傳：
+         *
+         * {
+         *   ok:true,
+         *   data: payload
+         * }
+         */
+
+        const structure =
+            response.data ||
+            response.structure ||
+            response;
+
+
+        dimensions =
+            extractDimensions(
+                structure
+            );
+
+
+        if (!dimensions.length) {
+
+            throw new Error(
+                "找不到 BIS dimensions。"
+            );
+        }
+
+
+        buildDimensionMasterValues(
+            structure
+        );
+
+
+        renderDimensionSelectors();
+
+
+        goButton.disabled =
+            false;
+
+
+        setConnection(
+            "ok",
+            "Google Apps Script 已連線｜BIS API 可用"
+        );
+
+
+        setStatus(
+            "BIS 維度載入完成，共 " +
+            dimensions.length +
+            " 個維度。",
+            "success"
+        );
+
+
+        /*
+         * 初始取得可用性。
+         */
+        scheduleAvailabilityRefresh(
+            true
+        );
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+
+        setConnection(
+```
