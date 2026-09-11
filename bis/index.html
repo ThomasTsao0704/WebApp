@@ -1,1 +1,29 @@
-
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BIS 維度選取器｜GAS 版</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>BIS 維度選取器</h1>
+  <p class="sub">用下拉選單挑維度值，組出查詢並直接繪圖。資料集：<code>WS_NA_SEC_DSS</code>（債券統計）。</p>
+  <div class="panel">
+    <div id="grid" class="grid"><div style="color:var(--ink-soft);font-size:13px">載入維度清單中…</div></div>
+    <p class="hint">每次選取／取消維度值後，系統會重新向 BIS 查詢可用性；其他維度只保留「在目前條件下仍可組合出資料」的值。每格可複選（Ctrl／Cmd 點，等同 <code>+</code>），整格不選＝全選。</p>
+    <p class="hint" id="availNote" style="display:none;color:var(--warn-ink)">可用性裁剪目前拿不到資料，選單未過濾；若查無資料會在下方提示，並可點「在 BIS 開啟」自行確認。</p>
+    <div class="bar"><div class="field"><label for="start">起始期間</label><input type="text" id="start" value="2015-Q1" style="width:120px"></div><button id="go" disabled>抓取並繪圖</button></div>
+    <div class="keyline">key：<b id="keytext">—</b> <a id="keyurl" href="#" target="_blank" rel="noopener" style="color:var(--indigo);display:none">· 在 BIS 開啟（CSV）</a></div>
+  </div>
+  <div id="status" class="status"></div>
+  <div id="chartWrap" class="chart-wrap" style="display:none"><div class="panel"><div class="chart-box"><canvas id="chart"></canvas></div><p class="hint" style="margin:10px 2px 0">圖例以 <code>S1、S2…</code> 顯示以節省圖表空間；滑鼠移到線上時，Tooltip 會顯示完整 BIS 序列名稱與數值。</p></div></div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
