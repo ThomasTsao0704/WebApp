@@ -2,62 +2,93 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>文字 / Markdown → PDF 工具｜離線版</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>文字排版 PDF</title>
+<meta name="description" content="把文字或 Markdown 排成正式的 PDF。完全離線、資料不離開裝置。">
+<meta name="theme-color" content="#141a29">
+<meta name="color-scheme" content="light">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="排版PDF">
 <style>
 *{box-sizing:border-box}
 :root{
   --bg:#eceef2; --panel:#fff; --line:#dde2ea; --ink:#1c2027; --muted:#6a7382;
   --accent:#2f5bd6; --accent-soft:#e8eefc; --band:#141a29;
+  --sans:"Microsoft JhengHei","微軟正黑體","Noto Sans TC","Noto Sans CJK TC","Source Han Sans TC","PingFang TC","Heiti TC",system-ui,-apple-system,Arial,sans-serif;
+  /* 明體優先：Windows 新細明體、macOS/iOS 宋體、Android/Linux 思源宋體；最後才退回西文襯線 */
+  --serif:"Noto Serif TC","Noto Serif CJK TC","Source Han Serif TC","Source Han Serif","Songti TC","STSongti-TC-Regular","STSong","PMingLiU","新細明體","MingLiU","細明體",Georgia,"Times New Roman",serif;
+  --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
 }
+/* 使用者上傳的字型（存在 IndexedDB，離線可用） */
+.userfont{
+  --sans:"T2PUserFont","Microsoft JhengHei","Noto Sans TC","PingFang TC",system-ui,sans-serif;
+  --serif:"T2PUserFont","Noto Serif TC","Songti TC","PMingLiU",serif;
+}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--ink);
-  font-family:"Microsoft JhengHei","Noto Sans TC","PingFang TC",system-ui,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
 
 /* top bar */
-.appbar{background:var(--band);color:#fff;padding:14px 22px;display:flex;justify-content:space-between;align-items:baseline;gap:16px}
-.appbar h1{font-size:18px;margin:0;letter-spacing:.02em;font-weight:700}
-.appbar .tag{font-size:12px;opacity:.7}
-.appbar .count{font-size:12px;opacity:.9;background:#ffffff1a;padding:3px 10px;border-radius:999px}
+.appbar{background:var(--band);color:#fff;padding:12px 22px;display:flex;align-items:center;gap:14px;
+  padding-top:calc(12px + var(--safe-t))}
+.appbar h1{font-size:17px;margin:0;letter-spacing:.02em;font-weight:700;white-space:nowrap}
+.appbar .tag{font-size:12px;opacity:.65;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.appbar .count{font-size:12px;opacity:.95;background:#ffffff1a;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.appbar .install{border:1px solid #ffffff40;background:transparent;color:#fff;border-radius:999px;padding:4px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
 
-.app{display:grid;grid-template-columns:380px 1fr;height:calc(100vh - 52px)}
+.app{display:grid;grid-template-columns:380px 1fr;height:calc(100vh - 52px - var(--safe-t));height:calc(100dvh - 52px - var(--safe-t))}
 
 /* sidebar */
 .sidebar{background:#f6f7f9;border-right:1px solid var(--line);padding:16px 16px 40px;overflow:auto}
 .group{border:1px solid var(--line);border-radius:10px;background:#fff;padding:12px 13px;margin-bottom:12px}
-.group > .gt{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.06em;margin:0 0 9px;text-transform:uppercase}
+.group > .gt{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.06em;margin:0 0 9px}
 label{display:block;font-size:12.5px;font-weight:700;margin:9px 0 5px;color:#2a313c}
 label:first-child{margin-top:0}
 textarea,input[type=text],select{width:100%;border:1px solid var(--line);border-radius:8px;background:#fff;padding:9px 10px;font:inherit;color:inherit}
-textarea{height:220px;resize:vertical;line-height:1.7;font-size:13px}
+textarea{height:240px;resize:vertical;line-height:1.7;font-size:13.5px}
+textarea:focus,input[type=text]:focus,select:focus{outline:2px solid #2f5bd633;border-color:var(--accent)}
 select:disabled,input:disabled{background:#f1f3f6;color:#9aa2ae}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
 .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
-.seg button{flex:1;border:0;background:#fff;padding:8px 0;font-weight:700;font-size:13px;cursor:pointer;color:#59616e}
+.seg button{flex:1;border:0;background:#fff;padding:8px 0;font:inherit;font-weight:700;font-size:13px;cursor:pointer;color:#59616e}
 .seg button.on{background:var(--accent);color:#fff}
 .check{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin:10px 0 2px;cursor:pointer;color:#2a313c}
 .check input{width:16px;height:16px;accent-color:var(--accent);flex:0 0 auto}
 .check small{font-weight:400;color:var(--muted);font-size:11.5px}
-.file{display:block;border:1.5px dashed var(--line);border-radius:9px;padding:12px;text-align:center;color:var(--muted);
+.file{display:block;border:1.5px dashed var(--line);border-radius:9px;padding:11px;text-align:center;color:var(--muted);
   font-size:13px;font-weight:700;cursor:pointer;background:#fff}
 .file:hover{border-color:var(--accent);color:var(--accent)}
 .file input{display:none}
-.actions{display:flex;gap:8px;margin:4px 0 10px;flex-wrap:wrap}
-button.btn{border:0;border-radius:9px;padding:11px 14px;cursor:pointer;font-weight:800;font-size:13.5px}
+.tools{display:flex;gap:6px;align-items:center;margin:7px 0 0;flex-wrap:wrap}
+.tools .wc{margin-left:auto;font-size:11.5px;color:var(--muted)}
+.actions{display:flex;gap:8px;margin:4px 0 12px;flex-wrap:wrap}
+button.btn{border:0;border-radius:9px;padding:11px 14px;cursor:pointer;font:inherit;font-weight:800;font-size:13.5px}
+button.sm{padding:6px 10px;font-size:12.5px;border-radius:7px;font-weight:700}
 .primary{background:var(--accent);color:#fff;flex:1}
 .primary:hover{background:#274fbe}
 .ghost{background:#e7eaf0;color:#333}
 .ghost:hover{background:#dbe0e9}
-.hint{font-size:11.5px;color:var(--muted);line-height:1.75;margin:2px 2px 0}
+.hint{font-size:11.5px;color:var(--muted);line-height:1.75;margin:6px 2px 0}
 .hint code{background:#e7eaf0;border-radius:4px;padding:0 4px;font-family:Consolas,monospace}
+.hint.warn{color:#8a5a00;background:#fff6e0;border:1px solid #f3e1b0;border-radius:7px;padding:6px 9px}
+.fontrow{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12.5px;color:#2a313c}
+.fontrow span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* preview */
-.stage{overflow:auto;padding:26px;background:
-  repeating-linear-gradient(45deg,#e7e9ee 0 14px,#eceef2 14px 28px);}
+.stage{overflow:auto;padding:26px;background:repeating-linear-gradient(45deg,#e7e9ee 0 14px,#eceef2 14px 28px);}
 #pages{display:flex;flex-direction:column;align-items:center;gap:20px}
-.page{background:#fff;box-shadow:0 8px 30px #0000001f;position:relative;overflow:hidden;
-  -webkit-print-color-adjust:exact;print-color-adjust:exact}
+.page{background:#fff;box-shadow:0 8px 30px #0000001f;position:relative;overflow:hidden;transform-origin:top center;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;flex:0 0 auto}
+.page.forced::after{content:"↵ 手動分頁";position:absolute;right:6px;bottom:5px;font-size:10px;font-weight:700;
+  color:var(--accent);background:var(--accent-soft);padding:1px 6px;border-radius:4px;font-family:var(--sans)}
 .page-inner{position:absolute;display:flex;flex-direction:column}
 .ph,.pf{flex:0 0 auto;display:flex;align-items:center;color:#9aa1ac;font-size:8.5pt;line-height:1.3}
 .ph{justify-content:center;border-bottom:1px solid #eef0f4;overflow:hidden}
@@ -69,22 +100,19 @@ button.btn{border:0;border-radius:9px;padding:11px 14px;cursor:pointer;font-weig
 #measure{position:absolute;left:-99999px;top:0;visibility:hidden}
 
 /* ===================== document content ===================== */
-.content{--serif:Georgia,"Noto Serif TC","Source Han Serif TC","PMingLiU","新細明體","Times New Roman",serif;
-  --sans:"Microsoft JhengHei","Noto Sans TC","Source Han Sans TC","PingFang TC",system-ui,Arial,sans-serif;
+.content{
   --pgap:.9em;
   font-family:var(--sans);color:#1b1f27;
   text-align:justify;text-justify:inter-character;
-  /* 中文斷行：嚴格禁則（句讀、括號不落行首／行尾），英文單字不被截斷，超長字串才強制換行 */
   line-break:strict;word-break:normal;overflow-wrap:anywhere;
   hanging-punctuation:allow-end last;
-  font-kerning:normal;font-variant-east-asian:traditional;
+  font-kerning:normal;
 }
-.content.autospace{text-autospace:normal}           /* 新版瀏覽器原生中英間距 */
+.content.autospace{text-autospace:normal}
 .content.ragged{text-align:left}
 
 .content .doc-title{text-align:center;font-size:1.95em;line-height:1.32;margin:0 0 3mm;font-weight:800;letter-spacing:.02em}
 .content .doc-sub{text-align:center;color:#6b7280;font-size:.82em;margin:0 0 9mm;font-weight:400;letter-spacing:.04em}
-.content h1.doc-title:has(+ .doc-sub){margin-bottom:3mm}
 .content h1.doc-title:not(:has(+ .doc-sub)){margin-bottom:8mm}
 
 .content p{margin:0 0 var(--pgap)}
@@ -94,17 +122,11 @@ button.btn{border:0;border-radius:9px;padding:11px 14px;cursor:pointer;font-weig
 .content p.q,
 .content p.split-b,
 .content .split-b p:first-child{text-indent:0}
-
-/* 同一段內的硬換行行群：行與行之間不留段距 */
 .content p.ln{margin-bottom:0}
-
-/* 被分頁切開的段落：上半段最後一行仍左右對齊，下半段不縮排 */
 .content p.split-a,
 .content .split-a > p:last-child{text-align-last:justify}
 .content.ragged p.split-a,
 .content.ragged .split-a > p:last-child{text-align-last:auto}
-
-/* 智慧排版：獨立成段的引號句 */
 .content p.q{text-align:center;font-weight:700;color:#24304a;letter-spacing:.03em;
   margin:calc(var(--pgap) + 2mm) 0 calc(var(--pgap) + 2mm)}
 
@@ -127,80 +149,127 @@ button.btn{border:0;border-radius:9px;padding:11px 14px;cursor:pointer;font-weig
 .content strong{font-weight:800}
 .content em{font-style:normal;text-emphasis:filled dot #8892a3;text-emphasis-position:under right}
 .content .pagebreak{display:none}
-
-/* 每頁頂端不留上邊距、底端不留下邊距（量測與實際頁面一致） */
 .content > :first-child{margin-top:0!important}
 .content > :last-child{margin-bottom:0!important}
 
-/* themes */
-.content.newspaper .doc-title,.content.newspaper h1,.content.newspaper h2,.content.newspaper h3{font-family:var(--serif);letter-spacing:.03em}
+/* 報刊版型：整份文件用明體，標題略加字距；中文明體的粗體較細，所以標題用 900 */
 .content.newspaper{font-family:var(--serif)}
-.content.newspaper p.q{font-family:var(--serif)}
+.content.newspaper .doc-title,.content.newspaper h1,.content.newspaper h2,.content.newspaper h3{font-family:var(--serif);letter-spacing:.04em;font-weight:900}
+.content.newspaper .doc-title{border-bottom:2px solid #1b1f27;padding-bottom:3mm}
+.content.newspaper .doc-sub{font-family:var(--serif)}
+.content.newspaper p.q{font-family:var(--serif);font-weight:900}
+.content.newspaper blockquote{background:none;border-left-color:#1b1f27}
 .content.minimal .doc-title{font-weight:500}
 .content.minimal .doc-sub{letter-spacing:.14em;font-size:.72em}
 .content.minimal h1,.content.minimal h2,.content.minimal h3{font-weight:600}
 .content.minimal p.q{font-weight:500;color:#1b1f27}
 
 /* cover */
-.cover-inner{position:absolute;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;line-break:strict}
+.cover-inner{position:absolute;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;line-break:strict;font-family:var(--sans)}
 .cover-inner .cover-rule{width:44mm;height:2px;background:var(--accent);margin:0 0 8mm}
 .cover-inner .cover-title{font-size:2.7em;font-weight:800;line-height:1.3;margin:0 6mm;letter-spacing:.02em}
 .cover-inner .cover-sub{font-size:1.05em;color:#5b6472;margin:5mm 8mm 0;font-weight:400;line-height:1.6}
 .cover-inner .cover-meta{position:absolute;bottom:0;font-size:.85em;color:#8a92a0;letter-spacing:.03em}
-.cover-inner.newspaper .cover-title{font-family:Georgia,"Noto Serif TC","PMingLiU",serif}
+.cover-inner.newspaper{font-family:var(--serif)}
+.cover-inner.newspaper .cover-title{font-weight:900;letter-spacing:.05em}
+.cover-inner.newspaper .cover-rule{background:#1b1f27}
 
+/* toast */
+#toast{position:fixed;left:50%;bottom:calc(20px + var(--safe-b));transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  background:#1c2230;color:#fff;border-radius:10px;padding:10px 14px;font-size:13.5px;display:flex;gap:12px;align-items:center;
+  box-shadow:0 10px 30px #0004;transition:.2s;z-index:60;max-width:calc(100vw - 24px)}
+#toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#toast button{background:none;border:0;color:#8fb0ff;font:inherit;font-weight:800;cursor:pointer;padding:0;white-space:nowrap}
+
+.tabbar,.fab{display:none}
+
+/* ===================== 手機版 ===================== */
 @media(max-width:920px){
-  .app{grid-template-columns:1fr;height:auto}
-  .stage{padding:14px}
-  .page{transform-origin:top center}
+  html,body{height:auto}
+  .appbar{position:sticky;top:0;z-index:30;padding:10px 14px;padding-top:calc(10px + var(--safe-t));gap:10px}
+  .appbar .tag{display:block;opacity:0}
+  .app{display:block;height:auto;padding-bottom:calc(66px + var(--safe-b))}
+  .sidebar{border:0;padding:12px 12px 16px;overflow:visible;background:transparent}
+  body:not([data-tab=preview]) .stage{display:none}
+  body[data-tab=preview] .sidebar{display:none}
+  body[data-tab=edit] [data-panel=settings]{display:none}
+  body[data-tab=settings] [data-panel=edit]{display:none}
+  textarea{height:46vh;height:46dvh}
+  textarea,input[type=text],select{font-size:16px}           /* 避免 iOS 點擊時自動放大 */
+  .stage{padding:14px 8px calc(80px + var(--safe-b));min-height:calc(100dvh - 120px)}
+  #pages{gap:14px}
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:#fffffff2;backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);padding-bottom:var(--safe-b)}
+  .tabbar button{flex:1;border:0;background:none;padding:7px 0 6px;display:flex;flex-direction:column;align-items:center;gap:2px;
+    font:inherit;font-size:11.5px;font-weight:700;color:#7a8291;cursor:pointer;position:relative}
+  .tabbar button svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .tabbar button.on{color:var(--accent)}
+  .tabbar em{position:absolute;top:3px;left:calc(50% + 10px);font-style:normal;font-size:10px;background:var(--accent);color:#fff;
+    border-radius:999px;padding:0 5px;line-height:15px}
+  body[data-tab=preview] .fab{display:block;position:fixed;right:16px;bottom:calc(74px + var(--safe-b));z-index:35;border:0;
+    background:var(--accent);color:#fff;font:inherit;font-weight:800;font-size:15px;padding:13px 20px;border-radius:999px;
+    box-shadow:0 8px 24px #2f5bd666;cursor:pointer}
+  #toast{bottom:calc(76px + var(--safe-b))}
 }
 
 @media print{
-  html,body{background:#fff}
-  .appbar,.sidebar{display:none!important}
-  .app{display:block;height:auto}
-  .stage{padding:0;overflow:visible;background:#fff}
+  html,body{background:#fff;height:auto}
+  .appbar,.sidebar,.tabbar,.fab,#toast{display:none!important}
+  .app{display:block;height:auto;padding:0}
+  .stage{display:block!important;padding:0;overflow:visible;background:#fff;min-height:0}
   #pages{gap:0}
   .page{box-shadow:none!important;margin:0!important;transform:none!important;break-after:page;page-break-after:always}
   .page:last-child{break-after:auto;page-break-after:auto}
+  .page.forced::after{display:none}
   .ph,.pf{color:#8a92a0}
 }
 </style>
 </head>
-<body>
+<body data-tab="edit">
 <header class="appbar">
-  <div><h1>文字 / Markdown → PDF</h1></div>
-  <span class="tag">單一 HTML · 完全離線 · 免安裝</span>
+  <h1>文字排版 PDF</h1>
+  <span class="tag">完全離線 · 資料不離開裝置</span>
+  <button class="install" id="installBtn" hidden>安裝 App</button>
   <span class="count" id="pageCount">— 頁</span>
 </header>
 
 <div class="app">
 <aside class="sidebar">
 
-  <div class="group">
-    <p class="gt">內容來源</p>
+  <div class="group" data-panel="edit">
+    <p class="gt">內容</p>
     <div class="seg" id="modeSeg">
       <button data-mode="plain" class="on">純文字</button>
       <button data-mode="markdown">Markdown</button>
     </div>
-    <label style="margin-top:11px">上傳檔案（.txt / .md）</label>
-    <label class="file">選擇檔案，或把文字直接貼到下方
-      <input type="file" id="fileInput" accept=".txt,.md,.markdown,text/plain">
+    <label class="file" style="margin-top:10px">開啟檔案（.txt / .md，支援 UTF-8 與 Big5）
+      <input type="file" id="fileInput" accept=".txt,.md,.markdown,text/plain,text/markdown">
     </label>
-    <label>文章內容</label>
-    <textarea id="text" placeholder="把文字貼在這裡……&#10;&#10;Markdown 模式支援 # 標題、**粗體**、- 清單、> 引言、`程式碼` 等。&#10;單獨一行輸入 [分頁] 可強制換頁。"></textarea>
+    <label style="margin-top:10px">文章內容</label>
+    <textarea id="text" placeholder="把文字貼在這裡……&#10;&#10;Markdown 模式支援 # 標題、**粗體**、- 清單、> 引言、`程式碼` 等。&#10;單獨一行 [分頁] 可強制換頁，連續兩個會留一頁空白頁。"></textarea>
+    <div class="tools">
+      <button class="btn ghost sm" id="pbBtn" title="在游標處插入分頁">＋ 插入分頁</button>
+      <button class="btn ghost sm" id="pasteBtn" hidden>貼上</button>
+      <span class="wc" id="wordCount"></span>
+    </div>
   </div>
 
-  <div class="group">
+  <div class="group" data-panel="edit">
     <p class="gt">標題</p>
     <label class="check"><input type="checkbox" id="autoTitle" checked>自動從內容取標題（第一行 / 第一個 #）</label>
     <label>文件標題</label>
-    <input type="text" id="title" value="真正支持一個政府，不是相信它永遠正確">
+    <input type="text" id="title">
     <label>副標題</label>
-    <input type="text" id="subtitle" value="—— 關於民主、質疑與公共權力的思考">
+    <input type="text" id="subtitle">
   </div>
 
-  <div class="group">
+  <div class="actions">
+    <button class="btn primary" id="printBtn">列印 / 儲存 PDF</button>
+    <button class="btn ghost" id="sampleBtn">範例</button>
+    <button class="btn ghost" id="clearBtn">清空</button>
+  </div>
+
+  <div class="group" data-panel="settings">
     <p class="gt">段落排版</p>
     <div class="row">
       <div>
@@ -239,14 +308,15 @@ button.btn{border:0;border-radius:9px;padding:11px 14px;cursor:pointer;font-weig
     </div>
     <label class="check"><input type="checkbox" id="autospace" checked>中英文、數字間自動留白</label>
     <label class="check"><input type="checkbox" id="smart" checked>智慧排版 <small>引號句置中、「：」引導句不落單</small></label>
+    <label class="check"><input type="checkbox" id="h1break">每個一級標題（#）從新頁開始</label>
   </div>
 
-  <div class="group">
+  <div class="group" data-panel="settings">
     <p class="gt">版面</p>
     <div class="row">
       <div>
         <label>紙張</label>
-        <select id="paper"><option value="A4" selected>A4</option><option value="A5">A5</option></select>
+        <select id="paper"><option value="A4" selected>A4</option><option value="A5">A5</option><option value="B5">B5</option><option value="Letter">Letter</option></select>
       </div>
       <div>
         <label>方向</label>
@@ -279,15 +349,30 @@ button.btn{border:0;border-radius:9px;padding:11px 14px;cursor:pointer;font-weig
     <label style="margin-top:11px">版型</label>
     <select id="theme">
       <option value="classic" selected>正式（黑體）</option>
-      <option value="newspaper">報刊（明體／襯線）</option>
+      <option value="newspaper">報刊（明體）</option>
       <option value="minimal">極簡</option>
     </select>
+    <p class="hint warn" id="mingHint" hidden>這台裝置沒有安裝中文明體，報刊版型的中文會改用黑體顯示。可在下方「字型」上傳明體字型檔（例如免費的思源宋體 / Noto Serif TC）。</p>
   </div>
 
-  <div class="group">
+  <div class="group" data-panel="settings">
+    <p class="gt">字型</p>
+    <label>內文字型</label>
+    <select id="fontChoice">
+      <option value="theme" selected>依版型（系統字型）</option>
+      <option value="user" id="userFontOpt">自訂字型（尚未上傳）</option>
+    </select>
+    <label class="file" style="margin-top:9px">上傳字型檔（.ttf / .otf / .woff2）
+      <input type="file" id="fontInput" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2">
+    </label>
+    <div class="fontrow"><span id="userFontName">尚未上傳自訂字型</span><button class="btn ghost sm" id="fontDel" hidden>移除</button></div>
+    <p class="hint">字型存在這台裝置上，離線也能用，輸出的 PDF 會內嵌這個字型。中文字型檔通常有 5–20 MB。</p>
+  </div>
+
+  <div class="group" data-panel="settings">
     <p class="gt">封面・頁首頁尾</p>
     <label class="check"><input type="checkbox" id="cover">加入封面頁</label>
-    <div class="row" id="coverMeta">
+    <div class="row">
       <div><label>作者</label><input type="text" id="author" placeholder="選填"></div>
       <div><label>日期</label><input type="text" id="date" placeholder="選填"></div>
     </div>
@@ -298,20 +383,18 @@ button.btn{border:0;border-radius:9px;padding:11px 14px;cursor:pointer;font-weig
     <label class="check"><input type="checkbox" id="pageNum" checked>顯示頁碼（頁尾右側）</label>
   </div>
 
-  <div class="actions">
-    <button class="btn primary" onclick="printPDF()">列印 / 儲存 PDF</button>
-    <button class="btn ghost" onclick="loadSample()">範例</button>
-    <button class="btn ghost" onclick="clearAll()">清空</button>
+  <div class="group" data-panel="settings">
+    <p class="gt">說明</p>
+    <p class="hint" id="iosHint" hidden><b>安裝到主畫面：</b>在 Safari 點「分享」→「加入主畫面」，之後就能像 App 一樣離線開啟。</p>
+    <p class="hint">
+      輸出：按「列印 / 儲存 PDF」，在列印視窗選「另存為 PDF」（iPhone 請在列印預覽點「分享」→「儲存到檔案」）。
+      列印視窗請把「邊界」設為<b>無</b>、關閉「頁首及頁尾」，版面才會精準。<br>
+      分頁：單獨一行輸入 <code>[分頁]</code>（或 <code>【分頁】</code>、<code>\newpage</code>）強制換頁；連續兩個會留一頁空白頁。預覽中以「↵ 手動分頁」標示，不會印出。<br>
+      頁首／頁尾可用 <code>{title}</code>、<code>{page}</code>、<code>{pages}</code>。<br>
+      所有文字與設定只存在這台裝置，會自動保存。
+    </p>
+    <p class="hint" id="verInfo"></p>
   </div>
-
-  <p class="hint">
-    貼上文字（或上傳 <code>.txt</code>/<code>.md</code>）→ 調整版面 → 按「列印 / 儲存 PDF」，在列印視窗選「另存為 PDF」。
-    分頁、頁碼、頁首頁尾都是先在畫面上排好才輸出，所見即所得。<br>
-    段落會在頁尾自動接續到下一頁，且至少保留兩行在頁尾、兩行在頁首（避免孤行）；標題不會落單在頁底。
-    單獨一行輸入 <code>[分頁]</code> 可強制換頁。<br>
-    小提醒：列印視窗請把「邊界」設為<b>無</b>、關閉瀏覽器內建的「頁首及頁尾」，版面才會精準。檔名會自動用文件標題。
-    頁首／頁尾可用 <code>{title}</code> 代入標題。
-  </p>
 </aside>
 
 <main class="stage">
@@ -319,37 +402,56 @@ button.btn{border:0;border-radius:9px;padding:11px 14px;cursor:pointer;font-weig
 </main>
 </div>
 
+<button class="fab" id="fabPrint">輸出 PDF</button>
+
+<nav class="tabbar" role="tablist">
+  <button data-tab="edit" class="on" role="tab"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg><span>編輯</span></button>
+  <button data-tab="settings" role="tab"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>排版</span></button>
+  <button data-tab="preview" role="tab"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg><span>預覽</span><em id="tabCount" hidden></em></button>
+</nav>
+
+<div id="toast" role="status" aria-live="polite"></div>
 <div id="measure" class="content"></div>
 <style id="pageStyle"></style>
 
 <script>
+"use strict";
+const APP_VERSION="2.0.0";
 const $=id=>document.getElementById(id);
-const PXMM=96/25.4;            // px per mm at 96dpi
-const PAPER={A4:[210,297],A5:[148,210]};
-const MIN_LINES=2;             // 孤行／寡行控制：段落切頁時，頁尾、頁首至少各留幾行
+const PXMM=96/25.4;
+const PAPER={A4:[210,297],A5:[148,210],B5:[176,250],Letter:[215.9,279.4]};
+const MIN_LINES=2;
 const NATIVE_AUTOSPACE=!!(window.CSS&&CSS.supports&&CSS.supports("text-autospace","normal"));
-const PB_RE=/^\s*(\[分頁\]|\\pagebreak|<!--\s*pagebreak\s*-->)\s*$/i;
-let mode="plain";
-let renderTimer=null;
+const PB_RE=/^\s*(\[分頁\]|【分頁】|\\(?:pagebreak|newpage)|<!--\s*pagebreak\s*-->)\s*$/i;
+const STORE_KEY="t2p.state.v2";
+const FIELDS=["title","subtitle","autoTitle","lineMode","paraGap","align","indent","autospace","smart","h1break",
+  "paper","orientation","fontSize","lineHeight","margin","theme","fontChoice","cover","author","date","header","footer","pageNum"];
+const SAMPLE_TITLE="真正支持一個政府，不是相信它永遠正確";
+const SAMPLE_SUB="—— 關於民主、質疑與公共權力的思考";
+
+let mode="plain", tab="edit", dirty=true, lastKey="", fontGen=0;
+let userFont=null, userFontFace=null, renderTimer=null, saveTimer=null, lastBackup=null;
+const isMobile=()=>matchMedia("(max-width:920px)").matches;
 
 /* ---------- helpers ---------- */
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
 function el(tag,cls){const n=document.createElement(tag);if(cls)n.className=cls;return n;}
+function normalizeSrc(src){return src.replace(/\r\n?/g,"\n").replace(/\f/g,"\n[分頁]\n");}
+function toast(msg,action,fn,ms){
+  const t=$("toast");t.innerHTML="";const sp=el("span");sp.textContent=msg;t.appendChild(sp);
+  if(action){const b=el("button");b.textContent=action;b.onclick=()=>{t.classList.remove("show");fn();};t.appendChild(b);}
+  t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),ms||(action?6000:2600));
+}
 
-/* ---------- paragraph builder (shared by plain & markdown) ---------- */
+/* ---------- paragraph builder ---------- */
 function joinLines(lines){
-  // 合併硬換行：中文直接相接，英數之間補一個空白
   let t="";
-  lines.forEach(l=>{
-    l=l.trim(); if(!l)return;
-    if(t&&/[A-Za-z0-9,.;:!?'")\]]$/.test(t)&&/^[A-Za-z0-9("'\[]/.test(l))t+=" ";
-    t+=l;
-  });
+  lines.forEach(l=>{l=l.trim();if(!l)return;
+    if(t&&/[A-Za-z0-9,.;:!?'")\]]$/.test(t)&&/^[A-Za-z0-9("'\[]/.test(l))t+=" ";t+=l;});
   return t;
 }
 function paraHtml(raw,extra,fmt){
-  const t=raw.trim();                       // trim 也會去掉全形空白「　」，避免與自動縮排重複
-  const cls=[];
+  const t=raw.trim();const cls=[];
   if(extra)cls.push(extra);
   if($("smart").checked){
     if(t.length<=80&&/^[「『“"].+[」』”"][。！？!?]?$/.test(t))cls.push("q");
@@ -363,7 +465,6 @@ function linesToHtml(lines,fmt){
   const lm=$("lineMode").value;
   if(lm==="merge"||lines.length===1)return paraHtml(lm==="merge"?joinLines(lines):lines[0],"",fmt);
   if(lm==="each")return lines.map(l=>paraHtml(l,"",fmt)).join("");
-  // keep：同一段的多行做成「行群」，每行各自縮排，行間不留段距
   return lines.map((l,i)=>paraHtml(l,i<lines.length-1?"ln":"",fmt)).join("");
 }
 
@@ -374,11 +475,11 @@ function inline(t){
   t=t.replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>").replace(/__([^_]+)__/g,"<strong>$1</strong>");
   t=t.replace(/(^|[^*])\*([^*\n]+)\*/g,"$1<em>$2</em>");
   t=t.replace(/(^|[^_])_([^_\n]+)_/g,"$1<em>$2</em>");
-  t=t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,'<a href="$2">$1</a>');
+  t=t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,(m,a,h)=>/^\s*javascript:/i.test(h)?a:'<a href="'+h+'">'+a+'</a>');
   return t;
 }
 function mdToHtml(src){
-  const lines=src.replace(/\r\n?/g,"\n").split("\n");
+  const lines=src.split("\n");
   let html="",i=0,para=[];
   const flush=()=>{if(para.length){html+=linesToHtml(para,inline);para=[];}};
   while(i<lines.length){
@@ -390,8 +491,7 @@ function mdToHtml(src){
     if(h){flush();const lv=h[1].length;html+="<h"+lv+">"+inline(h[2].trim())+"</h"+lv+">";i++;continue;}
     if(/^\s*(---|\*\*\*|___)\s*$/.test(ln)){flush();html+="<hr>";i++;continue;}
     if(/^\s*>\s?/.test(ln)){flush();let q=[];while(i<lines.length&&/^\s*>\s?/.test(lines[i])){q.push(lines[i].replace(/^\s*>\s?/,""));i++;}
-      const lm=$("lineMode").value;
-      const qs=lm==="merge"?[joinLines(q)]:q.filter(x=>x.trim());
+      const qs=$("lineMode").value==="merge"?[joinLines(q)]:q.filter(x=>x.trim());
       html+="<blockquote>"+qs.map(x=>"<p>"+inline(x.trim())+"</p>").join("")+"</blockquote>";continue;}
     if(/^\s*[-*+]\s+/.test(ln)){flush();let items=[];while(i<lines.length&&/^\s*[-*+]\s+/.test(lines[i])){items.push(lines[i].replace(/^\s*[-*+]\s+/,""));i++;}html+="<ul>"+items.map(x=>"<li>"+inline(x)+"</li>").join("")+"</ul>";continue;}
     if(/^\s*\d+\.\s+/.test(ln)){flush();let items=[];let start=parseInt(lines[i].match(/^\s*(\d+)\./)[1],10);while(i<lines.length&&/^\s*\d+\.\s+/.test(lines[i])){items.push(lines[i].replace(/^\s*\d+\.\s+/,""));i++;}html+='<ol start="'+start+'">'+items.map(x=>"<li>"+inline(x)+"</li>").join("")+"</ol>";continue;}
@@ -401,10 +501,9 @@ function mdToHtml(src){
   return html;
 }
 function plainToHtml(src){
-  const lines=src.replace(/\r\n?/g,"\n").split("\n");
   let html="",para=[];
   const flush=()=>{if(para.length){html+=linesToHtml(para,esc);para=[];}};
-  lines.forEach(l=>{
+  src.split("\n").forEach(l=>{
     if(PB_RE.test(l)){flush();html+='<div class="pagebreak"></div>';}
     else if(/^\s*$/.test(l))flush();
     else para.push(l);
@@ -413,95 +512,96 @@ function plainToHtml(src){
   return html;
 }
 
-/* 中英文間距（瀏覽器不支援 text-autospace 時的後備方案，只動畫面不動原文） */
-const CJK="\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff";
+/* 中英文間距後備方案 */
+const CJK="぀-ヿ㐀-䶿一-鿿豈-﫿";
 const AS1=new RegExp("(["+CJK+"])([A-Za-z0-9@#$&(\\[])","g");
 const AS2=new RegExp("([A-Za-z0-9%)\\]])(["+CJK+"])","g");
 function applyAutospace(root){
   const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null);const nodes=[];let n;
   while(n=w.nextNode())if(!n.parentNode.closest("code,pre"))nodes.push(n);
-  nodes.forEach(t=>{const v=t.nodeValue.replace(AS1,"$1\u2005$2").replace(AS2,"$1\u2005$2");if(v!==t.nodeValue)t.nodeValue=v;});
+  nodes.forEach(t=>{const v=t.nodeValue.replace(AS1,"$1 $2").replace(AS2,"$1 $2");if(v!==t.nodeValue)t.nodeValue=v;});
 }
 
-/* derive auto title, and body with that line removed */
 function deriveTitle(src){
-  const lines=src.replace(/\r\n?/g,"\n").split("\n");
-  let idx=lines.findIndex(l=>l.trim()!=="");
+  const lines=src.split("\n");
+  let idx=lines.findIndex(l=>l.trim()!==""&&!PB_RE.test(l));
   if(idx<0)return {title:"",body:src};
-  let line=lines[idx];
-  let m=line.match(/^#{1,6}\s+(.+)$/);
-  let title=m?m[1].trim():line.trim().replace(/^#+\s*/,"");
+  let m=lines[idx].match(/^#{1,6}\s+(.+)$/);
+  let title=m?m[1].trim():lines[idx].trim().replace(/^#+\s*/,"");
   lines.splice(idx,1);
-  return {title, body:lines.join("\n")};
+  return {title,body:lines.join("\n")};
 }
+
+/* ---------- 明體偵測 ---------- */
+const SERIF_CANDIDATES=["Noto Serif TC","Noto Serif CJK TC","Source Han Serif TC","Source Han Serif","Songti TC","STSongti-TC-Regular","STSong","PMingLiU","新細明體","MingLiU","細明體","Noto Serif CJK SC","Noto Serif SC"];
+let _hasMing=null;
+function fontInstalled(name){
+  const ctx=document.createElement("canvas").getContext("2d");const txt="永和明體 mmwwlli 0123";
+  return ["monospace","sans-serif"].some(base=>{
+    ctx.font="40px "+base;const a=ctx.measureText(txt).width;
+    ctx.font='40px "'+name+'",'+base;return Math.abs(ctx.measureText(txt).width-a)>0.5;});
+}
+function hasMing(){if(_hasMing===null)_hasMing=SERIF_CANDIDATES.some(fontInstalled);return _hasMing;}
 
 /* ---------- settings ---------- */
 function getSettings(){
-  const paper=$("paper").value, land=$("orientation").value==="landscape";
-  let [w,h]=PAPER[paper]; if(land)[w,h]=[h,w];
+  const land=$("orientation").value==="landscape";
+  let [w,h]=PAPER[$("paper").value]||PAPER.A4; if(land)[w,h]=[h,w];
   const m=parseFloat($("margin").value);
   const header=$("header").value.trim(), footer=$("footer").value.trim();
   const pageNum=$("pageNum").checked;
-  const headerShow=!!header, footerShow=!!footer||pageNum;
   return {
-    pageW:w, pageH:h, mTop:m, mBot:m, mLeft:m, mRight:m,
-    headerH:9, footerH:9, headerShow, footerShow,
-    header, footer, pageNum,
-    fontSize:parseFloat($("fontSize").value), lineHeight:$("lineHeight").value,
+    pageW:w,pageH:h,mTop:m,mBot:m,mLeft:m,mRight:m,
+    headerH:9,footerH:9,headerShow:!!header,footerShow:!!footer||pageNum,
+    header,footer,pageNum,
+    fontSize:parseFloat($("fontSize").value),lineHeight:$("lineHeight").value,
     theme:$("theme").value,
-    indent:$("indent").value==="on", pgap:$("paraGap").value, align:$("align").value,
-    autospace:$("autospace").checked,
-    title:$("title").value.trim(), subtitle:$("subtitle").value.trim(),
-    cover:$("cover").checked, author:$("author").value.trim(), date:$("date").value.trim()
+    indent:$("indent").value==="on",pgap:$("paraGap").value,align:$("align").value,
+    autospace:$("autospace").checked,h1break:$("h1break").checked,
+    font:($("fontChoice").value==="user"&&userFont)?"user":"theme",
+    title:$("title").value.trim(),subtitle:$("subtitle").value.trim(),
+    cover:$("cover").checked,author:$("author").value.trim(),date:$("date").value.trim()
   };
 }
 function contentClass(s){
-  return "content "+s.theme+(s.indent?" indent":"")+(s.align==="left"?" ragged":"")+(s.autospace&&NATIVE_AUTOSPACE?" autospace":"");
+  return "content "+s.theme+(s.indent?" indent":"")+(s.align==="left"?" ragged":"")+
+    (s.autospace&&NATIVE_AUTOSPACE?" autospace":"")+(s.font==="user"?" userfont":"");
 }
 function styleContent(node,s){
-  node.style.fontSize=s.fontSize+"pt";
-  node.style.lineHeight=s.lineHeight;
-  node.style.setProperty("--pgap",s.pgap+"em");
+  node.style.fontSize=s.fontSize+"pt";node.style.lineHeight=s.lineHeight;node.style.setProperty("--pgap",s.pgap+"em");
 }
 
-/* ---------- pagination geometry ---------- */
+/* ---------- pagination ---------- */
 function contentWidthPx(s){return (s.pageW-s.mLeft-s.mRight)*PXMM;}
 function contentHeightPx(s){
-  let inner=s.pageH-s.mTop-s.mBot;
-  let hh=(s.headerShow?s.headerH+2.5:0)+(s.footerShow?s.footerH+2.5:0);
+  const inner=s.pageH-s.mTop-s.mBot;
+  const hh=(s.headerShow?s.headerH+2.5:0)+(s.footerShow?s.footerH+2.5:0);
   return Math.floor((inner-hh)*PXMM)-1;
 }
-
-/* offset -> [textNode, localOffset] */
 function endPoint(node,off){
   const w=document.createTreeWalker(node,NodeFilter.SHOW_TEXT,null);
   let acc=0,n,last=null;
   while(n=w.nextNode()){last=n;const len=n.nodeValue.length;if(acc+len>=off)return [n,Math.max(0,off-acc)];acc+=len;}
   return last?[last,last.nodeValue.length]:[null,0];
 }
-
-/* 依「實際排出來的行」切段：只在行尾切，所以中文禁則、英文斷字都由瀏覽器決定，切完不會改變換行 */
 function splitText(m,elm,avail,fits){
   m.appendChild(elm);
   const total=elm.textContent.length;
   const done=v=>{if(elm.parentNode===m)m.removeChild(elm);return v;};
   if(total<2)return done(null);
-
   const cs=getComputedStyle(elm);
   let lh=parseFloat(cs.lineHeight);
   if(!lh||isNaN(lh))lh=parseFloat(cs.fontSize)*parseFloat(m.style.lineHeight||1.8);
   const rng=document.createRange();
   const bottomAt=off=>{const [n,o]=endPoint(elm,off);if(!n)return -Infinity;rng.selectNodeContents(elm);try{rng.setEnd(n,o);}catch(e){return Infinity;}return rng.getBoundingClientRect().bottom;};
-
   const er=elm.getBoundingClientRect();
   const contentTop=er.top+parseFloat(cs.paddingTop)+parseFloat(cs.borderTopWidth);
   const limit=m.getBoundingClientRect().top+avail-parseFloat(cs.paddingBottom)-parseFloat(cs.borderBottomWidth);
-  const B1=bottomAt(1), Bend=bottomAt(total);
+  const B1=bottomAt(1),Bend=bottomAt(total);
   const totalLines=Math.round((Bend-B1)/lh)+1;
   let k=Math.min(Math.floor((limit-contentTop)/lh+0.02),totalLines-MIN_LINES);
-
   for(;k>=MIN_LINES;k--){
-    const thr=B1+(k-1)*lh+lh*0.5;               // 第 k 行的字框底線與第 k+1 行之間
+    const thr=B1+(k-1)*lh+lh*0.5;
     let lo=1,hi=total,best=0;
     while(lo<=hi){const mid=(lo+hi)>>1;if(bottomAt(mid)<=thr){best=mid;lo=mid+1;}else hi=mid-1;}
     if(best<=0||best>=total)continue;
@@ -510,7 +610,6 @@ function splitText(m,elm,avail,fits){
     const rest=elm.cloneNode(false);const r2=document.createRange();r2.selectNodeContents(elm);r2.setStart(n1,o1);rest.appendChild(r2.cloneContents());
     if(!first.textContent.trim()||!rest.textContent.trim())continue;
     first.classList.add("split-a");rest.classList.add("split-b");
-    // 驗證：上半段放進目前頁面真的放得下
     m.removeChild(elm);m.appendChild(first);const ok=fits();m.removeChild(first);
     if(ok)return {first,rest};
     m.appendChild(elm);
@@ -532,14 +631,13 @@ function splitList(m,elm,fits){
 function splitBlock(m,elm,avail,fits){
   const t=elm.tagName;
   if(t==="UL"||t==="OL")return splitList(m,elm,fits);
-  if(t==="HR"||/^H[1-6]$/.test(t)||elm.classList.contains("doc-sub"))return null; // 保持完整
+  if(t==="HR"||/^H[1-6]$/.test(t)||elm.classList.contains("doc-sub"))return null;
   return splitText(m,elm,avail,fits);
 }
-/* 這些區塊不可單獨留在頁底，要跟著下一個區塊走 */
 function keepWithNext(e){
   return /^H[1-6]$/.test(e.tagName)||e.classList.contains("doc-sub")||e.classList.contains("lead")||e.classList.contains("ln");
 }
-
+/* 回傳 [{els:[...], forced:是否因手動分頁而結束}] */
 function paginate(blocks,s){
   const m=$("measure");
   m.className=contentClass(s);
@@ -548,58 +646,54 @@ function paginate(blocks,s){
   m.innerHTML="";
   const avail=contentHeightPx(s);
   const fits=()=>m.scrollHeight<=avail+0.5;
-  const pages=[]; let cur=[]; const queue=blocks.slice(); let guard=0;
-  const newPage=()=>{cur.forEach(e=>{if(e.parentNode===m)m.removeChild(e);});if(cur.length)pages.push(cur);cur=[];};
+  const pages=[];let cur=[];const queue=blocks.slice();let guard=0,lastWasBreak=false;
+  const newPage=forced=>{cur.forEach(e=>{if(e.parentNode===m)m.removeChild(e);});if(cur.length)pages.push({els:cur,forced:!!forced});cur=[];};
 
   while(queue.length){
-    if(++guard>8000)break;
+    if(++guard>10000)break;
     const b=queue.shift();
-    if(b.classList.contains("pagebreak")){if(cur.length)newPage();continue;}
-
+    if(b.classList.contains("pagebreak")){
+      if(cur.length)newPage(true);                              // 結束目前頁
+      else if(lastWasBreak&&pages.length)pages.push({els:[],forced:true});  // 連續分頁 → 空白頁
+      lastWasBreak=true;continue;                               // 文件開頭的分頁直接忽略
+    }
+    lastWasBreak=false;
     m.appendChild(b);
     if(fits()){cur.push(b);continue;}
     m.removeChild(b);
-
-    // 1) 先嘗試把段落切開，上半段填滿目前頁面剩餘空間
     const parts=splitBlock(m,b,avail,fits);
-    if(parts){
-      m.appendChild(parts.first);cur.push(parts.first);newPage();
-      queue.unshift(parts.rest);continue;
-    }
-    // 2) 切不了：整段移到下一頁，並把頁底落單的標題／引導句一起帶走
+    if(parts){m.appendChild(parts.first);cur.push(parts.first);newPage();queue.unshift(parts.rest);continue;}
     if(cur.length){
       const carry=[];
       while(cur.length>1&&keepWithNext(cur[cur.length-1])){const c=cur.pop();if(c.parentNode===m)m.removeChild(c);carry.unshift(c);}
       newPage();queue.unshift(...carry,b);continue;
     }
-    // 3) 空白頁仍放不下且無法切割：直接放入（超出部分會被裁切）
     m.appendChild(b);cur.push(b);newPage();
   }
   newPage();
-  if(pages.length===0)pages.push([]);
+  if(pages.length===0)pages.push({els:[],forced:false});
   return pages;
 }
 
 /* ---------- page dom ---------- */
 function tok(str,s,no,N){return String(str).replace(/{title}/g,s.title).replace(/{page}/g,no).replace(/{pages}/g,N);}
+function sizePage(page,s){page.style.width=s.pageW+"mm";page.style.height=s.pageH+"mm";}
+function placeInner(inner,s){inner.style.top=s.mTop+"mm";inner.style.bottom=s.mBot+"mm";inner.style.left=s.mLeft+"mm";inner.style.right=s.mRight+"mm";}
 function makePage(s){
-  const page=el("div","page");
-  page.style.width=s.pageW+"mm";page.style.height=s.pageH+"mm";
-  const inner=el("div","page-inner");
-  inner.style.top=s.mTop+"mm";inner.style.bottom=s.mBot+"mm";inner.style.left=s.mLeft+"mm";inner.style.right=s.mRight+"mm";
+  const page=el("div","page");sizePage(page,s);
+  const inner=el("div","page-inner");placeInner(inner,s);
   const ph=el("div","ph");ph.style.height=s.headerShow?s.headerH+"mm":"0";ph.style.marginBottom=s.headerShow?"2.5mm":"0";
   if(!s.headerShow)ph.style.borderBottom="0";
   const pb=el("div","pb "+contentClass(s));styleContent(pb,s);
   const pf=el("div","pf");pf.style.height=s.footerShow?s.footerH+"mm":"0";pf.style.marginTop=s.footerShow?"2.5mm":"0";
   if(!s.footerShow)pf.style.borderTop="0";
+  if(s.font==="user")ph.classList.add("userfont"),pf.classList.add("userfont");
   inner.append(ph,pb,pf);page.appendChild(inner);
   return page;
 }
 function coverPage(s){
-  const page=el("div","page");
-  page.style.width=s.pageW+"mm";page.style.height=s.pageH+"mm";
-  const inner=el("div","cover-inner "+s.theme);
-  inner.style.top=s.mTop+"mm";inner.style.bottom=s.mBot+"mm";inner.style.left=s.mLeft+"mm";inner.style.right=s.mRight+"mm";
+  const page=el("div","page");sizePage(page,s);
+  const inner=el("div","cover-inner "+s.theme+(s.font==="user"?" userfont":""));placeInner(inner,s);
   const meta=(s.author||s.date)?'<div class="cover-meta">'+esc([s.author,s.date].filter(Boolean).join("　·　"))+"</div>":"";
   inner.innerHTML='<div class="cover-rule"></div><div class="cover-title">'+esc(s.title||"未命名文件")+"</div>"+
     (s.subtitle?'<div class="cover-sub">'+esc(s.subtitle)+"</div>":"")+meta;
@@ -615,85 +709,289 @@ function fillHF(page,s,no,N){
   }
 }
 
-/* ---------- master render ---------- */
+/* ---------- render ---------- */
 function buildBodyHtml(){
-  const raw=$("text").value;
+  const raw=normalizeSrc($("text").value);
   const auto=$("autoTitle").checked;
-  let body=raw, title=$("title").value.trim();
+  let body=raw,title=$("title").value.trim();
   if(auto){const d=deriveTitle(raw);title=d.title;body=d.body;$("title").value=title;}
   $("title").disabled=auto;
-  return {html: mode==="markdown"?mdToHtml(body):plainToHtml(body), title};
+  return {html:mode==="markdown"?mdToHtml(body):plainToHtml(body),title};
 }
-function doRender(){
+function doRender(force){
+  clearTimeout(renderTimer);
   const s=getSettings();
   const built=buildBodyHtml();
   s.title=built.title||s.title;
+  dirty=false;
+  updateHints(s);
+  const key=JSON.stringify([mode,built.html,s,fontGen]);
+  if(!force&&key===lastKey){fitPreview(s);return;}
+  lastKey=key;
 
   $("pageStyle").textContent="@page{size:"+s.pageW+"mm "+s.pageH+"mm;margin:0}";
-
   const tmp=el("div");tmp.innerHTML=built.html;
   const blocks=[];
   if(!s.cover&&s.title){const t=el("h1","doc-title");t.textContent=s.title;blocks.push(t);
     if(s.subtitle){const sub=el("div","doc-sub");sub.textContent=s.subtitle;blocks.push(sub);}}
-  Array.from(tmp.childNodes).forEach(n=>{if(n.nodeType===1)blocks.push(n);});
+  let seenContent=false;
+  Array.from(tmp.children).forEach(n=>{
+    if(s.h1break&&n.tagName==="H1"&&seenContent)blocks.push(el("div","pagebreak"));
+    if(!n.classList.contains("pagebreak"))seenContent=true;
+    blocks.push(n);
+  });
   if(s.autospace&&!NATIVE_AUTOSPACE)blocks.forEach(applyAutospace);
 
   const pages=paginate(blocks,s);
-
   const frag=document.createDocumentFragment();
   if(s.cover)frag.appendChild(coverPage(s));
   const N=pages.length;
-  pages.forEach((els,idx)=>{
+  pages.forEach((pg,idx)=>{
     const page=makePage(s);const pb=page.querySelector(".pb");
-    els.forEach(e=>pb.appendChild(e));
+    pg.els.forEach(e=>pb.appendChild(e));
+    if(pg.forced)page.classList.add("forced");
     fillHF(page,s,idx+1,N);
     frag.appendChild(page);
   });
+  const stage=document.querySelector(".stage"),st=stage.scrollTop,ws=window.scrollY;
   const host=$("pages");host.innerHTML="";host.appendChild(frag);
-  $("pageCount").textContent=(N+(s.cover?1:0))+" 頁";
   fitPreview(s);
+  stage.scrollTop=st;if(isMobile())window.scrollTo(0,ws);
+  const total=N+(s.cover?1:0);
+  $("pageCount").textContent=total+" 頁";
+  $("tabCount").textContent=total;$("tabCount").hidden=false;
 }
 function fitPreview(s){
   const stage=document.querySelector(".stage");
-  const avail=stage.clientWidth-52;
+  const avail=stage.clientWidth-(isMobile()?16:52);
+  if(avail<=0)return;
   const pageW=s.pageW*PXMM;
   const scale=Math.min(1,avail/pageW);
   document.querySelectorAll(".page").forEach(p=>{
     p.style.transform=scale<1?"scale("+scale+")":"";
-    p.style.marginBottom=scale<1?(-(1-scale)*s.pageH*PXMM+20)+"px":"";
+    p.style.marginBottom=scale<1?(-(1-scale)*s.pageH*PXMM)+"px":"";
   });
 }
-function render(){clearTimeout(renderTimer);renderTimer=setTimeout(doRender,180);}
-
-/* ---------- actions ---------- */
-function printPDF(){
-  doRender();
-  const name=(( $("title").value||"文件").replace(/[\\/:*?"<>|]/g,"_")).slice(0,80);
-  const old=document.title;document.title=name;
-  setTimeout(()=>{window.print();setTimeout(()=>document.title=old,800);},60);
+/* 手機上不在預覽分頁時延後排版，省電又不卡打字 */
+function requestRender(delay){
+  clearTimeout(renderTimer);
+  if(isMobile()&&tab!=="preview"){dirty=true;return;}
+  renderTimer=setTimeout(()=>doRender(),delay==null?180:delay);
 }
-function loadSample(){setMode("plain");$("text").value=SAMPLE;$("autoTitle").checked=false;$("title").disabled=false;
-  $("title").value="真正支持一個政府，不是相信它永遠正確";$("subtitle").value="—— 關於民主、質疑與公共權力的思考";doRender();}
-function clearAll(){$("text").value="";$("title").value="";$("subtitle").value="";$("author").value="";$("date").value="";
-  $("header").value="";$("footer").value="";doRender();}
+function updateHints(s){
+  $("mingHint").hidden=!(s.theme==="newspaper"&&s.font!=="user"&&!hasMing());
+}
+function updateWordCount(){
+  const v=$("text").value;
+  const n=(v.match(/[㐀-鿿豈-﫿]/g)||[]).length+(v.match(/[A-Za-z0-9]+/g)||[]).length;
+  $("wordCount").textContent=n?("約 "+n.toLocaleString()+" 字"):"";
+}
+
+/* ---------- 字型載入後重新排版 ---------- */
+let fontTimer=null;
+function onFontsChanged(){
+  clearTimeout(fontTimer);
+  fontTimer=setTimeout(()=>{fontGen++;_hasMing=null;requestRender(0);},120);
+}
+if(document.fonts){
+  document.fonts.addEventListener&&document.fonts.addEventListener("loadingdone",onFontsChanged);
+  document.fonts.ready.then(onFontsChanged);
+}
+
+/* ---------- 自訂字型（IndexedDB） ---------- */
+const DB={
+  open(){return new Promise((res,rej)=>{const r=indexedDB.open("t2p",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});},
+  async tx(modeRW,fn){const db=await this.open();return new Promise((res,rej)=>{const t=db.transaction("kv",modeRW);const q=fn(t.objectStore("kv"));t.oncomplete=()=>res(q&&q.result);t.onerror=()=>rej(t.error);});},
+  get(k){return this.tx("readonly",s=>s.get(k));},
+  set(k,v){return this.tx("readwrite",s=>s.put(v,k));},
+  del(k){return this.tx("readwrite",s=>s.delete(k));}
+};
+async function applyUserFont(buf,name){
+  const ff=new FontFace("T2PUserFont",buf);
+  await ff.load();
+  if(userFontFace)document.fonts.delete(userFontFace);
+  document.fonts.add(ff);userFontFace=ff;userFont=name;
+  refreshFontUI();fontGen++;lastKey="";requestRender(0);
+}
+function refreshFontUI(){
+  $("userFontName").textContent=userFont?("已安裝：「"+userFont+"」"):"尚未上傳自訂字型";
+  $("userFontOpt").textContent=userFont?("自訂字型（"+userFont.replace(/\.[^.]+$/,"")+"）"):"自訂字型（尚未上傳）";
+  $("fontDel").hidden=!userFont;
+}
+$("fontInput").addEventListener("change",async e=>{
+  const f=e.target.files[0];e.target.value="";if(!f)return;
+  if(f.size>60*1024*1024){toast("字型檔超過 60 MB，請改用子集化或 woff2 版本");return;}
+  toast("正在載入字型…",null,null,20000);
+  try{
+    const buf=await f.arrayBuffer();
+    await applyUserFont(buf,f.name);
+    $("fontChoice").value="user";saveSoon();
+    try{await DB.set("userFont",{name:f.name,data:buf});if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
+      toast("已套用並保存字型「"+f.name+"」");}
+    catch(err){toast("已套用字型，但這台裝置無法保存（可能是私密瀏覽模式）");}
+  }catch(err){toast("無法讀取這個字型檔，請確認是 TTF / OTF / WOFF2 格式");}
+});
+$("fontDel").addEventListener("click",async()=>{
+  if(userFontFace)document.fonts.delete(userFontFace);
+  userFontFace=null;userFont=null;$("fontChoice").value="theme";refreshFontUI();
+  try{await DB.del("userFont");}catch(e){}
+  fontGen++;saveSoon();requestRender(0);toast("已移除自訂字型");
+});
+
+/* ---------- 狀態保存 ---------- */
+function collectState(){
+  const st={v:2,mode,text:$("text").value,f:{}};
+  FIELDS.forEach(id=>{const n=$(id);st.f[id]=n.type==="checkbox"?n.checked:n.value;});
+  return st;
+}
+function applyState(st){
+  if(!st)return false;
+  FIELDS.forEach(id=>{const n=$(id);if(!(id in st.f))return;if(n.type==="checkbox")n.checked=!!st.f[id];else n.value=st.f[id];});
+  $("text").value=st.text||"";setMode(st.mode||"plain");return true;
+}
+function saveNow(){try{localStorage.setItem(STORE_KEY,JSON.stringify(collectState()));}catch(e){}}
+function saveSoon(){clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,400);}
+function backup(){lastBackup=collectState();}
+function undo(){if(lastBackup){applyState(lastBackup);lastBackup=null;afterContentChange(0);toast("已復原");}}
+
+/* ---------- 內容載入 ---------- */
+async function readTextSmart(file){
+  const buf=await file.arrayBuffer();
+  let t=new TextDecoder("utf-8").decode(buf);
+  const bad=s=>(s.match(/�/g)||[]).length;
+  if(bad(t)){try{const b=new TextDecoder("big5").decode(buf);if(bad(b)<bad(t))t=b;}catch(e){}}
+  return t.replace(/^﻿/,"");
+}
+async function loadFile(f){
+  if(!f)return;
+  if(f.size>8*1024*1024){toast("檔案太大（超過 8 MB）");return;}
+  backup();
+  $("text").value=await readTextSmart(f);
+  setMode(/\.(md|markdown)$/i.test(f.name)?"markdown":"plain");
+  if(!$("autoTitle").checked)$("title").value=f.name.replace(/\.[^.]+$/,"");
+  afterContentChange(0);
+  toast("已開啟「"+f.name+"」","復原",undo);
+}
+function afterContentChange(delay){updateWordCount();saveSoon();lastKey="";requestRender(delay);}
 function setMode(m){mode=m;document.querySelectorAll("#modeSeg button").forEach(b=>b.classList.toggle("on",b.dataset.mode===m));}
+function insertAtCursor(str){
+  const t=$("text");const a=t.selectionStart,b=t.selectionEnd,v=t.value;
+  t.value=v.slice(0,a)+str+v.slice(b);const p=a+str.length;
+  t.focus();t.setSelectionRange(p,p);afterContentChange();
+}
+function insertPageBreak(){
+  const t=$("text"),a=t.selectionStart,v=t.value;
+  const before=a===0?"":(v[a-1]==="\n"?(v[a-2]==="\n"?"":"\n"):"\n\n");
+  const after=v[a]==="\n"?"\n":"\n\n";
+  insertAtCursor(before+"[分頁]"+after);
+  toast("已插入分頁");
+}
+function loadSample(){
+  backup();setMode("plain");$("text").value=SAMPLE;$("autoTitle").checked=false;
+  $("title").value=SAMPLE_TITLE;$("subtitle").value=SAMPLE_SUB;afterContentChange(0);
+}
+function clearAll(){
+  backup();
+  ["text","title","subtitle","author","date","header","footer"].forEach(id=>$(id).value="");
+  afterContentChange(0);toast("已清空","復原",undo);
+}
+
+/* ---------- 輸出 ---------- */
+async function printPDF(){
+  if(document.fonts)await document.fonts.ready;
+  doRender(true);
+  const name=(($("title").value||"文件").replace(/[\\/:*?"<>|]/g,"_")).slice(0,80);
+  const old=document.title;document.title=name;
+  const restore=()=>{document.title=old;window.removeEventListener("afterprint",restore);};
+  window.addEventListener("afterprint",restore);
+  setTimeout(()=>{window.print();setTimeout(restore,1500);},80);
+}
+
+/* ---------- 分頁籤（手機） ---------- */
+function setTab(t){
+  tab=t;document.body.dataset.tab=t;
+  document.querySelectorAll(".tabbar button").forEach(b=>{const on=b.dataset.tab===t;b.classList.toggle("on",on);b.setAttribute("aria-selected",on);});
+  window.scrollTo(0,0);
+  if(t==="preview"){if(dirty||!lastKey)doRender();else fitPreview(getSettings());}
+}
+document.querySelectorAll(".tabbar button").forEach(b=>b.addEventListener("click",()=>setTab(b.dataset.tab)));
 
 /* ---------- wire up ---------- */
-document.querySelectorAll("#modeSeg button").forEach(b=>b.addEventListener("click",()=>{setMode(b.dataset.mode);doRender();}));
-$("fileInput").addEventListener("change",e=>{
-  const f=e.target.files[0];if(!f)return;
-  const r=new FileReader();
-  r.onload=()=>{$("text").value=r.result;
-    if(/\.(md|markdown)$/i.test(f.name))setMode("markdown");else setMode("plain");
-    if(!$("autoTitle").checked&&!$("title").value.trim())$("title").value=f.name.replace(/\.[^.]+$/,"");
-    doRender();};
-  r.readAsText(f,"utf-8");
-});
-["text","title","subtitle","author","date","header","footer"].forEach(id=>$(id).addEventListener("input",render));
-["paper","orientation","fontSize","lineHeight","margin","theme","lineMode","paraGap","align","indent"].forEach(id=>$(id).addEventListener("change",doRender));
-["autoTitle","cover","pageNum","autospace","smart"].forEach(id=>$(id).addEventListener("change",doRender));
+document.querySelectorAll("#modeSeg button").forEach(b=>b.addEventListener("click",()=>{setMode(b.dataset.mode);afterContentChange(0);}));
+$("fileInput").addEventListener("change",e=>{loadFile(e.target.files[0]);e.target.value="";});
+$("text").addEventListener("input",()=>afterContentChange());
+["title","subtitle","author","date","header","footer"].forEach(id=>$(id).addEventListener("input",()=>{saveSoon();requestRender();}));
+FIELDS.filter(id=>!["title","subtitle","author","date","header","footer"].includes(id))
+  .forEach(id=>$(id).addEventListener("change",()=>{saveSoon();requestRender(0);}));
+$("pbBtn").addEventListener("click",insertPageBreak);
+$("printBtn").addEventListener("click",printPDF);
+$("fabPrint").addEventListener("click",printPDF);
+$("sampleBtn").addEventListener("click",loadSample);
+$("clearBtn").addEventListener("click",clearAll);
+if(navigator.clipboard&&navigator.clipboard.readText){
+  $("pasteBtn").hidden=false;
+  $("pasteBtn").addEventListener("click",async()=>{try{insertAtCursor(await navigator.clipboard.readText());}catch(e){toast("無法讀取剪貼簿，請長按文字框貼上");}});
+}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")saveNow();});
+window.addEventListener("pagehide",saveNow);
 let resizeT=null;
-window.addEventListener("resize",()=>{clearTimeout(resizeT);resizeT=setTimeout(()=>fitPreview(getSettings()),100);});
+window.addEventListener("resize",()=>{clearTimeout(resizeT);resizeT=setTimeout(()=>{
+  if(!isMobile()&&dirty)doRender();else fitPreview(getSettings());},120);});
+/* 拖放檔案（桌機） */
+window.addEventListener("dragover",e=>{e.preventDefault();});
+window.addEventListener("drop",e=>{e.preventDefault();const f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f)loadFile(f);});
+
+/* ---------- PWA：安裝、更新、分享、開啟檔案 ---------- */
+let deferredPrompt=null;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;$("installBtn").hidden=false;});
+$("installBtn").addEventListener("click",async()=>{
+  if(!deferredPrompt)return;deferredPrompt.prompt();
+  try{await deferredPrompt.userChoice;}catch(e){}deferredPrompt=null;$("installBtn").hidden=true;
+});
+window.addEventListener("appinstalled",()=>{$("installBtn").hidden=true;toast("已安裝，之後可從主畫面離線開啟");});
+const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+if(isIOS&&!standalone)$("iosHint").hidden=false;
+
+function registerSW(){
+  if(!("serviceWorker" in navigator))return;
+  if(!(location.protocol==="https:"||["localhost","127.0.0.1"].includes(location.hostname)))return;
+  navigator.serviceWorker.register("sw.js").then(reg=>{
+    const offerUpdate=w=>toast("有新版本可用","立即更新",()=>w.postMessage("SKIP_WAITING"),15000);
+    if(reg.waiting&&navigator.serviceWorker.controller)offerUpdate(reg.waiting);
+    reg.addEventListener("updatefound",()=>{
+      const w=reg.installing;
+      w&&w.addEventListener("statechange",()=>{
+        if(w.state==="installed"){
+          if(navigator.serviceWorker.controller)offerUpdate(w);
+          else toast("已可離線使用");
+        }
+      });
+    });
+    setInterval(()=>reg.update().catch(()=>{}),60*60*1000);
+  }).catch(()=>{});
+  let reloaded=false;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(reloaded)return;reloaded=true;saveNow();location.reload();});
+}
+
+function handleLaunchParams(){
+  const qp=new URLSearchParams(location.search);
+  let handled=false;
+  if(qp.has("text")||qp.has("title")||qp.has("url")){
+    const title=(qp.get("title")||"").trim(),text=(qp.get("text")||"").trim(),url=(qp.get("url")||"").trim();
+    const parts=[];
+    if(title&&!text.startsWith(title))parts.push(title);
+    if(text)parts.push(text);
+    if(url&&!text.includes(url))parts.push(url);
+    if(parts.length){backup();setMode("plain");$("text").value=parts.join("\n\n");
+      $("autoTitle").checked=true;afterContentChange(0);toast("已載入分享的文字","復原",undo);handled=true;}
+  }else if(qp.has("new")){clearAll();handled=true;}
+  if(qp.toString())history.replaceState(null,"",location.pathname);
+  return handled;
+}
+if("launchQueue" in window&&window.launchQueue){
+  window.launchQueue.setConsumer(async p=>{if(p.files&&p.files.length){loadFile(await p.files[0].getFile());}});
+}
 
 /* ---------- sample ---------- */
 const SAMPLE=`如果你覺得現在的台灣政府做得很好，我尊重你的看法。
@@ -731,10 +1029,18 @@ const SAMPLE=`如果你覺得現在的台灣政府做得很好，我尊重你的
 
 「如果它真的很好，它應該不怕我問問題吧？」`;
 
-$("text").value=SAMPLE;$("autoTitle").checked=false;$("title").disabled=false;
-doRender();
-// 字型載入完成後重新量測，避免分頁位置因字型替換而偏移
-if(document.fonts&&document.fonts.ready)document.fonts.ready.then(doRender);
+/* ---------- boot ---------- */
+(function boot(){
+  $("verInfo").textContent="版本 "+APP_VERSION+(standalone?" · 已安裝":"");
+  let st=null;try{st=JSON.parse(localStorage.getItem(STORE_KEY)||"null");}catch(e){}
+  if(!applyState(st)){setMode("plain");$("text").value=SAMPLE;$("autoTitle").checked=false;$("title").value=SAMPLE_TITLE;$("subtitle").value=SAMPLE_SUB;}
+  handleLaunchParams();
+  updateWordCount();refreshFontUI();
+  if(isMobile())setTab("edit");
+  doRender(true);   // 先排一次，頁數才正確
+  DB.get("userFont").then(v=>{if(v&&v.data)return applyUserFont(v.data,v.name);}).catch(()=>{});
+  registerSW();
+})();
 </script>
 </body>
 </html>

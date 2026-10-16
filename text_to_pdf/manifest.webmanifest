@@ -1,0 +1,37 @@
+{
+  "id": "./",
+  "name": "文字排版 PDF",
+  "short_name": "排版PDF",
+  "description": "把文字或 Markdown 排成正式的 PDF：自動分頁、首行縮排、頁首頁尾。完全離線，資料不離開裝置。",
+  "lang": "zh-Hant",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#eceef2",
+  "theme_color": "#141a29",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "新文件", "short_name": "新文件", "url": "./?new=1", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ],
+  "share_target": {
+    "action": "./",
+    "method": "GET",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  },
+  "file_handlers": [
+    {
+      "action": "./",
+      "accept": {
+        "text/plain": [".txt"],
+        "text/markdown": [".md", ".markdown"]
+      }
+    }
+  ]
+}
