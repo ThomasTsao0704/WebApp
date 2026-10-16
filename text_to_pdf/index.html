@@ -37,7 +37,8 @@ select:disabled,input:disabled{background:#f1f3f6;color:#9aa2ae}
 .seg button{flex:1;border:0;background:#fff;padding:8px 0;font-weight:700;font-size:13px;cursor:pointer;color:#59616e}
 .seg button.on{background:var(--accent);color:#fff}
 .check{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin:10px 0 2px;cursor:pointer;color:#2a313c}
-.check input{width:16px;height:16px;accent-color:var(--accent)}
+.check input{width:16px;height:16px;accent-color:var(--accent);flex:0 0 auto}
+.check small{font-weight:400;color:var(--muted);font-size:11.5px}
 .file{display:block;border:1.5px dashed var(--line);border-radius:9px;padding:12px;text-align:center;color:var(--muted);
   font-size:13px;font-weight:700;cursor:pointer;background:#fff}
 .file:hover{border-color:var(--accent);color:var(--accent)}
@@ -55,52 +56,98 @@ button.btn{border:0;border-radius:9px;padding:11px 14px;cursor:pointer;font-weig
 .stage{overflow:auto;padding:26px;background:
   repeating-linear-gradient(45deg,#e7e9ee 0 14px,#eceef2 14px 28px);}
 #pages{display:flex;flex-direction:column;align-items:center;gap:20px}
-.page{background:#fff;box-shadow:0 8px 30px #0000001f;position:relative;overflow:hidden}
+.page{background:#fff;box-shadow:0 8px 30px #0000001f;position:relative;overflow:hidden;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact}
 .page-inner{position:absolute;display:flex;flex-direction:column}
-.ph,.pf{flex:0 0 auto;display:flex;align-items:center;color:#9aa1ac;font-size:8.5pt}
+.ph,.pf{flex:0 0 auto;display:flex;align-items:center;color:#9aa1ac;font-size:8.5pt;line-height:1.3}
 .ph{justify-content:center;border-bottom:1px solid #eef0f4;overflow:hidden}
 .pf{justify-content:space-between;border-top:1px solid #eef0f4;overflow:hidden}
 .pf .hf-left{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%}
-.pb{flex:1 1 auto;overflow:hidden}
+.pb{flex:1 1 auto;overflow:hidden;position:relative}
 
 /* measuring twin (offscreen) */
 #measure{position:absolute;left:-99999px;top:0;visibility:hidden}
 
-/* document content */
-.content{--serif:Georgia,"Noto Serif TC","Times New Roman",serif;
-  --sans:"Microsoft JhengHei","Noto Sans TC","PingFang TC",system-ui,Arial,sans-serif;
-  font-family:var(--sans);text-align:justify;color:#1b1f27;word-break:break-word}
-.content .doc-title{text-align:center;font-size:1.95em;line-height:1.32;margin:0 0 4mm;font-weight:800}
-.content .doc-sub{text-align:center;color:#6b7280;font-size:.78em;margin:0 0 9mm;font-weight:400;letter-spacing:.02em}
-.content p{margin:0 0 3.2mm}
-.content h1{font-size:1.5em;line-height:1.32;margin:5mm 0 2.4mm;font-weight:800}
-.content h2{font-size:1.28em;margin:4.5mm 0 2mm;font-weight:800}
-.content h3{font-size:1.12em;margin:4mm 0 1.8mm;font-weight:700}
-.content h4{font-size:1em;margin:3.4mm 0 1.4mm;font-weight:700}
-.content ul,.content ol{margin:0 0 3.2mm;padding-left:7.5mm}
+/* ===================== document content ===================== */
+.content{--serif:Georgia,"Noto Serif TC","Source Han Serif TC","PMingLiU","新細明體","Times New Roman",serif;
+  --sans:"Microsoft JhengHei","Noto Sans TC","Source Han Sans TC","PingFang TC",system-ui,Arial,sans-serif;
+  --pgap:.9em;
+  font-family:var(--sans);color:#1b1f27;
+  text-align:justify;text-justify:inter-character;
+  /* 中文斷行：嚴格禁則（句讀、括號不落行首／行尾），英文單字不被截斷，超長字串才強制換行 */
+  line-break:strict;word-break:normal;overflow-wrap:anywhere;
+  hanging-punctuation:allow-end last;
+  font-kerning:normal;font-variant-east-asian:traditional;
+}
+.content.autospace{text-autospace:normal}           /* 新版瀏覽器原生中英間距 */
+.content.ragged{text-align:left}
+
+.content .doc-title{text-align:center;font-size:1.95em;line-height:1.32;margin:0 0 3mm;font-weight:800;letter-spacing:.02em}
+.content .doc-sub{text-align:center;color:#6b7280;font-size:.82em;margin:0 0 9mm;font-weight:400;letter-spacing:.04em}
+.content h1.doc-title:has(+ .doc-sub){margin-bottom:3mm}
+.content h1.doc-title:not(:has(+ .doc-sub)){margin-bottom:8mm}
+
+.content p{margin:0 0 var(--pgap)}
+.content.indent p{text-indent:2em}
+.content.indent blockquote p,
+.content.indent li p,
+.content p.q,
+.content p.split-b,
+.content .split-b p:first-child{text-indent:0}
+
+/* 同一段內的硬換行行群：行與行之間不留段距 */
+.content p.ln{margin-bottom:0}
+
+/* 被分頁切開的段落：上半段最後一行仍左右對齊，下半段不縮排 */
+.content p.split-a,
+.content .split-a > p:last-child{text-align-last:justify}
+.content.ragged p.split-a,
+.content.ragged .split-a > p:last-child{text-align-last:auto}
+
+/* 智慧排版：獨立成段的引號句 */
+.content p.q{text-align:center;font-weight:700;color:#24304a;letter-spacing:.03em;
+  margin:calc(var(--pgap) + 2mm) 0 calc(var(--pgap) + 2mm)}
+
+.content h1{font-size:1.5em;line-height:1.35;margin:6mm 0 2.6mm;font-weight:800}
+.content h2{font-size:1.28em;line-height:1.4;margin:5mm 0 2.2mm;font-weight:800}
+.content h3{font-size:1.12em;line-height:1.45;margin:4.2mm 0 1.8mm;font-weight:700}
+.content h4,.content h5,.content h6{font-size:1em;margin:3.6mm 0 1.4mm;font-weight:700}
+.content h1,.content h2,.content h3,.content h4{text-align:left}
+.content ul,.content ol{margin:0 0 var(--pgap);padding-left:7.5mm}
 .content li{margin:0 0 1.3mm}
-.content blockquote{margin:0 0 3.4mm;padding:1mm 4mm;border-left:3px solid #c8d1e0;background:#f6f8fb;color:#414a58}
+.content li::marker{color:#6b7587}
+.content blockquote{margin:0 0 var(--pgap);padding:1.2mm 4mm;border-left:3px solid #c8d1e0;background:#f6f8fb;color:#414a58}
 .content blockquote p{margin:0}
 .content code{font-family:Consolas,"Courier New",monospace;background:#eef1f5;padding:.08em .32em;border-radius:3px;font-size:.9em}
-.content pre{background:#f4f6f9;border:1px solid #e6eaf0;border-radius:5px;padding:3mm;margin:0 0 3.2mm;overflow:hidden;white-space:pre-wrap}
+.content pre{background:#f4f6f9;border:1px solid #e6eaf0;border-radius:5px;padding:3mm;margin:0 0 var(--pgap);
+  overflow:hidden;white-space:pre-wrap;text-align:left;line-height:1.55}
 .content pre code{background:none;padding:0;font-size:.86em}
-.content hr{border:0;border-top:1px solid #d3dae4;margin:4mm 0}
+.content hr{border:0;border-top:1px solid #d3dae4;margin:5mm 0}
 .content a{color:#2f5bd6;text-decoration:none}
 .content strong{font-weight:800}
+.content em{font-style:normal;text-emphasis:filled dot #8892a3;text-emphasis-position:under right}
+.content .pagebreak{display:none}
+
+/* 每頁頂端不留上邊距、底端不留下邊距（量測與實際頁面一致） */
+.content > :first-child{margin-top:0!important}
+.content > :last-child{margin-bottom:0!important}
 
 /* themes */
-.content.newspaper .doc-title,.content.newspaper h1,.content.newspaper h2,.content.newspaper h3{font-family:var(--serif);letter-spacing:.02em}
+.content.newspaper .doc-title,.content.newspaper h1,.content.newspaper h2,.content.newspaper h3{font-family:var(--serif);letter-spacing:.03em}
 .content.newspaper{font-family:var(--serif)}
+.content.newspaper p.q{font-family:var(--serif)}
 .content.minimal .doc-title{font-weight:500}
-.content.minimal .doc-sub{letter-spacing:.14em;text-transform:uppercase;font-size:.66em}
+.content.minimal .doc-sub{letter-spacing:.14em;font-size:.72em}
+.content.minimal h1,.content.minimal h2,.content.minimal h3{font-weight:600}
+.content.minimal p.q{font-weight:500;color:#1b1f27}
 
 /* cover */
-.cover-inner{position:absolute;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+.cover-inner{position:absolute;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;line-break:strict}
 .cover-inner .cover-rule{width:44mm;height:2px;background:var(--accent);margin:0 0 8mm}
-.cover-inner .cover-title{font-size:2.7em;font-weight:800;line-height:1.28;margin:0 6mm}
-.cover-inner .cover-sub{font-size:1.05em;color:#5b6472;margin:5mm 8mm 0;font-weight:400}
+.cover-inner .cover-title{font-size:2.7em;font-weight:800;line-height:1.3;margin:0 6mm;letter-spacing:.02em}
+.cover-inner .cover-sub{font-size:1.05em;color:#5b6472;margin:5mm 8mm 0;font-weight:400;line-height:1.6}
 .cover-inner .cover-meta{position:absolute;bottom:0;font-size:.85em;color:#8a92a0;letter-spacing:.03em}
-.cover-inner.newspaper .cover-title{font-family:Georgia,"Noto Serif TC",serif}
+.cover-inner.newspaper .cover-title{font-family:Georgia,"Noto Serif TC","PMingLiU",serif}
 
 @media(max-width:920px){
   .app{grid-template-columns:1fr;height:auto}
@@ -141,7 +188,7 @@ button.btn{border:0;border-radius:9px;padding:11px 14px;cursor:pointer;font-weig
       <input type="file" id="fileInput" accept=".txt,.md,.markdown,text/plain">
     </label>
     <label>文章內容</label>
-    <textarea id="text" placeholder="把文字貼在這裡……&#10;&#10;Markdown 模式支援 # 標題、**粗體**、- 清單、> 引言、\`程式碼\` 等。"></textarea>
+    <textarea id="text" placeholder="把文字貼在這裡……&#10;&#10;Markdown 模式支援 # 標題、**粗體**、- 清單、> 引言、`程式碼` 等。&#10;單獨一行輸入 [分頁] 可強制換頁。"></textarea>
   </div>
 
   <div class="group">
@@ -151,6 +198,47 @@ button.btn{border:0;border-radius:9px;padding:11px 14px;cursor:pointer;font-weig
     <input type="text" id="title" value="真正支持一個政府，不是相信它永遠正確">
     <label>副標題</label>
     <input type="text" id="subtitle" value="—— 關於民主、質疑與公共權力的思考">
+  </div>
+
+  <div class="group">
+    <p class="gt">段落排版</p>
+    <div class="row">
+      <div>
+        <label>單行換行</label>
+        <select id="lineMode">
+          <option value="keep" selected>保留換行（行群）</option>
+          <option value="each">每行獨立成段</option>
+          <option value="merge">合併成段（去硬換行）</option>
+        </select>
+      </div>
+      <div>
+        <label>段落間距</label>
+        <select id="paraGap">
+          <option value="0">無</option>
+          <option value="0.45">緊湊</option>
+          <option value="0.9" selected>標準</option>
+          <option value="1.4">寬鬆</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>對齊</label>
+        <select id="align">
+          <option value="justify" selected>左右對齊</option>
+          <option value="left">靠左</option>
+        </select>
+      </div>
+      <div>
+        <label>首行縮排</label>
+        <select id="indent">
+          <option value="on" selected>縮排兩字</option>
+          <option value="off">不縮排</option>
+        </select>
+      </div>
+    </div>
+    <label class="check"><input type="checkbox" id="autospace" checked>中英文、數字間自動留白</label>
+    <label class="check"><input type="checkbox" id="smart" checked>智慧排版 <small>引號句置中、「：」引導句不落單</small></label>
   </div>
 
   <div class="group">
@@ -191,7 +279,7 @@ button.btn{border:0;border-radius:9px;padding:11px 14px;cursor:pointer;font-weig
     <label style="margin-top:11px">版型</label>
     <select id="theme">
       <option value="classic" selected>正式（黑體）</option>
-      <option value="newspaper">報刊（襯線標題）</option>
+      <option value="newspaper">報刊（明體／襯線）</option>
       <option value="minimal">極簡</option>
     </select>
   </div>
@@ -219,6 +307,8 @@ button.btn{border:0;border-radius:9px;padding:11px 14px;cursor:pointer;font-weig
   <p class="hint">
     貼上文字（或上傳 <code>.txt</code>/<code>.md</code>）→ 調整版面 → 按「列印 / 儲存 PDF」，在列印視窗選「另存為 PDF」。
     分頁、頁碼、頁首頁尾都是先在畫面上排好才輸出，所見即所得。<br>
+    段落會在頁尾自動接續到下一頁，且至少保留兩行在頁尾、兩行在頁首（避免孤行）；標題不會落單在頁底。
+    單獨一行輸入 <code>[分頁]</code> 可強制換頁。<br>
     小提醒：列印視窗請把「邊界」設為<b>無</b>、關閉瀏覽器內建的「頁首及頁尾」，版面才會精準。檔名會自動用文件標題。
     頁首／頁尾可用 <code>{title}</code> 代入標題。
   </p>
@@ -236,12 +326,46 @@ button.btn{border:0;border-radius:9px;padding:11px 14px;cursor:pointer;font-weig
 const $=id=>document.getElementById(id);
 const PXMM=96/25.4;            // px per mm at 96dpi
 const PAPER={A4:[210,297],A5:[148,210]};
+const MIN_LINES=2;             // 孤行／寡行控制：段落切頁時，頁尾、頁首至少各留幾行
+const NATIVE_AUTOSPACE=!!(window.CSS&&CSS.supports&&CSS.supports("text-autospace","normal"));
+const PB_RE=/^\s*(\[分頁\]|\\pagebreak|<!--\s*pagebreak\s*-->)\s*$/i;
 let mode="plain";
 let renderTimer=null;
 
 /* ---------- helpers ---------- */
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
 function el(tag,cls){const n=document.createElement(tag);if(cls)n.className=cls;return n;}
+
+/* ---------- paragraph builder (shared by plain & markdown) ---------- */
+function joinLines(lines){
+  // 合併硬換行：中文直接相接，英數之間補一個空白
+  let t="";
+  lines.forEach(l=>{
+    l=l.trim(); if(!l)return;
+    if(t&&/[A-Za-z0-9,.;:!?'")\]]$/.test(t)&&/^[A-Za-z0-9("'\[]/.test(l))t+=" ";
+    t+=l;
+  });
+  return t;
+}
+function paraHtml(raw,extra,fmt){
+  const t=raw.trim();                       // trim 也會去掉全形空白「　」，避免與自動縮排重複
+  const cls=[];
+  if(extra)cls.push(extra);
+  if($("smart").checked){
+    if(t.length<=80&&/^[「『“"].+[」』”"][。！？!?]?$/.test(t))cls.push("q");
+    else if(t.length<=60&&/[：:]$/.test(t))cls.push("lead");
+  }
+  return "<p"+(cls.length?' class="'+cls.join(" ")+'"':"")+">"+fmt(t)+"</p>";
+}
+function linesToHtml(lines,fmt){
+  lines=lines.filter(l=>l.trim()!=="");
+  if(!lines.length)return "";
+  const lm=$("lineMode").value;
+  if(lm==="merge"||lines.length===1)return paraHtml(lm==="merge"?joinLines(lines):lines[0],"",fmt);
+  if(lm==="each")return lines.map(l=>paraHtml(l,"",fmt)).join("");
+  // keep：同一段的多行做成「行群」，每行各自縮排，行間不留段距
+  return lines.map((l,i)=>paraHtml(l,i<lines.length-1?"ln":"",fmt)).join("");
+}
 
 /* ---------- markdown ---------- */
 function inline(t){
@@ -256,15 +380,19 @@ function inline(t){
 function mdToHtml(src){
   const lines=src.replace(/\r\n?/g,"\n").split("\n");
   let html="",i=0,para=[];
-  const flush=()=>{if(para.length){html+="<p>"+para.map(inline).join("<br>")+"</p>";para=[];}};
+  const flush=()=>{if(para.length){html+=linesToHtml(para,inline);para=[];}};
   while(i<lines.length){
     let ln=lines[i];
+    if(PB_RE.test(ln)){flush();html+='<div class="pagebreak"></div>';i++;continue;}
     if(/^```/.test(ln)){flush();let code=[];i++;while(i<lines.length&&!/^```/.test(lines[i])){code.push(lines[i]);i++;}i++;html+="<pre><code>"+esc(code.join("\n"))+"</code></pre>";continue;}
     if(/^\s*$/.test(ln)){flush();i++;continue;}
     let h=ln.match(/^(#{1,6})\s+(.+)$/);
     if(h){flush();const lv=h[1].length;html+="<h"+lv+">"+inline(h[2].trim())+"</h"+lv+">";i++;continue;}
     if(/^\s*(---|\*\*\*|___)\s*$/.test(ln)){flush();html+="<hr>";i++;continue;}
-    if(/^\s*>\s?/.test(ln)){flush();let q=[];while(i<lines.length&&/^\s*>\s?/.test(lines[i])){q.push(lines[i].replace(/^\s*>\s?/,""));i++;}html+="<blockquote><p>"+q.map(inline).join("<br>")+"</p></blockquote>";continue;}
+    if(/^\s*>\s?/.test(ln)){flush();let q=[];while(i<lines.length&&/^\s*>\s?/.test(lines[i])){q.push(lines[i].replace(/^\s*>\s?/,""));i++;}
+      const lm=$("lineMode").value;
+      const qs=lm==="merge"?[joinLines(q)]:q.filter(x=>x.trim());
+      html+="<blockquote>"+qs.map(x=>"<p>"+inline(x.trim())+"</p>").join("")+"</blockquote>";continue;}
     if(/^\s*[-*+]\s+/.test(ln)){flush();let items=[];while(i<lines.length&&/^\s*[-*+]\s+/.test(lines[i])){items.push(lines[i].replace(/^\s*[-*+]\s+/,""));i++;}html+="<ul>"+items.map(x=>"<li>"+inline(x)+"</li>").join("")+"</ul>";continue;}
     if(/^\s*\d+\.\s+/.test(ln)){flush();let items=[];let start=parseInt(lines[i].match(/^\s*(\d+)\./)[1],10);while(i<lines.length&&/^\s*\d+\.\s+/.test(lines[i])){items.push(lines[i].replace(/^\s*\d+\.\s+/,""));i++;}html+='<ol start="'+start+'">'+items.map(x=>"<li>"+inline(x)+"</li>").join("")+"</ol>";continue;}
     para.push(ln);i++;
@@ -273,11 +401,26 @@ function mdToHtml(src){
   return html;
 }
 function plainToHtml(src){
-  return src.replace(/\r\n?/g,"\n").split(/\n\s*\n/).map(p=>{
-    p=p.replace(/\n+$/,"");
-    if(!p.trim())return "";
-    return "<p>"+p.split("\n").map(esc).join("<br>")+"</p>";
-  }).join("");
+  const lines=src.replace(/\r\n?/g,"\n").split("\n");
+  let html="",para=[];
+  const flush=()=>{if(para.length){html+=linesToHtml(para,esc);para=[];}};
+  lines.forEach(l=>{
+    if(PB_RE.test(l)){flush();html+='<div class="pagebreak"></div>';}
+    else if(/^\s*$/.test(l))flush();
+    else para.push(l);
+  });
+  flush();
+  return html;
+}
+
+/* 中英文間距（瀏覽器不支援 text-autospace 時的後備方案，只動畫面不動原文） */
+const CJK="\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff";
+const AS1=new RegExp("(["+CJK+"])([A-Za-z0-9@#$&(\\[])","g");
+const AS2=new RegExp("([A-Za-z0-9%)\\]])(["+CJK+"])","g");
+function applyAutospace(root){
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null);const nodes=[];let n;
+  while(n=w.nextNode())if(!n.parentNode.closest("code,pre"))nodes.push(n);
+  nodes.forEach(t=>{const v=t.nodeValue.replace(AS1,"$1\u2005$2").replace(AS2,"$1\u2005$2");if(v!==t.nodeValue)t.nodeValue=v;});
 }
 
 /* derive auto title, and body with that line removed */
@@ -302,21 +445,31 @@ function getSettings(){
   const headerShow=!!header, footerShow=!!footer||pageNum;
   return {
     pageW:w, pageH:h, mTop:m, mBot:m, mLeft:m, mRight:m,
-    headerH:11, footerH:11, headerShow, footerShow,
+    headerH:9, footerH:9, headerShow, footerShow,
     header, footer, pageNum,
     fontSize:parseFloat($("fontSize").value), lineHeight:$("lineHeight").value,
     theme:$("theme").value,
+    indent:$("indent").value==="on", pgap:$("paraGap").value, align:$("align").value,
+    autospace:$("autospace").checked,
     title:$("title").value.trim(), subtitle:$("subtitle").value.trim(),
     cover:$("cover").checked, author:$("author").value.trim(), date:$("date").value.trim()
   };
+}
+function contentClass(s){
+  return "content "+s.theme+(s.indent?" indent":"")+(s.align==="left"?" ragged":"")+(s.autospace&&NATIVE_AUTOSPACE?" autospace":"");
+}
+function styleContent(node,s){
+  node.style.fontSize=s.fontSize+"pt";
+  node.style.lineHeight=s.lineHeight;
+  node.style.setProperty("--pgap",s.pgap+"em");
 }
 
 /* ---------- pagination geometry ---------- */
 function contentWidthPx(s){return (s.pageW-s.mLeft-s.mRight)*PXMM;}
 function contentHeightPx(s){
   let inner=s.pageH-s.mTop-s.mBot;
-  let hh=(s.headerShow?s.headerH+1.5:0)+(s.footerShow?s.footerH+1.5:0);
-  return (inner-hh)*PXMM;
+  let hh=(s.headerShow?s.headerH+2.5:0)+(s.footerShow?s.footerH+2.5:0);
+  return Math.floor((inner-hh)*PXMM)-1;
 }
 
 /* offset -> [textNode, localOffset] */
@@ -326,69 +479,103 @@ function endPoint(node,off){
   while(n=w.nextNode()){last=n;const len=n.nodeValue.length;if(acc+len>=off)return [n,Math.max(0,off-acc)];acc+=len;}
   return last?[last,last.nodeValue.length]:[null,0];
 }
-function splitText(m,elm,avail){
+
+/* 依「實際排出來的行」切段：只在行尾切，所以中文禁則、英文斷字都由瀏覽器決定，切完不會改變換行 */
+function splitText(m,elm,avail,fits){
   m.appendChild(elm);
-  const text=elm.textContent, total=text.length;
-  if(total<2){m.removeChild(elm);return null;}
-  const heightAt=off=>{const [n,lo]=endPoint(elm,off);if(!n)return 0;const r=document.createRange();r.selectNodeContents(elm);try{r.setEnd(n,lo);}catch(e){return Infinity;}return r.getBoundingClientRect().height;};
-  let lo=1,hi=total,best=0;
-  while(lo<=hi){const mid=(lo+hi)>>1;if(heightAt(mid)<=avail){best=mid;lo=mid+1;}else hi=mid-1;}
-  if(best<=0){m.removeChild(elm);return null;}
-  let snap=best,bt=0;
-  while(snap>1&&bt<40&&!/\s/.test(text[snap-1])&&/[A-Za-z0-9.,;:!?'")\]]/.test(text[snap]||"")){snap--;bt++;}
-  if(snap<=0)snap=best;
-  if(snap>=total){m.removeChild(elm);return null;}
-  const [n1,o1]=endPoint(elm,snap);
-  const first=elm.cloneNode(false);const r1=document.createRange();r1.selectNodeContents(elm);r1.setEnd(n1,o1);first.appendChild(r1.cloneContents());
-  const rest=elm.cloneNode(false);const r2=document.createRange();r2.selectNodeContents(elm);r2.setStart(n1,o1);rest.appendChild(r2.cloneContents());
-  m.removeChild(elm);
-  const fl=first.textContent.length;
-  if(fl===0||fl>=total)return null;
-  return {first,rest};
+  const total=elm.textContent.length;
+  const done=v=>{if(elm.parentNode===m)m.removeChild(elm);return v;};
+  if(total<2)return done(null);
+
+  const cs=getComputedStyle(elm);
+  let lh=parseFloat(cs.lineHeight);
+  if(!lh||isNaN(lh))lh=parseFloat(cs.fontSize)*parseFloat(m.style.lineHeight||1.8);
+  const rng=document.createRange();
+  const bottomAt=off=>{const [n,o]=endPoint(elm,off);if(!n)return -Infinity;rng.selectNodeContents(elm);try{rng.setEnd(n,o);}catch(e){return Infinity;}return rng.getBoundingClientRect().bottom;};
+
+  const er=elm.getBoundingClientRect();
+  const contentTop=er.top+parseFloat(cs.paddingTop)+parseFloat(cs.borderTopWidth);
+  const limit=m.getBoundingClientRect().top+avail-parseFloat(cs.paddingBottom)-parseFloat(cs.borderBottomWidth);
+  const B1=bottomAt(1), Bend=bottomAt(total);
+  const totalLines=Math.round((Bend-B1)/lh)+1;
+  let k=Math.min(Math.floor((limit-contentTop)/lh+0.02),totalLines-MIN_LINES);
+
+  for(;k>=MIN_LINES;k--){
+    const thr=B1+(k-1)*lh+lh*0.5;               // 第 k 行的字框底線與第 k+1 行之間
+    let lo=1,hi=total,best=0;
+    while(lo<=hi){const mid=(lo+hi)>>1;if(bottomAt(mid)<=thr){best=mid;lo=mid+1;}else hi=mid-1;}
+    if(best<=0||best>=total)continue;
+    const [n1,o1]=endPoint(elm,best);
+    const first=elm.cloneNode(false);const r1=document.createRange();r1.selectNodeContents(elm);r1.setEnd(n1,o1);first.appendChild(r1.cloneContents());
+    const rest=elm.cloneNode(false);const r2=document.createRange();r2.selectNodeContents(elm);r2.setStart(n1,o1);rest.appendChild(r2.cloneContents());
+    if(!first.textContent.trim()||!rest.textContent.trim())continue;
+    first.classList.add("split-a");rest.classList.add("split-b");
+    // 驗證：上半段放進目前頁面真的放得下
+    m.removeChild(elm);m.appendChild(first);const ok=fits();m.removeChild(first);
+    if(ok)return {first,rest};
+    m.appendChild(elm);
+  }
+  return done(null);
 }
-function splitList(m,elm,avail){
+function splitList(m,elm,fits){
   const lis=Array.from(elm.children).filter(c=>c.tagName==="LI");
   if(lis.length<2)return null;
   const first=elm.cloneNode(false);m.appendChild(first);let count=0;
-  for(const li of lis){const c=li.cloneNode(true);first.appendChild(c);if(m.scrollHeight>avail+0.5){first.removeChild(c);break;}count++;}
-  if(count===0){m.removeChild(first);return null;}
+  for(const li of lis){const c=li.cloneNode(true);first.appendChild(c);if(!fits()){first.removeChild(c);break;}count++;}
+  m.removeChild(first);
+  if(count===0||count>=lis.length)return null;
   const rest=elm.cloneNode(false);
   if(elm.tagName==="OL")rest.setAttribute("start",parseInt(elm.getAttribute("start")||"1",10)+count);
   for(let i=count;i<lis.length;i++)rest.appendChild(lis[i].cloneNode(true));
-  m.removeChild(first);
-  if(count>=lis.length)return null;
   return {first,rest};
 }
-function splitBlock(m,elm,avail){
+function splitBlock(m,elm,avail,fits){
   const t=elm.tagName;
-  if(t==="UL"||t==="OL")return splitList(m,elm,avail);
-  if(t==="PRE"||t==="HR"||/^H[1-6]$/.test(t))return null; // keep whole
-  return splitText(m,elm,avail);
+  if(t==="UL"||t==="OL")return splitList(m,elm,fits);
+  if(t==="HR"||/^H[1-6]$/.test(t)||elm.classList.contains("doc-sub"))return null; // 保持完整
+  return splitText(m,elm,avail,fits);
+}
+/* 這些區塊不可單獨留在頁底，要跟著下一個區塊走 */
+function keepWithNext(e){
+  return /^H[1-6]$/.test(e.tagName)||e.classList.contains("doc-sub")||e.classList.contains("lead")||e.classList.contains("ln");
 }
 
 function paginate(blocks,s){
   const m=$("measure");
-  m.className="content "+s.theme;
+  m.className=contentClass(s);
   m.style.width=contentWidthPx(s)+"px";
-  m.style.fontSize=s.fontSize+"pt";
-  m.style.lineHeight=s.lineHeight;
+  styleContent(m,s);
   m.innerHTML="";
   const avail=contentHeightPx(s);
+  const fits=()=>m.scrollHeight<=avail+0.5;
   const pages=[]; let cur=[]; const queue=blocks.slice(); let guard=0;
-  const finalize=()=>{if(cur.length){cur.forEach(e=>{if(e.parentNode===m)m.removeChild(e);});pages.push(cur);cur=[];}};
+  const newPage=()=>{cur.forEach(e=>{if(e.parentNode===m)m.removeChild(e);});if(cur.length)pages.push(cur);cur=[];};
+
   while(queue.length){
-    if(++guard>6000)break;
-    let b=queue.shift();
+    if(++guard>8000)break;
+    const b=queue.shift();
+    if(b.classList.contains("pagebreak")){if(cur.length)newPage();continue;}
+
     m.appendChild(b);
-    if(m.scrollHeight<=avail+0.5){cur.push(b);continue;}
+    if(fits()){cur.push(b);continue;}
     m.removeChild(b);
-    if(cur.length){finalize();m.appendChild(b);if(m.scrollHeight<=avail+0.5){cur.push(b);continue;}m.removeChild(b);}
-    const parts=splitBlock(m,b,avail);
-    if(!parts){m.appendChild(b);cur.push(b);finalize();continue;}
-    m.appendChild(parts.first);cur.push(parts.first);finalize();
-    queue.unshift(parts.rest);
+
+    // 1) 先嘗試把段落切開，上半段填滿目前頁面剩餘空間
+    const parts=splitBlock(m,b,avail,fits);
+    if(parts){
+      m.appendChild(parts.first);cur.push(parts.first);newPage();
+      queue.unshift(parts.rest);continue;
+    }
+    // 2) 切不了：整段移到下一頁，並把頁底落單的標題／引導句一起帶走
+    if(cur.length){
+      const carry=[];
+      while(cur.length>1&&keepWithNext(cur[cur.length-1])){const c=cur.pop();if(c.parentNode===m)m.removeChild(c);carry.unshift(c);}
+      newPage();queue.unshift(...carry,b);continue;
+    }
+    // 3) 空白頁仍放不下且無法切割：直接放入（超出部分會被裁切）
+    m.appendChild(b);cur.push(b);newPage();
   }
-  finalize();
+  newPage();
   if(pages.length===0)pages.push([]);
   return pages;
 }
@@ -400,9 +587,11 @@ function makePage(s){
   page.style.width=s.pageW+"mm";page.style.height=s.pageH+"mm";
   const inner=el("div","page-inner");
   inner.style.top=s.mTop+"mm";inner.style.bottom=s.mBot+"mm";inner.style.left=s.mLeft+"mm";inner.style.right=s.mRight+"mm";
-  const ph=el("div","ph");ph.style.height=s.headerShow?s.headerH+"mm":"0";ph.style.marginBottom=s.headerShow?"1.5mm":"0";
-  const pb=el("div","pb content "+s.theme);pb.style.fontSize=s.fontSize+"pt";pb.style.lineHeight=s.lineHeight;
-  const pf=el("div","pf");pf.style.height=s.footerShow?s.footerH+"mm":"0";pf.style.marginTop=s.footerShow?"1.5mm":"0";
+  const ph=el("div","ph");ph.style.height=s.headerShow?s.headerH+"mm":"0";ph.style.marginBottom=s.headerShow?"2.5mm":"0";
+  if(!s.headerShow)ph.style.borderBottom="0";
+  const pb=el("div","pb "+contentClass(s));styleContent(pb,s);
+  const pf=el("div","pf");pf.style.height=s.footerShow?s.footerH+"mm":"0";pf.style.marginTop=s.footerShow?"2.5mm":"0";
+  if(!s.footerShow)pf.style.borderTop="0";
   inner.append(ph,pb,pf);page.appendChild(inner);
   return page;
 }
@@ -440,16 +629,14 @@ function doRender(){
   const built=buildBodyHtml();
   s.title=built.title||s.title;
 
-  // update dynamic @page
-  const land=$("orientation").value==="landscape";
   $("pageStyle").textContent="@page{size:"+s.pageW+"mm "+s.pageH+"mm;margin:0}";
 
-  // build blocks
   const tmp=el("div");tmp.innerHTML=built.html;
   const blocks=[];
   if(!s.cover&&s.title){const t=el("h1","doc-title");t.textContent=s.title;blocks.push(t);
     if(s.subtitle){const sub=el("div","doc-sub");sub.textContent=s.subtitle;blocks.push(sub);}}
   Array.from(tmp.childNodes).forEach(n=>{if(n.nodeType===1)blocks.push(n);});
+  if(s.autospace&&!NATIVE_AUTOSPACE)blocks.forEach(applyAutospace);
 
   const pages=paginate(blocks,s);
 
@@ -467,7 +654,6 @@ function doRender(){
   fitPreview(s);
 }
 function fitPreview(s){
-  // scale pages to fit stage width on narrow screens
   const stage=document.querySelector(".stage");
   const avail=stage.clientWidth-52;
   const pageW=s.pageW*PXMM;
@@ -477,12 +663,11 @@ function fitPreview(s){
     p.style.marginBottom=scale<1?(-(1-scale)*s.pageH*PXMM+20)+"px":"";
   });
 }
-function render(){clearTimeout(renderTimer);renderTimer=setTimeout(doRender,160);}
+function render(){clearTimeout(renderTimer);renderTimer=setTimeout(doRender,180);}
 
 /* ---------- actions ---------- */
 function printPDF(){
   doRender();
-  const s=getSettings();
   const name=(( $("title").value||"文件").replace(/[\\/:*?"<>|]/g,"_")).slice(0,80);
   const old=document.title;document.title=name;
   setTimeout(()=>{window.print();setTimeout(()=>document.title=old,800);},60);
@@ -505,9 +690,10 @@ $("fileInput").addEventListener("change",e=>{
   r.readAsText(f,"utf-8");
 });
 ["text","title","subtitle","author","date","header","footer"].forEach(id=>$(id).addEventListener("input",render));
-["paper","orientation","fontSize","lineHeight","margin","theme"].forEach(id=>$(id).addEventListener("change",doRender));
-["autoTitle","cover","pageNum"].forEach(id=>$(id).addEventListener("change",doRender));
-window.addEventListener("resize",()=>fitPreview(getSettings()));
+["paper","orientation","fontSize","lineHeight","margin","theme","lineMode","paraGap","align","indent"].forEach(id=>$(id).addEventListener("change",doRender));
+["autoTitle","cover","pageNum","autospace","smart"].forEach(id=>$(id).addEventListener("change",doRender));
+let resizeT=null;
+window.addEventListener("resize",()=>{clearTimeout(resizeT);resizeT=setTimeout(()=>fitPreview(getSettings()),100);});
 
 /* ---------- sample ---------- */
 const SAMPLE=`如果你覺得現在的台灣政府做得很好，我尊重你的看法。
@@ -547,6 +733,8 @@ const SAMPLE=`如果你覺得現在的台灣政府做得很好，我尊重你的
 
 $("text").value=SAMPLE;$("autoTitle").checked=false;$("title").disabled=false;
 doRender();
+// 字型載入完成後重新量測，避免分頁位置因字型替換而偏移
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(doRender);
 </script>
 </body>
 </html>
